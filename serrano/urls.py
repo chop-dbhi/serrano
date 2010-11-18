@@ -2,19 +2,15 @@ from django.conf.urls.defaults import *
 from django.conf import settings
 
 urlpatterns = patterns('',
-    url(r'^denied/', 'core.views.denied', name='denied'),
-    # current API
-    url(r'^api/', include('serrano.api.urls', namespace='api')),
-    # versioned APIs
-    url(r'^api/v1/', include('serrano.api.urls')),
-)
+    # authentication    
+    url(r'^login/$', 'serrano.views.login',
+        {'template_name': 'login.html'}, name='login'),
+    url(r'^logout/$', 'django.contrib.auth.views.logout_then_login',
+        name='logout'),
 
-if settings.DEBUG:
-    media_url = settings.MEDIA_URL
-    if media_url.startswith('/'):
-        media_url = media_url[1:]
-    urlpatterns += patterns('',
-        url(r'^%s(?P<path>.*)$' % media_url, 'django.views.static.serve',
-            {'document_root': settings.MEDIA_ROOT}),
-    )
-    del media_url
+    url(r'^define/$', 'serrano.views.define', name='define'),
+    url(r'^report/$', 'serrano.views.report', name='report'),
+
+    # API
+    url(r'^api/', include('serrano.api.urls', namespace='api')),
+)
