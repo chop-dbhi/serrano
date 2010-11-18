@@ -9,7 +9,7 @@ from piston.utils import rc
 from avocado.models import Category, Scope, Perspective, Report, Column
 from avocado.fields import logictree
 from serrano.http import ExcelResponse
-from serrano.utils.types import uni2str
+from serrano.utils import uni2str
 from serrano.api.models import CriterionProxy
 from avocado.conf import settings
 
