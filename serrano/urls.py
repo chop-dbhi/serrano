@@ -4,9 +4,9 @@ from django.conf import settings
 urlpatterns = patterns('',
     url(r'^denied/', 'core.views.denied', name='denied'),
     # current API
-    url(r'^api/', include('avocado.contrib.server.api.urls', namespace='api')),
+    url(r'^api/', include('serrano.api.urls', namespace='api')),
     # versioned APIs
-    url(r'^api/v1/', include('avocado.contrib.server.api.urls')),
+    url(r'^api/v1/', include('serrano.api.urls')),
 )
 
 if settings.DEBUG:

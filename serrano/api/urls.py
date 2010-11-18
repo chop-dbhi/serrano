@@ -2,7 +2,7 @@ from django.conf.urls.defaults import *
 from django.views.decorators.cache import never_cache, cache_page
 from piston.resource import Resource
 
-from avocado.contrib.server.api.handlers import (CriterionHandler, ColumnHandler,
+from serrano.api.handlers import (CriterionHandler, ColumnHandler,
     CategoryHandler, ScopeHandler, PerspectiveHandler, ReportHandler,
     ReportResolverHandler)
 

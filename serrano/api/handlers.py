@@ -8,9 +8,9 @@ from piston.utils import rc
 
 from avocado.models import Category, Scope, Perspective, Report, Column
 from avocado.fields import logictree
-from avocado.contrib.server.http import ExcelResponse
-from avocado.contrib.server.utils.types import uni2str
-from avocado.contrib.server.api.models import CriterionProxy
+from serrano.http import ExcelResponse
+from serrano.utils.types import uni2str
+from serrano.api.models import CriterionProxy
 from avocado.conf import settings
 
 class CategoryHandler(BaseHandler):

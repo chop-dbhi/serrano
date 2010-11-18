@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.models import User, Group, Permission
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
 
-from avocado.contrib.server.admin import main_admin
+from serrano.admin import main_admin
 
 #class UserAdmin(admin.ModelAdmin):
 #    fieldsets = (
