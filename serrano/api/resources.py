@@ -5,7 +5,7 @@ from avocado.models import Category
 
 class CategoryResource(resources.Resource):
 
-    def GET(self, request, pk):
+    def GET(self, request):
         categories = Category.objects.values('id', 'name')
-        json = simplejson.dumps(categories)
+        json = simplejson.dumps(list(categories))
         return HttpResponse(json, mimetype='application/json')

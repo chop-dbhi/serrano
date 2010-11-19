@@ -8,7 +8,7 @@ from serrano.api.handlers import (CriterionHandler, ColumnHandler,
 
 criterion =  cache_page(Resource(CriterionHandler), 60*60)
 column = cache_page(Resource(ColumnHandler), 60*60)
-category =  cache_page(Resource(CategoryHandler), 60*60*24*30)
+#category =  cache_page(Resource(CategoryHandler), 60*60*24*30)
 
 scope =  never_cache(Resource(ScopeHandler))
 perspective = never_cache(Resource(PerspectiveHandler))
@@ -16,8 +16,8 @@ report = never_cache(Resource(ReportHandler))
 report_resolver = never_cache(Resource(ReportResolverHandler))
 
 category_patterns = patterns('',
-    url(r'^$', category, name='read'),
-    url(r'^(?P<id>\d+)/$', category, name='read'),
+    url(r'^$', 'serrano.api.resources.CategoryResource', name='read'),
+#    url(r'^(?P<id>\d+)/$', category, name='read'),
 )
 
 criterion_patterns = patterns('',
