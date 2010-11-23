@@ -6,98 +6,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from piston.handler import BaseHandler
 from piston.utils import rc
 
-from avocado.models import Category, Scope, Perspective, Report, Column
+from avocado.models import Scope, Perspective, Report, Column
 from avocado.fields import logictree
 from serrano.http import ExcelResponse
 from serrano.utils import uni2str
-from serrano.api.models import CriterionProxy
 from avocado.conf import settings
-
-class CategoryHandler(BaseHandler):
-    model = Category
-    allowed_methods = ('GET',)
-    fields = ('id', 'name')
-
-
-class CriterionHandler(BaseHandler):
-    model = CriterionProxy
-    allowed_methods = ('GET', 'POST')
-
-    def queryset(self, request):
-        "Overriden to allow for user specificity."
-        # restrict_by_group only in effect when FIELD_GROUP_PERMISSIONS is
-        # enabled
-        if settings.FIELD_GROUP_PERMISSIONS:
-            groups = request.user.groups.all()
-            return self.model.objects.restrict_by_group(groups)
-        return self.model.objects.public()
-
-    def read(self, request, *args, **kwargs):
-        obj = super(CriterionHandler, self).read(request, *args, **kwargs)
-
-        if isinstance(obj, HttpResponse):
-            return obj
-
-        # if an instance was returned, return the view responses
-        if isinstance(obj, self.model):
-            return obj.view_responses()
-
-        # apply fulltext if the 'q' GET param exists
-        if request.GET.has_key('q'):
-            obj = self.model.objects.fulltext_search(request.GET.get('q'), obj, True)
-            obj.query.clear_ordering(True)
-            return obj.values_list('id', flat=True)
-
-        obj = obj.order_by('category', 'order')
-        return map(lambda x: x.json(), obj)
-
-    # TODO move this to the ``Scope`` resource since the request is the same --
-    # it is merely the response that is different
-    def create(self, request):
-        json = uni2str(request.data)
-        if not any([x in json for x in ('type', 'operator')]):
-            return rc.BAD_REQUEST
-
-        text = logictree.transform(json).text
-
-        j = ''
-        if text.has_key('type'):
-            j = ' %s ' % text['type']
-
-        resp = rc.ALL_OK
-        resp._container = [j.join(text['conditions'])]
-        return resp
-
-
-class ColumnHandler(BaseHandler):
-    allowed_methods = ('GET',)
-    model = Column
-    fields = ('id', 'name', 'description')
-
-    def queryset(self, request):
-        "Overriden to allow for user specificity."
-        # restrict_by_group only in effect when FIELD_GROUP_PERMISSIONS is
-        # enabled
-        if settings.FIELD_GROUP_PERMISSIONS:
-            groups = request.user.groups.all()
-            return self.model.objects.restrict_by_group(groups)
-        return self.model.objects.public()
-
-    def read(self, request, *args, **kwargs):
-        obj = super(ColumnHandler, self).read(request, *args, **kwargs)
-
-        if isinstance(obj, HttpResponse):
-            return obj
-
-        # apply fulltext if the 'q' GET param exists
-        if request.GET.has_key('q'):
-            obj = self.model.objects.fulltext_search(request.GET.get('q'), obj, True)
-            return obj.values_list('id', flat=True)
-
-        obj = list(obj.order_by('category', 'order'))
-        return [{'name': k.name, 'id': k.id, 'columns': list(v)}
-            for k, v in groupby(obj, lambda x: x.category)]
-
 
 class ScopeHandler(BaseHandler):
     allowed_methods = ('GET', 'PUT')
