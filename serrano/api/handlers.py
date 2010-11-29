@@ -1,16 +1,13 @@
-from itertools import groupby
 from datetime import datetime
 
-from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
 from piston.handler import BaseHandler
 from piston.utils import rc
 
-from avocado.models import Scope, Perspective, Report, Column
+from avocado.models import Scope, Perspective, Report
 from avocado.fields import logictree
 from serrano.http import ExcelResponse
 from serrano.utils import uni2str
-from avocado.conf import settings
 
 class ScopeHandler(BaseHandler):
     allowed_methods = ('GET', 'PUT')

@@ -1,12 +1,12 @@
 from itertools import groupby
 
 from django.http import HttpResponse
-from django.utils import simplejson
 from django.core.urlresolvers import reverse
 from restlib import http
 from restlib.http import resources
 from avocado.conf import settings
 from avocado.fields import logictree
+from serrano.utils import uni2str
 
 class CategoryResource(resources.ModelResource):
     "Resource for ``avocado.Category``"
@@ -59,7 +59,7 @@ class CriterionResource(resources.ModelResource):
     # TODO move this to the ``Scope`` resource since the request is the same --
     # it is merely the response that is different
     def POST(self, request):
-        json = request.data
+        json = uni2str(request.data.copy())
 
         if not any([x in json for x in ('type', 'operator')]):
             return HttpResponse('Invalid data format', status=http.BAD_REQUEST)
