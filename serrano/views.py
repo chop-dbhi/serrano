@@ -15,7 +15,8 @@ from django.contrib.auth.models import User
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 
-from serrano.api.resources import CriterionResource, ColumnResource
+from serrano.api.resources import (CriterionResourceCollection,
+    ColumnResourceCollection)
 from serrano.utils import get_ip_address
 
 MAX_LOGIN_ATTEMPTS = 10
@@ -118,14 +119,14 @@ def login(request, template_name='registration/login.html',
 
 
 def define(request):
-    criteria = CriterionResource().GET(request)
+    criteria = CriterionResourceCollection().GET(request)
 
     return render_to_response('define.html', {
         'criteria': criteria,
     }, context_instance=RequestContext(request))
 
 def report(request):
-    columns = ColumnResource().GET(request)
+    columns = ColumnResourceCollection().GET(request)
     return render_to_response('report.html', {
         'columns': columns,
     }, context_instance=RequestContext(request))

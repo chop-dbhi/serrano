@@ -1,55 +1,45 @@
 from django.conf.urls.defaults import *
-from django.views.decorators.cache import never_cache, cache_page
-from piston.resource import Resource
 
-from serrano.api.handlers import (ScopeHandler, PerspectiveHandler, ReportHandler,
-    ReportResolverHandler)
-
-scope =  never_cache(Resource(ScopeHandler))
-perspective = never_cache(Resource(PerspectiveHandler))
-report = never_cache(Resource(ReportHandler))
-report_resolver = never_cache(Resource(ReportResolverHandler))
-
-category_patterns = patterns('',
-    url(r'^$', 'serrano.api.resources.CategoryResource', name='read'),
+category_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'CategoryResourceCollection', name='read'),
 )
 
-criterion_patterns = patterns('',
-    url(r'^$', 'serrano.api.resources.CriterionResource', name='read'),
-    url(r'^(?P<pk>\d+)/$', 'serrano.api.resources.CriterionResource', name='read'),
+criterion_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'CriterionResourceCollection', name='read'),
+    url(r'^(?P<pk>\d+)/$', 'CriterionResource', name='read'),
 )
 
-column_patterns = patterns('',
-    url(r'^$', 'serrano.api.resources.ColumnResource', name='read'),
+column_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'ColumnResourceCollection', name='read'),
 )
 
 # represents all of the `report` url patterns including
-report_patterns = patterns('',
-    url(r'^$', report, name='read'),
+report_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'ReportResourceCollection', name='read'),
 
     # patterns relative to a particular saved instance
-    url(r'^(?P<id>\d+)/', include(patterns('',
-        url(r'^$', report, name='data'),
-        url(r'^resolve/$', report_resolver, name='resolve'),
+    url(r'^(?P<pk>\d+)/', include(patterns('serrano.api.resources',
+        url(r'^$', 'ReportResource', name='data'),
+        url(r'^resolve/$', 'ReportResolverResource', name='resolve'),
     ), namespace='stored')),
 
     # patterns relative to a temporary instance on the session
-    url(r'^session/', include(patterns('',
-        url(r'^$', report, {'id': 'session'}, name='data'),
-        url(r'^resolve/$', report_resolver, {'id': 'session'}, name='resolve'),
+    url(r'^session/', include(patterns('serrano.api.resources',
+        url(r'^$', 'ReportResource', {'pk': 'session'}, name='data'),
+        url(r'^resolve/$', 'ReportResolverResource', {'pk': 'session'}, name='resolve'),
     ), namespace='session'))
 )
 
-scope_patterns = patterns('',
-    url(r'^$', scope, name='read'),
-    url(r'^(?P<id>\d+)/$', scope, name='read'),
-    url(r'^session/$', scope, {'id': 'session'}, name='session'),
+scope_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'ScopeResourceCollection', name='read'),
+    url(r'^(?P<pk>\d+)/$', 'ScopeResource', name='read'),
+    url(r'^session/$', 'ScopeResource', {'pk': 'session'}, name='session'),
 )
 
-perspective_patterns = patterns('',
-    url(r'^$', perspective, name='read'),
-    url(r'^(?P<id>\d+)/$', perspective, name='read'),
-    url(r'^session/$', perspective, {'id': 'session'}, name='session'),
+perspective_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'PerspectiveResourceCollection', name='read'),
+    url(r'^(?P<pk>\d+)/$', 'PerspectiveResource', name='read'),
+    url(r'^session/$', 'PerspectiveResource', {'pk': 'session'}, name='session'),
 )
 
 urlpatterns = patterns('',
