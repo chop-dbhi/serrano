@@ -2,6 +2,7 @@ from django.conf.urls.defaults import *
 
 category_patterns = patterns('serrano.api.resources',
     url(r'^$', 'CategoryResourceCollection', name='read'),
+    url(r'^(?P<pk>\d+)/$', 'CategoryResource', name='read'),
 )
 
 criterion_patterns = patterns('serrano.api.resources',

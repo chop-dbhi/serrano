@@ -35,8 +35,12 @@ class CriterionResourceCollection(resources.ModelResourceCollection):
         return {
             'id': obj.id,
             'name': obj.name,
-            'description': obj.description,
-            'uri': reverse('api:criteria:read', args=(obj.id,))
+            'description': obj.full_description(),
+            'uri': reverse('api:criteria:read', args=(obj.id,)),
+            'category': {
+                'id': obj.category.id,
+                'uri': reverse('api:categories:read', args=(obj.category.id,))
+            }
         }
 
     def GET(self, request):
