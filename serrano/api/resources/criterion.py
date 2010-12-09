@@ -39,6 +39,7 @@ class CriterionResourceCollection(resources.ModelResourceCollection):
             'uri': reverse('api:criteria:read', args=(obj.id,)),
             'category': {
                 'id': obj.category.id,
+                'name': obj.category.name,
                 'uri': reverse('api:categories:read', args=(obj.category.id,))
             }
         }
