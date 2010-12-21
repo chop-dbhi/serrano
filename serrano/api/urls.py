@@ -14,21 +14,10 @@ column_patterns = patterns('serrano.api.resources',
     url(r'^$', 'ColumnResourceCollection', name='read'),
 )
 
-# represents all of the `report` url patterns including
 report_patterns = patterns('serrano.api.resources',
-    url(r'^$', 'ReportResourceCollection', name='read'),
-
-    # patterns relative to a particular saved instance
-    url(r'^(?P<pk>\d+)/', include(patterns('serrano.api.resources',
-        url(r'^$', 'ReportResource', name='data'),
-        url(r'^resolve/$', 'ReportResolverResource', name='resolve'),
-    ), namespace='stored')),
-
-    # patterns relative to a temporary instance on the session
-    url(r'^session/', include(patterns('serrano.api.resources',
-        url(r'^$', 'ReportResource', {'pk': 'session'}, name='data'),
-        url(r'^resolve/$', 'ReportResolverResource', {'pk': 'session'}, name='resolve'),
-    ), namespace='session'))
+    # url(r'^$', 'ReportResourceCollection', name='read'),
+    url(r'^(?P<pk>\d+)/', 'ReportResource', name='read'),
+    url(r'^session/', 'ReportResource', {'pk': 'session'}, name='session'),
 )
 
 scope_patterns = patterns('serrano.api.resources',

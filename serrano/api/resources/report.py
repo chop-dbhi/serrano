@@ -6,7 +6,7 @@ from restlib.http import resources
 
 from serrano.http import ExcelResponse
 
-__all__ = ('ReportResource', 'ReportResolverResource', 'ReportResourceCollection')
+__all__ = ('ReportResource',)
 
 class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
@@ -15,25 +15,6 @@ class ReportResource(resources.ModelResource):
     def queryset(self, request):
         return self.model.objects.filter(user=request.user)
 
-    def GET(self, request, pk):
-        queryset = self.queryset(request)
-
-        if pk == 'session':
-            obj = request.session['report']
-        else:
-            try:
-                obj = queryset.get(pk=pk)
-            except self.model.DoesNotExist:
-                return HttpResponse(status=http.NOT_FOUND)
-        return self.obj_to_dict(obj)
-
-
-class ReportResourceCollection(resources.ModelResourceCollection):
-    resource = ReportResource()
-    fields = ('id', 'name', 'description')
-
-
-class ReportResolverResource(ReportResource):
     def _export_csv(self, request, inst, *args, **kwargs):
         context = {'user': request.user}
 
@@ -58,7 +39,7 @@ class ReportResolverResource(ReportResource):
         rows = inst._execute_raw_query(queryset)
         iterator = inst.perspective.format(rows, 'csv')
         header = inst.perspective.get_columns_as_fields()
-        name = 'audgendb_report-' + datetime.now().strftime('%Y-%m-%d-%H,%M,%S')
+        name = 'report-' + datetime.now().strftime('%Y-%m-%d-%H,%M,%S')
 
         return ExcelResponse(list(iterator), name, header)
 
