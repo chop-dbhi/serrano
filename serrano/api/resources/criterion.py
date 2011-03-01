@@ -13,10 +13,7 @@ class CriterionResource(resources.ModelResource):
 
     def queryset(self, request):
         "Overriden to allow for user specificity."
-        if settings.FIELD_GROUP_PERMISSIONS:
-            groups = request.user.groups.all()
-            return self.model.objects.restrict_by_group(groups)
-        return self.model.objects.public()
+        return self.model.objects.public(user=request.user)
 
     def GET(self, request, pk):
         queryset = self.queryset(request)
