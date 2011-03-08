@@ -35,7 +35,7 @@ class ColumnResourceCollection(resources.ModelResourceCollection):
             'columns': [{
                 'id': x.id,
                 'name': x.name,
-                'description': x.description
+                'description': x.full_description()
             } for x in columns]
         } for category, columns in groupby(list(queryset),
             lambda x: x.category)]
