@@ -78,7 +78,7 @@ class AuthNotRequiredMiddleware(BaseAuthMiddleware):
         if request.user.is_authenticated():
             return
 
-        path = request.path.lstrip('/')
+        path = request.path_info.lstrip('/')
         for url in self.urls:
             if url.match(path):
                 return
@@ -97,7 +97,7 @@ class AuthRequiredMiddleware(BaseAuthMiddleware):
         if request.user.is_authenticated():
             return
 
-        path = request.path.lstrip('/')
+        path = request.path_info.lstrip('/')
         for url in self.urls:
             if url.match(path):
                 if request.is_ajax():
