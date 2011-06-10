@@ -1,8 +1,5 @@
-from django.http import HttpResponse
 from django.core.urlresolvers import reverse
-from restlib import http
-from restlib.http import resources
-from avocado.conf import settings
+from restlib import http, resources
 from avocado.fields import logictree
 from serrano.utils import uni2str
 
@@ -11,35 +8,35 @@ __all__ = ('CriterionResource', 'CriterionResourceCollection')
 class CriterionResource(resources.ModelResource):
     model = 'avocado.Criterion'
 
+    fields = (':pk', 'name', 'full_description->description', 'uri',
+        'category')
+
+    @classmethod
+    def uri(self, obj):
+        return reverse('api:criteria:read', args=(obj.id,))
+
+    @classmethod
     def queryset(self, request):
         "Overriden to allow for user specificity."
         return self.model.objects.public(user=request.user)
 
     def GET(self, request, pk):
-        queryset = self.queryset(request)
+        obj = self.get(request, pk=pk)
 
-        try:
-            obj = queryset.get(pk=pk)
-        except self.model.DoesNotExist:
-            return HttpResponse(status=http.NOT_FOUND)
+        if not obj:
+            return http.NOT_FOUND
+
         return obj.view_responses()
 
 
 class CriterionResourceCollection(resources.ModelResourceCollection):
-    resource = CriterionResource()
+    resource = CriterionResource
 
-    def obj_to_dict(self, obj):
-        return {
-            'id': obj.id,
-            'name': obj.name,
-            'description': obj.full_description(),
-            'uri': reverse('api:criteria:read', args=(obj.id,)),
-            'category': {
-                'id': obj.category.id,
-                'name': obj.category.name,
-                'uri': reverse('api:categories:read', args=(obj.category.id,))
-            }
-        }
+    middleware = ('serrano.api.middleware.CSRFExemption',) + \
+        resources.Resource.middleware
+
+    # HACK.. as with the custom middleware above
+    csrf_exempt = True
 
     def GET(self, request):
         queryset = self.queryset(request)
@@ -51,8 +48,7 @@ class CriterionResourceCollection(resources.ModelResourceCollection):
             queryset.query.clear_ordering(True)
             return list(queryset.values_list('id', flat=True))
 
-        queryset = queryset.order_by('category', 'order')
-        return map(self.obj_to_dict, queryset)
+        return queryset.order_by('category', 'order')
 
     # TODO move this to the ``Scope`` resource since the request is the same --
     # it is merely the response that is different
@@ -60,7 +56,7 @@ class CriterionResourceCollection(resources.ModelResourceCollection):
         json = uni2str(request.data.copy())
 
         if not any([x in json for x in ('type', 'operator')]):
-            return HttpResponse('Invalid data format', status=http.BAD_REQUEST)
+            return http.BAD_REQUEST, 'Invalid data format'
 
         text = logictree.transform(json).text
 

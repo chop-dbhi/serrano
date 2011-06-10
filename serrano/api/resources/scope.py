@@ -1,6 +1,4 @@
-from django.http import HttpResponse
-from restlib import http
-from restlib.http import resources
+from restlib import http, resources
 from serrano.utils import uni2str
 
 __all__ = ('ScopeResource', 'ScopeResourceCollection')
@@ -8,18 +6,16 @@ __all__ = ('ScopeResource', 'ScopeResourceCollection')
 class ScopeResource(resources.ModelResource):
     model = 'avocado.Scope'
 
-    def obj_to_dict(self, obj):
-        return {
-            'id': obj.id,
-            'name': obj.name,
-            'description': obj.description,
-            'store': obj.store,
-            'count': obj.cnt,
-            'text': obj.get_text(),
-        }
+    fields = (':pk', 'name', 'description', 'store', 'cnt->count',
+        'get_text->text')
 
+    middleware = (
+        'serrano.api.middleware.NeverCache',
+    ) + resources.Resource.middleware
+
+    @classmethod
     def queryset(self, request):
-        return self.model.objects.filter(user=request.user)
+        return self.model._default_manager.filter(user=request.user)
 
     def GET(self, request, pk):
         queryset = self.queryset(request)
@@ -27,11 +23,11 @@ class ScopeResource(resources.ModelResource):
         if pk == 'session':
             obj = request.session['report'].scope
         else:
-            try:
-                obj = queryset.get(pk=pk)
-            except self.model.DoesNotExist:
-                return HttpResponse(status=http.NOT_FOUND)
-        return self.obj_to_dict(obj)
+            obj = self.get(request, pk=pk)
+            if not obj:
+                return http.NOT_FOUND
+
+        return obj
 
     def PUT(self, request, pk):
         """
@@ -54,19 +50,18 @@ class ScopeResource(resources.ModelResource):
         # assume the PUT request is only the store
         if pk != 'session':
             if pk != obj.id:
-                try:
-                    obj = self.queryset(request).get(pk=pk)
-                except self.model.DoesNotExist:
-                    return HttpResponse(status=http.NOT_FOUND)
+                obj = self.get(request, pk=pk)
+                if not obj:
+                    return http.NOT_FOUND
 
         store = json.pop('store', None)
 
         if store is not None:
             # TODO improve this method of adding a partial condition tree
             if not obj.is_valid(store):
-                return HttpResponse(status=http.BAD_REQUEST)
+                return http.BAD_REQUEST
             if not obj.has_permission(store, request.user):
-                return HttpResponse(status=http.UNAUTHORIZED)
+                return http.UNAUTHORIZED
 
             partial = store.pop('partial', False)
             obj.write(store, partial=partial)
@@ -81,8 +76,8 @@ class ScopeResource(resources.ModelResource):
 
         request.session.modified = True
 
-        return 'OK'
+        return ''
 
 
 class ScopeResourceCollection(resources.ModelResourceCollection):
-    resource = ScopeResource()
+    resource = ScopeResource

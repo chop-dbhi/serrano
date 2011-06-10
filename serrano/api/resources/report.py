@@ -1,19 +1,21 @@
 from datetime import datetime
-
-from django.http import HttpResponse
-from restlib import http
-from restlib.http import resources
-
+from restlib import http, resources
 from serrano.http import ExcelResponse
 
 __all__ = ('ReportResource',)
 
 class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
-    fields = ('id', 'name', 'description')
 
+    fields = (':pk', 'name', 'description')
+
+    middleware = (
+        'serrano.api.middleware.NeverCache',
+    ) + resources.Resource.middleware
+
+    @classmethod
     def queryset(self, request):
-        return self.model.objects.filter(user=request.user)
+        return self.model._default_manager.filter(user=request.user)
 
     def _export_csv(self, request, inst, *args, **kwargs):
         context = {'user': request.user}
@@ -51,15 +53,14 @@ class ReportResource(resources.ModelResource):
 
         if pk != 'session':
             if int(pk) != inst.id:
-                try:
-                    inst = self.queryset(request).get(pk=pk)
-                except self.model.DoesNotExist:
-                    return HttpResponse(status=http.NOT_FOUND)
+                inst = self.get(request, pk=pk)
+                if not inst:
+                    return http.NOT_FOUND
 
         user = request.user
 
         if not inst.has_permission(user):
-            return HttpResponse(status=http.FORBIDDEN)
+            return http.FORBIDDEN
 
         format_type = request.GET.get('f', None)
 

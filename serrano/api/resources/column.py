@@ -1,20 +1,22 @@
 from itertools import groupby
-
-from restlib.http import resources
-from avocado.conf import settings
+from restlib import resources
+from restlib.resources import utils
 
 __all__ = ('ColumnResource', 'ColumnResourceCollection')
 
 class ColumnResource(resources.ModelResource):
     model = 'avocado.Column'
 
+    fields = (':pk', 'name', 'full_description->description')
+
+    @classmethod
     def queryset(self, request):
         "Overriden to allow for user specificity."
         return self.model.objects.public(user=request.user)
 
 
 class ColumnResourceCollection(resources.ModelResourceCollection):
-    resource = ColumnResource()
+    resource = ColumnResource
 
     def GET(self, request):
         queryset = self.queryset(request)
@@ -32,11 +34,7 @@ class ColumnResourceCollection(resources.ModelResourceCollection):
         return [{
             'id': category.id,
             'name': category.name,
-            'columns': [{
-                'id': x.id,
-                'name': x.name,
-                'description': x.full_description()
-            } for x in columns]
+            'columns': utils.model_to_resource(columns)
         } for category, columns in groupby(list(queryset),
             lambda x: x.category)]
 
