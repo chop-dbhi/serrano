@@ -68,7 +68,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
     for file_info in data_files:
         file_info[0] = '\\PURELIB\\%s' % file_info[0]
 
-version = __import__(BASE_PACKAGE).__version__
+version = __import__(BASE_PACKAGE).get_version()
 
 setup(
     version = version.replace(' ', '-'),
