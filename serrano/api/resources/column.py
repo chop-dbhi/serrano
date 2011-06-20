@@ -1,6 +1,5 @@
 from itertools import groupby
 from restlib import resources
-from restlib.resources import utils
 
 __all__ = ('ColumnResource', 'ColumnResourceCollection')
 
@@ -34,7 +33,7 @@ class ColumnResourceCollection(resources.ModelResourceCollection):
         return [{
             'id': category.id,
             'name': category.name,
-            'columns': utils.model_to_resource(columns)
+            'columns': list(columns),
         } for category, columns in groupby(list(queryset),
             lambda x: x.category)]
 
