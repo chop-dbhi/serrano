@@ -9,7 +9,7 @@ class CriterionResource(resources.ModelResource):
     model = 'avocado.Criterion'
 
     fields = (':pk', 'name', 'full_description->description', 'uri',
-        'category')
+        'category->domain')
 
     @classmethod
     def uri(self, obj):
