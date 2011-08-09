@@ -1,13 +1,12 @@
 from datetime import datetime
+from django.utils.timesince import timesince
 from restlib import http, resources
 from serrano.http import ExcelResponse
 
-__all__ = ('ReportResource',)
+__all__ = ('ReportResource', 'ReportResourceCollection')
 
 class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
-
-    fields = (':pk', 'name', 'description')
 
     middleware = (
         'serrano.api.middleware.NeverCache',
@@ -64,6 +63,7 @@ class ReportResource(resources.ModelResource):
 
         format_type = request.GET.get('f', None)
 
+        # XXX: hack
         if format_type == 'csv':
             return self._export_csv(request, inst, pk)
 
@@ -144,6 +144,13 @@ class ReportResource(resources.ModelResource):
             'rows': list(inst.perspective.format(rows, 'html')),
         }
 
+        if inst.name:
+            resp['name'] = inst.name
+
+        if inst.description:
+            resp['description'] = inst.description
+            
+
         # a *no change* requests implies the page has been requested statically
         # and the whole response object must be provided
         resp.update({
@@ -164,3 +171,41 @@ class ReportResource(resources.ModelResource):
             })
 
         return resp
+
+
+class SimpleReportResource(resources.ModelResource):
+    model = 'avocado.Report'
+
+    fields = (':pk', 'name', 'description', 'modified', 'timesince')
+
+    default_for_related = False
+
+    @classmethod
+    def timesince(self, obj):
+        return timesince(obj.modified)
+
+    @classmethod
+    def queryset(self, request):
+        return self.model._default_manager.filter(user=request.user)
+
+    def GET(self, request, pk):
+        inst = request.session['report']
+
+        if pk != 'session':
+            if int(pk) != inst.id:
+                inst = self.get(request, pk=pk)
+                if not inst:
+                    return http.NOT_FOUND
+
+        if not inst.has_permission(request.user):
+            return http.FORBIDDEN
+
+        return inst
+
+
+class ReportResourceCollection(resources.ModelResourceCollection):
+    resource = SimpleReportResource
+
+    def GET(self, request):
+        return self.queryset(request)
+

@@ -15,7 +15,7 @@ column_patterns = patterns('serrano.api.resources',
 )
 
 report_patterns = patterns('serrano.api.resources',
-    # url(r'^$', 'ReportResourceCollection', name='read'),
+    url(r'^$', 'ReportResourceCollection', name='read'),
     url(r'^(?P<pk>\d+)/', 'ReportResource', name='read'),
     url(r'^session/', 'ReportResource', {'pk': 'session'}, name='session'),
 )
@@ -35,7 +35,7 @@ perspective_patterns = patterns('serrano.api.resources',
 urlpatterns = patterns('',
     url(r'^criteria/', include(criterion_patterns, namespace='criteria')),
     url(r'^columns/', include(column_patterns, namespace='columns')),
-    url(r'^categories/', include(category_patterns, namespace='categories')),
+    url(r'^domains/', include(category_patterns, namespace='categories')),
     url(r'^reports/', include(report_patterns, namespace='reports')),
     url(r'^scope/', include(scope_patterns, namespace='scope')),
     url(r'^perspectives/', include(perspective_patterns, namespace='perspectives')),
