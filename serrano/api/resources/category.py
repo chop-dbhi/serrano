@@ -6,10 +6,10 @@ __all__ = ('CategoryResource', 'CategoryResourceCollection',)
 class CategoryResource(resources.ModelResource):
     model = 'avocado.Category'
 
-    fields = (':pk', 'name', 'uri', 'parent')
+    fields = (':pk', 'name', 'url', 'parent')
 
     @classmethod
-    def uri(self, obj):
+    def url(self, obj):
         return reverse('api:categories:read', args=(obj.id,))
 
     def GET(self, request, pk):
