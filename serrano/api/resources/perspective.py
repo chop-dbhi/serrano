@@ -1,81 +1,137 @@
+from django.utils.timesince import timesince
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
 from restlib import http, resources
-from serrano.utils import uni2str
+from avocado.store.forms import PerspectiveForm, SessionPerspectiveForm
 
-__all__ = ('PerspectiveResource', 'PerspectiveResourceCollection')
+__all__ = ('PerspectiveResource', 'SessionPerspectiveResource', 'PerspectiveResourceCollection')
 
 class PerspectiveResource(resources.ModelResource):
+    """The standard resource for perspectives. The API is currently limited to
+    prevent overwriting of an existing perspective. Simple ``write`` operations
+    targeting descriptive information (e.g. name) can be performed at any time.
+    """
     model = 'avocado.Perspective'
 
-    fields = ('store', 'header')
+    default_for_related = False
 
-    middleware = (
-        'serrano.api.middleware.NeverCache',
-    ) + resources.Resource.middleware
+    fields = (':pk', 'name', 'description', 'keywords', 'timesince', 'modified')
+
+    @classmethod
+    def timesince(self, obj):
+        if obj.modified:
+            return '%s ago' % timesince(obj.modified)
 
     @classmethod
     def queryset(self, request):
-        return self.model.objects.filter(user=request.user)
+        return self.model.objects.filter(user=request.user, session=False)
+
+    def DELETE(self, request, pk):
+        "Deletes a perspective and deferences the object from the session."
+        session_obj = request.session['report'].perspective
+
+        if session_obj.references(pk):
+            session_obj.dereference()
+            request.session.modified = True
+        else:
+            obj = self.queryset(request).filter(pk=pk)
+            obj.delete()
+
+        return http.NO_CONTENT
 
     def GET(self, request, pk):
-        queryset = self.queryset(request)
+        "Fetches a perspective and sets the session perspective to be a proxy."
+        session_obj = request.session['report'].perspective
+        # if this object is already referenced by the session, simple return
+        if session_obj.references(pk):
+            return session_obj.reference
 
-        if pk == 'session':
-            obj = request.session['report'].perspective
+        # attempt to fetch the requested object
+        obj = self.get(request, pk=pk)
+        if not obj:
+            return http.NOT_FOUND
+        # set the session object to be the proxy for the requested object and
+        # perform a soft save to save off the reference.
+        session_obj.proxy(obj)
+        session_obj.save()
+
+        request.session.modified = True
+        return obj
+
+    def PUT(self, request, pk):
+        """Explicitly updates an existing object given the request data. The
+        data that can be updated via the request is limited to simple
+        description data. Note, that if there are any pending changes applied
+        via the session, these will be saved as well.
+        """
+        session_obj = request.session['report'].perspective
+
+        if session_obj.references(pk):
+            obj = session_obj.reference
         else:
             obj = self.get(request, pk=pk)
             if not obj:
                 return http.NOT_FOUND
 
-        return obj
+        form = PerspectiveForm(request.data, instance=obj)
 
-    def PUT(self, request, pk):
-        """
-        If the session's current ``perspective`` is not temporary, it will be
-        copied and store off temporarily.
-        """
-        # if the request is relative to the session and not to a specific id,
-        # it cannot be assumed that if the session is using a saved scope
-        # for it, iself, to be updated, but rather the session representation.
-        # therefore, if the session scope is not temporary, make it a
-        # temporary object with the new parameters.
-        obj = request.session['report'].perspective
+        if form.is_valid():
+            saved_obj = form.save()
+            session_obj.proxy(saved_obj)
+            session_obj.save()
 
-        json = uni2str(request.data)
+            if saved_obj.pk is obj.pk:
+                return obj
+
+            headers = {'Location': reverse('api:perspectives:read', args=[saved_obj.pk])}
+            return http.SEE_OTHER(**headers)
+
+        return form.errors
+
+
+class SessionPerspectiveResource(resources.ModelResource):
+    model = 'avocado.Perspective'
+
+    fields = (':pk', 'name', 'description', 'keywords', 'store', 'header',
+        'has_changed', 'timesince', 'modified')
+
+    @classmethod
+    def timesince(self, obj):
+        if obj.modified:
+            return '%s ago' % timesince(obj.modified)
+
+    def GET(self, request):
+        "Return this session's current perspective."
+        return request.session['report'].perspective
+
+    def PUT(self, request):
+        session_obj = request.session['report'].perspective
+        data = request.data
 
         # see if the json object is only the ``store``
-        if json.has_key('columns') or json.has_key('ordering'):
-            json = {'store': json}
+        if data.has_key('columns') or data.has_key('ordering'):
+            data = {'store': data}
 
-        # assume the PUT request is only the store
-        if pk != 'session':
-            if pk != obj.id:
-                obj = self.get(request, pk=pk)
-                if not obj:
-                    return http.NOT_FOUND
-
-        store = json.pop('store', None)
+        store = data.get('store', None)
 
         if store is not None:
-            # TODO improve this method of adding a partial condition tree
-            if not obj.is_valid(store):
+            if not session_obj.is_valid(store):
                 return http.BAD_REQUEST
-            if not obj.has_permission(store, request.user):
+            if not session_obj.has_permission(store, request.user):
                 return http.UNAUTHORIZED
 
-            partial = store.pop('partial', False)
-            obj.write(store, partial=partial)
+        # checked if this session references an existing perspective. if so
+        # the changes will be applied on the referenced object as a "soft"
+        # save. the only caveat is if changes are pending and this request
+        # changes the name. if this case, a new perspective is saved
+        form = SessionPerspectiveForm(data, instance=session_obj)
 
-        for k, v in json.iteritems():
-            setattr(obj, k, v)
+        if form.is_valid():
+            form.save()
+            request.session.modified = True
+            return session_obj
 
-        # only save existing objances that have been saved.
-        # a POST is required to make the initial save
-        if obj.id is not None:
-            obj.save()
-
-        request.session.modified = True
-
-        return ''
+        return form.errors
 
 
 class PerspectiveResourceCollection(resources.ModelResourceCollection):

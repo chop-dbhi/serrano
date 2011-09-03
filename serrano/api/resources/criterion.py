@@ -1,7 +1,6 @@
 from django.core.urlresolvers import reverse
 from restlib import http, resources
 from avocado.fields import logictree
-from serrano.utils import uni2str
 
 __all__ = ('CriterionResource', 'CriterionResourceCollection')
 
@@ -53,7 +52,7 @@ class CriterionResourceCollection(resources.ModelResourceCollection):
     # TODO move this to the ``Scope`` resource since the request is the same --
     # it is merely the response that is different
     def POST(self, request):
-        json = uni2str(request.data.copy())
+        json = request.data
 
         if not any([x in json for x in ('type', 'operator')]):
             return http.BAD_REQUEST, 'Invalid data format'

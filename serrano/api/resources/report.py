@@ -1,22 +1,34 @@
 from datetime import datetime
 from django.utils.timesince import timesince
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
+from avocado.store.forms import ReportForm, SessionReportForm
 from restlib import http, resources
 from serrano.http import ExcelResponse
 
-__all__ = ('ReportResource', 'ReportResourceCollection')
+__all__ = ('ReportResource', 'SessionReportResource', 'ReportResourceCollection')
 
 class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
+
+    fields = (':pk', 'name', 'description', 'modified', 'timesince', 'has_changed')
+
+    default_for_related = False
 
     middleware = (
         'serrano.api.middleware.NeverCache',
     ) + resources.Resource.middleware
 
     @classmethod
-    def queryset(self, request):
-        return self.model._default_manager.filter(user=request.user)
+    def timesince(self, obj):
+        if obj.modified:
+            return '%s ago' % timesince(obj.modified)
 
-    def _export_csv(self, request, inst, *args, **kwargs):
+    @classmethod
+    def queryset(self, request):
+        return self.model._default_manager.filter(user=request.user, session=False)
+
+    def _export_csv(self, request, inst):
         context = {'user': request.user}
 
         # fetch the report cache from the session, default to a new dict with
@@ -44,18 +56,8 @@ class ReportResource(resources.ModelResource):
 
         return ExcelResponse(list(iterator), name, header)
 
-
-    def GET(self, request, pk):
+    def _GET(self, request, inst):
         "The interface for resolving a report, i.e. running a query."
-
-        inst = request.session['report']
-
-        if pk != 'session':
-            if int(pk) != inst.id:
-                inst = self.get(request, pk=pk)
-                if not inst:
-                    return http.NOT_FOUND
-
         user = request.user
 
         if not inst.has_permission(user):
@@ -65,7 +67,7 @@ class ReportResource(resources.ModelResource):
 
         # XXX: hack
         if format_type == 'csv':
-            return self._export_csv(request, inst, pk)
+            return self._export_csv(request, inst)
 
         page_num = request.GET.get('p', None)
         per_page = request.GET.get('n', None)
@@ -149,7 +151,6 @@ class ReportResource(resources.ModelResource):
 
         if inst.description:
             resp['description'] = inst.description
-            
 
         # a *no change* requests implies the page has been requested statically
         # and the whole response object must be provided
@@ -172,35 +173,92 @@ class ReportResource(resources.ModelResource):
 
         return resp
 
+    def DELETE(self, request, pk):
+        session_obj = request.session['report']
 
-class SimpleReportResource(resources.ModelResource):
-    model = 'avocado.Report'
+        if session_obj.get_reference_pk() == int(pk):
+            session_obj.reference.delete()
+            session_obj.reference = None
+            request.session.modified = True
+        else:
+            obj = self.queryset(request).filter(pk=pk)
+            obj.delete()
 
-    fields = (':pk', 'name', 'description', 'modified', 'timesince')
-
-    default_for_related = False
-
-    @classmethod
-    def timesince(self, obj):
-        return timesince(obj.modified)
-
-    @classmethod
-    def queryset(self, request):
-        return self.model._default_manager.filter(user=request.user)
+        return http.NO_CONTENT
 
     def GET(self, request, pk):
-        inst = request.session['report']
+        session_obj = request.session['report']
+        # if this object is already referenced by the session, simple return
+        if session_obj.get_reference_pk() != int(pk):
+            # attempt to fetch the requested object
+            obj = self.get(request, pk=pk)
+            if not obj:
+                return http.NOT_FOUND
+            # set the session object to be the proxy for the requested object and
+            # perform a soft save to save off the reference.
+            session_obj.proxy(obj)
+            session_obj.save()
 
-        if pk != 'session':
-            if int(pk) != inst.id:
-                inst = self.get(request, pk=pk)
-                if not inst:
-                    return http.NOT_FOUND
+            request.session.modified = True
 
-        if not inst.has_permission(request.user):
-            return http.FORBIDDEN
+        if request.GET.has_key('data'):
+            return self._GET(request, session_obj)
+        return session_obj
 
-        return inst
+
+    def PUT(self, request, pk):
+        """Explicitly updates an existing object given the request data. The
+        data that can be updated via the request is limited to simple
+        description data. Note, that if there are any pending changes applied
+        via the session, these will be saved as well.
+        """
+        session_obj = request.session['report']
+        if session_obj.get_reference_pk() == int(pk):
+            obj = session_obj.reference
+        else:
+            obj = self.get(request, pk=pk)
+            if not obj:
+                return http.NOT_FOUND
+            session_obj = None
+
+        form = ReportForm(session_obj, data=request.data, instance=obj)
+
+        if form.is_valid():
+            saved_obj = form.save()
+            if saved_obj.pk is obj.pk:
+                return obj
+
+            headers = {'Location': reverse('api:reports:read', args=[saved_obj.pk])}
+            return http.SEE_OTHER(**headers)
+
+        return form.errors
+
+
+
+class SessionReportResource(ReportResource):
+    "Handles making requests to and from the session's report object."
+
+    fields = (':pk', 'name', 'description', 'modified', 'timesince',
+        'has_changed', 'scope', 'perspective', 'reference')
+
+    def GET(self, request):
+        session_obj = request.session['report']
+        if request.GET.has_key('data'):
+            return self._GET(request, session_obj)
+        return session_obj
+
+    def PUT(self, request):
+        session_obj = request.session['report']
+        form = SessionReportForm(request.data, instance=session_obj)
+
+        if form.is_valid():
+            form.save()
+            return session_obj
+        return form.errors
+
+
+class SimpleReportResource(ReportResource):
+    default_for_related = True
 
 
 class ReportResourceCollection(resources.ModelResourceCollection):

@@ -16,20 +16,20 @@ column_patterns = patterns('serrano.api.resources',
 
 report_patterns = patterns('serrano.api.resources',
     url(r'^$', 'ReportResourceCollection', name='read'),
-    url(r'^(?P<pk>\d+)/', 'ReportResource', name='read'),
-    url(r'^session/', 'ReportResource', {'pk': 'session'}, name='session'),
+    url(r'^(?P<pk>\d+)/$', 'ReportResource', name='read'),
+    url(r'^session/$', 'SessionReportResource', name='session'),
 )
 
 scope_patterns = patterns('serrano.api.resources',
     url(r'^$', 'ScopeResourceCollection', name='read'),
     url(r'^(?P<pk>\d+)/$', 'ScopeResource', name='read'),
-    url(r'^session/$', 'ScopeResource', {'pk': 'session'}, name='session'),
+    url(r'^session/$', 'SessionScopeResource', name='session'),
 )
 
 perspective_patterns = patterns('serrano.api.resources',
     url(r'^$', 'PerspectiveResourceCollection', name='read'),
     url(r'^(?P<pk>\d+)/$', 'PerspectiveResource', name='read'),
-    url(r'^session/$', 'PerspectiveResource', {'pk': 'session'}, name='session'),
+    url(r'^session/$', 'SessionPerspectiveResource', name='session'),
 )
 
 urlpatterns = patterns('',

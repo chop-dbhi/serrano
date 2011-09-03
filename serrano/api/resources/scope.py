@@ -1,82 +1,114 @@
+from django.utils.timesince import timesince
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
 from restlib import http, resources
-from serrano.utils import uni2str
+from avocado.store.forms import ScopeForm, SessionScopeForm
 
-__all__ = ('ScopeResource', 'ScopeResourceCollection')
+__all__ = ('ScopeResource', 'SessionScopeResource', 'ScopeResourceCollection')
 
 class ScopeResource(resources.ModelResource):
     model = 'avocado.Scope'
 
+    default_for_related = False
+
     fields = (':pk', 'name', 'description', 'store', 'cnt->count',
-        'get_text->text')
+        'get_text->text', 'has_changed', 'timesince')
 
     middleware = (
         'serrano.api.middleware.NeverCache',
     ) + resources.Resource.middleware
 
     @classmethod
+    def timesince(self, obj):
+        if obj.modified:
+            return '%s ago' % timesince(obj.modified)
+
+    @classmethod
     def queryset(self, request):
         return self.model._default_manager.filter(user=request.user)
 
-    def GET(self, request, pk):
-        queryset = self.queryset(request)
+    def DELETE(self, request, pk):
+        session_obj = request.session['report'].scope
 
-        if pk == 'session':
-            obj = request.session['report'].scope
+        if session_obj.get_reference_pk() == int(pk):
+            session_obj.reference.delete()
+            session_obj.reference = None
+            request.session.modified = True
+        else:
+            obj = self.queryset(request).filter(pk=pk)
+            obj.delete()
+
+        return http.NO_CONTENT
+
+    def GET(self, request, pk):
+        "Fetches a scope and sets the session scope to be a proxy."
+        session_obj = request.session['report'].scope
+        # if this object is already referenced by the session, simple return
+        if session_obj.get_reference_pk() == int(pk):
+            return session_obj
+
+        # attempt to fetch the requested object
+        obj = self.get(request, pk=pk)
+        if not obj:
+            return http.NOT_FOUND
+
+        # set the session object to be the proxy for the requested object and
+        # perform a soft save to save off the reference.
+        session_obj.proxy(obj)
+        session_obj.save()
+
+        request.session.modified = True
+        return session_obj
+
+    def PUT(self, request, pk):
+        "Explicitly updates an existing object given the request data."
+        session_obj = request.session['report'].scope
+
+        if session_obj.get_reference_pk() == int(pk):
+            obj = session_obj.reference
         else:
             obj = self.get(request, pk=pk)
             if not obj:
                 return http.NOT_FOUND
 
-        return obj
+        form = ScopeForm(request.data, instance=obj)
 
-    def PUT(self, request, pk):
-        """
-        If the session's current ``scope`` is not temporary, it will be
-        copied and store off temporarily.
-        """
-        # if the request is relative to the session and not to a specific id,
-        # it cannot be assumed that if the session is using a saved scope
-        # for it, iself, to be updated, but rather the session representation.
-        # therefore, if the session scope is not temporary, make it a
-        # temporary object with the new parameters.
-        obj = request.session['report'].scope
+        if form.is_valid():
+            saved_obj = form.save()
+            # set the session object to be the proxy for the requested object and
+            # perform a soft save to save off the reference.
+            session_obj.proxy(saved_obj)
+            session_obj.save()
 
-        json = uni2str(request.data)
+            request.session.modified = True
+            # if this is not a new object, simply return the object, otherwise
+            # redirect to the new object
+            if saved_obj.pk is obj.pk:
+                return obj
 
-        # see if the json object is only the ``store``
-        if 'children' in json or 'operator' in json:
-            json = {'store': json}
+            headers = {'Location': reverse('api:scope:read', args=[saved_obj.pk])}
+            return http.SEE_OTHER(**headers)
 
-        # assume the PUT request is only the store
-        if pk != 'session':
-            if pk != obj.id:
-                obj = self.get(request, pk=pk)
-                if not obj:
-                    return http.NOT_FOUND
+        return form.errors
 
-        store = json.pop('store', None)
 
-        if store is not None:
-            # TODO improve this method of adding a partial condition tree
-            if not obj.is_valid(store):
-                return http.BAD_REQUEST
-            if not obj.has_permission(store, request.user):
-                return http.UNAUTHORIZED
+class SessionScopeResource(ScopeResource):
+    default_for_related = True
 
-            partial = store.pop('partial', False)
-            obj.write(store, partial=partial)
+    def GET(self, request):
+        "Return this session's current perspective."
+        return request.session['report'].scope
 
-        for k, v in json.iteritems():
-            setattr(obj, k, v)
+    def PUT(self, request):
+        "Explicitly updates an existing object given the request data."
+        session_obj = request.session['report'].scope
 
-        # only save existing objances that have been saved.
-        # a POST is required to make the initial save
-        if obj.id is not None:
-            obj.save()
+        form = SessionScopeForm(request.data, instance=session_obj)
 
-        request.session.modified = True
-
-        return ''
+        if form.is_valid():
+            form.save()
+            return session_obj
+        return form.errors
 
 
 class ScopeResourceCollection(resources.ModelResourceCollection):
