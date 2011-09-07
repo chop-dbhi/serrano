@@ -1,6 +1,5 @@
 from django.utils.timesince import timesince
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
 from restlib import http, resources
 from avocado.store.forms import ScopeForm, SessionScopeForm
 
