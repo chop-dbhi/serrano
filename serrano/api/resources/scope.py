@@ -28,60 +28,60 @@ class ScopeResource(resources.ModelResource):
         return self.model._default_manager.filter(user=request.user)
 
     def DELETE(self, request, pk):
-        session_obj = request.session['scope']
+        scope = request.session['scope']
 
         # the requested object is the currently referenced by the session,
         # now we delete and deference
-        if session_obj.references(pk):
-            session_obj.reference.delete()
-            session_obj.reference = None
-            session_obj.save()
+        if scope.references(pk):
+            scope.reference.delete()
+            scope.reference = None
+            scope.save()
         else:
-            obj = self.queryset(request).filter(pk=pk)
-            obj.delete()
+            target = self.queryset(request).filter(pk=pk)
+            target.delete()
 
         # nothing to see..
         return http.NO_CONTENT
 
     def GET(self, request, pk):
         "Fetches a scope and sets the session scope to be a proxy."
-        session_obj = request.session['scope']
+        scope = request.session['scope']
 
         # if this object is already referenced by the session, simple return
-        if session_obj.references(pk):
-            return session_obj
+        if scope.references(pk):
+            return scope
 
         # attempt to fetch the requested object
-        obj = self.get(request, pk=pk)
-        if not obj:
+        target = self.get(request, pk=pk)
+        if not target:
             return http.NOT_FOUND
 
         # setup the reference on the session object, 
-        obj.reset(session_obj, exclude=('pk', 'reference', 'session'))
-        session_obj.reference = obj
-        session_obj.commit()
-        return session_obj
+        target.reset(scope, exclude=('pk', 'reference', 'session'))
+        scope.reference = target
+        scope.commit()
+        return scope
 
     def PUT(self, request, pk):
         "Explicitly updates an existing object given the request data."
-        session_obj = request.session['scope']
+        scope = request.session['scope']
 
-        if session_obj.references(pk):
-            obj = session_obj.reference
+        if scope.references(pk):
+            target = scope.reference
         else:
-            obj = self.get(request, pk=pk)
-            if not obj:
+            target = self.get(request, pk=pk)
+            if not target:
                 return http.NOT_FOUND
 
-        form = ScopeForm(request.data, instance=obj)
+        form = ScopeForm(request.data, instance=target)
 
         if form.is_valid():
-            obj = form.save()
+            target = form.save()
             # update the session to reflect the new changes
-            obj.reset(session_obj, exclude=('pk', 'reference', 'session'))
-            session_obj.reference = obj
-            session_obj.commit()
-            return obj
+            target.reset(scope, exclude=('pk', 'reference', 'session'))
+            scope.reference = target
+            scope.commit()
+            return target
 
         return form.errors
 
@@ -108,9 +108,9 @@ class SessionScopeResource(ScopeResource):
     @classmethod
     def condition_groups(self, obj):
         if obj.store:
-            if type(obj.store) is dict:
-                return [self._condition(obj.store)]
-            return map(self._condition, obj.store)
+            if obj.store.has_key('children'):
+                return map(self._condition, obj.store['children'])
+            return [self._condition(obj.store)]
 
     @classmethod
     def reference(self, obj):
@@ -135,13 +135,13 @@ class SessionScopeResource(ScopeResource):
 
     def PUT(self, request):
         "Explicitly updates an existing object given the request data."
-        session_obj = request.session['scope']
+        scope = request.session['scope']
 
-        form = SessionScopeForm(request.data, instance=session_obj)
+        form = SessionScopeForm(request.data, instance=scope)
 
         if form.is_valid():
             form.save()
-            return session_obj
+            return scope
         return form.errors
 
 
