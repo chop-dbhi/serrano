@@ -163,6 +163,9 @@ class SessionScopeResource(ScopeResource):
         # children. when concept conditions can be nested, this will need
         # to be more robust at checking
         if operation == 'remove':
+            if not scope.store:
+                return http.CONFLICT
+
             # denotes a logical operator node e.g. AND | OR.
             if scope.store.has_key('children'):
                 for i, x in enumerate(iter(scope.store['children'])):
@@ -203,6 +206,10 @@ class SessionScopeResource(ScopeResource):
                 scope.store['children'].append(condition)
             else:
                 scope.store = {'type': 'and', 'children': [scope.store, condition]}
+
+        # any other operations are not supported
+        else:
+            return http.UNPROCESSABLE_ENTITY
 
         scope.save()
         return self._condition(condition)
