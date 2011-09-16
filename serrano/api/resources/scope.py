@@ -11,7 +11,7 @@ class ScopeResource(resources.ModelResource):
 
     default_for_related = False
 
-    fields = (':pk', 'name', 'description', 'store', 'cnt->count',
+    fields = (':pk', 'name', 'description', 'store', 'count',
         'conditions', 'has_changed', 'timesince')
 
     middleware = (
@@ -89,7 +89,7 @@ class ScopeResource(resources.ModelResource):
 class SessionScopeResource(ScopeResource):
     default_for_related = True
 
-    fields = (':pk', 'name', 'description', 'store', 'cnt->count',
+    fields = (':pk', 'name', 'description', 'store', 'count',
         'condition_groups->conditions', 'has_changed', 'timesince', 'reference')
 
     @classmethod
