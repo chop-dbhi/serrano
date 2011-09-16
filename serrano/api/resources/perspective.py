@@ -1,6 +1,5 @@
 from django.utils.timesince import timesince
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
 from restlib import http, resources
 from avocado.store.forms import PerspectiveForm, SessionPerspectiveForm
 
@@ -28,11 +27,12 @@ class PerspectiveResource(resources.ModelResource):
 
     def DELETE(self, request, pk):
         "Deletes a perspective and deferences the object from the session."
-        session_obj = request.session['report'].perspective
+        session_obj = request.session['perspective']
 
         if session_obj.references(pk):
-            session_obj.dereference()
-            request.session.modified = True
+            session_obj.reference.delete()
+            session_obj.reference = None
+            session_obj.save()
         else:
             obj = self.queryset(request).filter(pk=pk)
             obj.delete()
@@ -41,7 +41,7 @@ class PerspectiveResource(resources.ModelResource):
 
     def GET(self, request, pk):
         "Fetches a perspective and sets the session perspective to be a proxy."
-        session_obj = request.session['report'].perspective
+        session_obj = request.session['perspective']
         # if this object is already referenced by the session, simple return
         if session_obj.references(pk):
             return session_obj.reference
@@ -52,10 +52,10 @@ class PerspectiveResource(resources.ModelResource):
             return http.NOT_FOUND
         # set the session object to be the proxy for the requested object and
         # perform a soft save to save off the reference.
-        session_obj.proxy(obj)
-        session_obj.save()
+        obj.reset(session_obj, exclude=('pk', 'session', 'reference'))
+        session_obj.reference = obj
+        session_obj.commit()
 
-        request.session.modified = True
         return obj
 
     def PUT(self, request, pk):
@@ -64,7 +64,7 @@ class PerspectiveResource(resources.ModelResource):
         description data. Note, that if there are any pending changes applied
         via the session, these will be saved as well.
         """
-        session_obj = request.session['report'].perspective
+        session_obj = request.session['report']
 
         if session_obj.references(pk):
             obj = session_obj.reference
@@ -77,8 +77,9 @@ class PerspectiveResource(resources.ModelResource):
 
         if form.is_valid():
             saved_obj = form.save()
-            session_obj.proxy(saved_obj)
-            session_obj.save()
+            saved_obj.reset(session_obj, exclude=('pk', 'session', 'reference'))
+            session_obj.reference = saved_obj
+            session_obj.commit()
 
             if saved_obj.pk is obj.pk:
                 return obj
@@ -102,10 +103,10 @@ class SessionPerspectiveResource(resources.ModelResource):
 
     def GET(self, request):
         "Return this session's current perspective."
-        return request.session['report'].perspective
+        return request.session['perspective']
 
     def PUT(self, request):
-        session_obj = request.session['report'].perspective
+        session_obj = request.session['perspective']
         data = request.data
 
         # see if the json object is only the ``store``
@@ -128,7 +129,6 @@ class SessionPerspectiveResource(resources.ModelResource):
 
         if form.is_valid():
             form.save()
-            request.session.modified = True
             return session_obj
 
         return form.errors

@@ -1,18 +1,10 @@
-from django.core.urlresolvers import reverse
 from restlib import http, resources
-from avocado.fields import logictree
 
 __all__ = ('CriterionResource', 'CriterionResourceCollection')
 
-class CriterionResource(resources.ModelResource):
+class SimpleCriterionResource(resources.ModelResource):
     model = 'avocado.Criterion'
-
-    fields = (':pk', 'name', 'full_description->description', 'uri',
-        'category->domain')
-
-    @classmethod
-    def uri(self, obj):
-        return reverse('api:criteria:read', args=(obj.id,))
+    fields = (':pk', 'name', 'full_description->description', 'category->domain')
 
     @classmethod
     def queryset(self, request):
@@ -25,11 +17,17 @@ class CriterionResource(resources.ModelResource):
         if not obj:
             return http.NOT_FOUND
 
-        return obj.view_responses()
+        return obj
+
+
+class CriterionResource(SimpleCriterionResource):
+    fields = (':pk', 'name', 'full_description->description',
+        'category->domain', 'view_responses->viewset')
+    default_for_related = False
 
 
 class CriterionResourceCollection(resources.ModelResourceCollection):
-    resource = CriterionResource
+    resource = SimpleCriterionResource
 
     middleware = ('serrano.api.middleware.CSRFExemption',) + \
         resources.Resource.middleware
@@ -48,22 +46,3 @@ class CriterionResourceCollection(resources.ModelResourceCollection):
             return list(queryset.values_list('id', flat=True))
 
         return queryset.order_by('category', 'order')
-
-    # TODO move this to the ``Scope`` resource since the request is the same --
-    # it is merely the response that is different
-    def POST(self, request):
-        json = request.data
-
-        if not any([x in json for x in ('type', 'operator')]):
-            return http.BAD_REQUEST, 'Invalid data format'
-
-        text = logictree.transform(json).text
-
-        j = ''
-        if text.has_key('type'):
-            j = ' %s ' % text['type']
-
-        return j.join(text['conditions'])
-
-
-

@@ -1,7 +1,6 @@
 from datetime import datetime
 from django.utils.timesince import timesince
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
 from avocado.store.forms import ReportForm, SessionReportForm
 from restlib import http, resources
 from serrano.http import ExcelResponse
@@ -176,10 +175,10 @@ class ReportResource(resources.ModelResource):
     def DELETE(self, request, pk):
         session_obj = request.session['report']
 
-        if session_obj.get_reference_pk() == int(pk):
+        if session_obj.references(pk):
             session_obj.reference.delete()
             session_obj.reference = None
-            request.session.modified = True
+            session_obj.save()
         else:
             obj = self.queryset(request).filter(pk=pk)
             obj.delete()
@@ -189,17 +188,24 @@ class ReportResource(resources.ModelResource):
     def GET(self, request, pk):
         session_obj = request.session['report']
         # if this object is already referenced by the session, simple return
-        if session_obj.get_reference_pk() != int(pk):
+        if not session_obj.references(pk):
             # attempt to fetch the requested object
             obj = self.get(request, pk=pk)
             if not obj:
                 return http.NOT_FOUND
             # set the session object to be the proxy for the requested object and
             # perform a soft save to save off the reference.
-            session_obj.proxy(obj)
-            session_obj.save()
+            obj.scope.reset(session_obj.scope, exclude=('pk', 'session', 'reference'))
+            session_obj.scope.reference = obj.scope
+            session_obj.scope.commit()
 
-            request.session.modified = True
+            obj.perspective.reset(session_obj.perspective, exclude=('pk', 'session', 'reference'))
+            session_obj.perspective.reference = obj.perspective
+            session_obj.perspective.commit()
+
+            obj.reset(session_obj, exclude=('pk', 'session', 'reference'))
+            session_obj.reference = obj
+            session_obj.commit()
 
         if request.GET.has_key('data'):
             return self._GET(request, session_obj)
@@ -213,7 +219,7 @@ class ReportResource(resources.ModelResource):
         via the session, these will be saved as well.
         """
         session_obj = request.session['report']
-        if session_obj.get_reference_pk() == int(pk):
+        if session_obj.references(pk):
             obj = session_obj.reference
         else:
             obj = self.get(request, pk=pk)
@@ -221,7 +227,7 @@ class ReportResource(resources.ModelResource):
                 return http.NOT_FOUND
             session_obj = None
 
-        form = ReportForm(session_obj, data=request.data, instance=obj)
+        form = ReportForm(data=request.data, instance=session_obj)
 
         if form.is_valid():
             saved_obj = form.save()
@@ -237,9 +243,6 @@ class ReportResource(resources.ModelResource):
 
 class SessionReportResource(ReportResource):
     "Handles making requests to and from the session's report object."
-
-    fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'scope', 'perspective', 'reference')
 
     def GET(self, request):
         session_obj = request.session['report']
