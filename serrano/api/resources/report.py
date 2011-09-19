@@ -10,13 +10,18 @@ __all__ = ('ReportResource', 'SessionReportResource', 'ReportResourceCollection'
 class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
 
-    fields = (':pk', 'name', 'description', 'modified', 'timesince', 'has_changed')
+    fields = (':pk', 'name', 'description', 'modified', 'timesince',
+        'has_changed', 'unique_count')
 
     default_for_related = False
 
     middleware = (
         'serrano.api.middleware.NeverCache',
     ) + resources.Resource.middleware
+
+    @classmethod
+    def unique_count(self, obj):
+        return obj.scope.count
 
     @classmethod
     def timesince(self, obj):
