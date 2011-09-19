@@ -30,7 +30,7 @@ class ReportResource(resources.ModelResource):
 
     @classmethod
     def queryset(self, request):
-        return self.model._default_manager.filter(user=request.user, session=False)
+        return self.model._default_manager.filter(user=request.user, session=False).order_by('-modified')
 
     def _export_csv(self, request, inst):
         context = {'user': request.user}
