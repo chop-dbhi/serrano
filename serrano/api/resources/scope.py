@@ -6,6 +6,8 @@ from avocado.store.forms import ScopeForm, SessionScopeForm
 
 __all__ = ('ScopeResource', 'SessionScopeResource', 'ScopeResourceCollection')
 
+PATCH_OPERATIONS = ('add', 'remote')
+
 class ScopeResource(resources.ModelResource):
     model = 'avocado.Scope'
 
@@ -150,11 +152,14 @@ class SessionScopeResource(ScopeResource):
         adding/removing a condition(s) for a single Concept.
         """
         scope = request.session['scope']
-        operation = request.data.get('operation', None)
-        condition = request.data.get('condition', None)
+
+        if len(request.data) != 1:
+            return http.UNPROCESSABLE_ENTITY
+
+        operation, condition = request.data.items()[0]
 
         # both must exist to be processed
-        if not operation or not condition:
+        if operation not in PATCH_OPERATIONS or not condition:
             return http.UNPROCESSABLE_ENTITY
 
         concept_id = condition['concept_id']
