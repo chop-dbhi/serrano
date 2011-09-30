@@ -178,72 +178,58 @@ class ReportResource(resources.ModelResource):
         return resp
 
     def DELETE(self, request, pk):
-        session_obj = request.session['report']
+        report = request.session['report']
 
-        if session_obj.references(pk):
-            session_obj.reference.delete()
-            session_obj.reference = None
-            session_obj.save()
+        if report.references(pk):
+            report.reference.delete()
+            report.reference = None
+            report.save()
         else:
-            obj = self.queryset(request).filter(pk=pk)
-            obj.delete()
+            target = self.queryset(request).filter(pk=pk)
+            target.delete()
 
         return http.NO_CONTENT
 
     def GET(self, request, pk):
-        session_obj = request.session['report']
+        report = request.session['report']
         # if this object is already referenced by the session, simple return
-        if not session_obj.references(pk):
+        if not report.references(pk):
             # attempt to fetch the requested object
-            obj = self.get(request, pk=pk)
-            if not obj:
+            target = self.get(request, pk=pk)
+            if not target:
                 return http.NOT_FOUND
-            # set the session object to be the proxy for the requested object and
-            # perform a soft save to save off the reference.
-            obj.scope.reset(session_obj.scope, exclude=('pk', 'session', 'reference'))
-            session_obj.scope.reference = obj.scope
-            session_obj.scope.commit()
 
-            obj.perspective.reset(session_obj.perspective, exclude=('pk', 'session', 'reference'))
-            session_obj.perspective.reference = obj.perspective
-            session_obj.perspective.commit()
-
-            obj.reset(session_obj, exclude=('pk', 'session', 'reference'))
-            session_obj.reference = obj
-            session_obj.commit()
+            target.reset(report)
+        else:
+            target = report.reference
 
         if request.GET.has_key('data'):
-            return self._GET(request, session_obj)
-        return session_obj
+            return self._GET(request, target)
 
+        return target
 
     def PUT(self, request, pk):
-        """Explicitly updates an existing object given the request data. The
-        data that can be updated via the request is limited to simple
-        description data. Note, that if there are any pending changes applied
-        via the session, these will be saved as well.
-        """
-        session_obj = request.session['report']
-        if session_obj.references(pk):
-            obj = session_obj.reference
-        else:
-            obj = self.get(request, pk=pk)
-            if not obj:
-                return http.NOT_FOUND
-            session_obj = None
+        "Explicitly updates an existing object given the request data."
+        report = request.session['report']
 
-        form = ReportForm(data=request.data, instance=session_obj)
+        if report.references(pk):
+            target = report.reference
+        else:
+            target = self.get(request, pk=pk)
+            if not target:
+                return http.NOT_FOUND
+
+        form = ReportForm(request.data, instance=target)
 
         if form.is_valid():
-            saved_obj = form.save()
-            if saved_obj.pk is obj.pk:
-                return obj
-
-            headers = {'Location': reverse('api:reports:read', args=[saved_obj.pk])}
-            return http.SEE_OTHER(**headers)
+            target = form.save()
+            # update the session to reflect the new changes
+            target.reset(report, commit=False)
+            report.reference = target
+            report.commit()
+            return target
 
         return form.errors
-
 
 
 class SessionReportResource(ReportResource):
