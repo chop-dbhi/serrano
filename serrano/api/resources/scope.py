@@ -208,6 +208,8 @@ class SessionScopeResource(ScopeResource):
             if not scope.store:
                 scope.store = condition
             elif scope.store.has_key('children'):
+                if filter(lambda x: x.get('concept_id', None) == concept_id,
+                    scope.store['children']): return http.CONFLICT
                 scope.store['children'].append(condition)
             else:
                 scope.store = {'type': 'and', 'children': [scope.store, condition]}
