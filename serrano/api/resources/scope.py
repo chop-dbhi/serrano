@@ -214,10 +214,6 @@ class SessionScopeResource(ScopeResource):
             else:
                 scope.store = {'type': 'and', 'children': [scope.store, condition]}
 
-        # any other operations are not supported
-        else:
-            return http.UNPROCESSABLE_ENTITY
-
         scope.save()
         return self._condition(condition)
 
