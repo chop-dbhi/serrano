@@ -6,7 +6,7 @@ from avocado.store.forms import ScopeForm, SessionScopeForm
 
 __all__ = ('ScopeResource', 'SessionScopeResource', 'ScopeResourceCollection')
 
-PATCH_OPERATIONS = ('add', 'remove')
+PATCH_OPERATIONS = ('add', 'remove', 'replace')
 
 class ScopeResource(resources.ModelResource):
     model = 'avocado.Scope'
@@ -167,7 +167,7 @@ class SessionScopeResource(ScopeResource):
         # TODO this logic assumes concept conditions are only first-level
         # children. when concept conditions can be nested, this will need
         # to be more robust at checking
-        if operation == 'remove':
+        if operation == 'remove' or operation == 'replace':
             if not scope.store:
                 return http.CONFLICT
 
@@ -177,12 +177,16 @@ class SessionScopeResource(ScopeResource):
                     # TODO this logic assumes one condition per concept, update
                     # this once this is not the case
                     if x['concept_id'] == concept_id:
-                        scope.store['children'].pop(i)
-                        # move up the condition to the top node if it is the
-                        # last one
-                        if len(scope.store['children']) == 1:
-                            scope.store = scope.store['children'][0]
-                        break
+                        if operation == 'replace':
+                            scope.store['children'][i] = condition
+                            break
+                        else:
+                            scope.store['children'].pop(i)
+                            # move up the condition to the top node if it is the
+                            # last one
+                            if len(scope.store['children']) == 1:
+                                scope.store = scope.store['children'][0]
+                            break
                 else:
                     return http.CONFLICT
 
