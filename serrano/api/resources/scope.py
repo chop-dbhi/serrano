@@ -6,7 +6,7 @@ from avocado.store.forms import ScopeForm, SessionScopeForm
 
 __all__ = ('ScopeResource', 'SessionScopeResource', 'ScopeResourceCollection')
 
-PATCH_OPERATIONS = ('add', 'remote')
+PATCH_OPERATIONS = ('add', 'remove')
 
 class ScopeResource(resources.ModelResource):
     model = 'avocado.Scope'
