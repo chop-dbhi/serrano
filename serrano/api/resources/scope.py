@@ -162,7 +162,7 @@ class SessionScopeResource(ScopeResource):
         if operation not in PATCH_OPERATIONS or not condition:
             return http.UNPROCESSABLE_ENTITY
 
-        concept_id = condition['concept_id']
+        concept_id = int(condition['concept_id'])
 
         # TODO this logic assumes concept conditions are only first-level
         # children. when concept conditions can be nested, this will need
@@ -215,8 +215,10 @@ class SessionScopeResource(ScopeResource):
                 if filter(lambda x: x.get('concept_id', None) == concept_id,
                     scope.store['children']): return http.CONFLICT
                 scope.store['children'].append(condition)
-            else:
+            elif scope.store['concept_id'] != concept_id:
                 scope.store = {'type': 'and', 'children': [scope.store, condition]}
+            else:
+                return http.CONFLICT
 
         scope.save()
         return self._condition(condition)
