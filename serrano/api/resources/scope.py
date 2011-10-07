@@ -30,60 +30,58 @@ class ScopeResource(resources.ModelResource):
         return self.model._default_manager.filter(user=request.user)
 
     def DELETE(self, request, pk):
-        scope = request.session['scope']
+        instance = request.session['scope']
 
-        # the requested object is the currently referenced by the session,
-        # now we delete and deference
-        if scope.references(pk):
-            scope.reference.delete()
-            scope.reference = None
-            scope.save()
+        # ensure to deference the session
+        if instance.references(pk):
+            instance.deference(delete=True)
         else:
-            target = self.queryset(request).filter(pk=pk)
-            target.delete()
+            reference = self.queryset(request).filter(pk=pk)
+            reference.delete()
 
         # nothing to see..
         return http.NO_CONTENT
 
     def GET(self, request, pk):
         "Fetches a scope and sets the session scope to be a proxy."
-        scope = request.session['scope']
+        instance = request.session['scope']
 
         # if this object is already referenced by the session, simple return
-        if scope.references(pk):
-            return scope
+        if not instance.references(pk):
+            # attempt to fetch the requested object
+            reference = self.get(request, pk=pk)
+            if not reference:
+                return http.NOT_FOUND
 
-        # attempt to fetch the requested object
-        target = self.get(request, pk=pk)
-        if not target:
-            return http.NOT_FOUND
+            reference.reset(instance)
+        else:
+            reference = instance.reference
 
-        # setup the reference on the session object, 
-        target.reset(scope, exclude=('pk', 'reference', 'session'))
-        scope.reference = target
-        scope.commit()
-        return scope
+        return reference
 
     def PUT(self, request, pk):
         "Explicitly updates an existing object given the request data."
-        scope = request.session['scope']
+        instance = request.session['scope']
 
-        if scope.references(pk):
-            target = scope.reference
+        if instance.references(pk):
+            referenced = True
+            reference = instance.reference
         else:
-            target = self.get(request, pk=pk)
-            if not target:
+            referenced = False
+            reference = self.get(request, pk=pk)
+            if not reference:
                 return http.NOT_FOUND
 
-        form = ScopeForm(request.data, instance=target)
+        form = ScopeForm(request.data, instance=reference)
 
         if form.is_valid():
-            target = form.save()
-            # update the session to reflect the new changes
-            target.reset(scope, exclude=('pk', 'reference', 'session'))
-            scope.reference = target
-            scope.commit()
-            return target
+            form.save()
+            # if this is referenced by the session, update the session
+            # instance to reflect this change. this only needs to be a
+            # shallow reset since a PUT only updates local attributes
+            if referenced:
+                reference.reset(instance)
+            return reference
 
         return form.errors
 
@@ -137,21 +135,20 @@ class SessionScopeResource(ScopeResource):
 
     def PUT(self, request):
         "Explicitly updates an existing object given the request data."
-        scope = request.session['scope']
+        instance = request.session['scope']
 
-        form = SessionScopeForm(request.data, instance=scope)
+        form = SessionScopeForm(request.data, instance=instance)
 
         if form.is_valid():
             form.save()
-            return scope
+            return instance
         return form.errors
-
 
     def PATCH(self, request):
         """Adds support for incrementally updating the Scope store. It handles
         adding/removing a condition(s) for a single Concept.
         """
-        scope = request.session['scope']
+        instance = request.session['scope']
 
         if len(request.data) != 1:
             return http.UNPROCESSABLE_ENTITY
@@ -168,31 +165,31 @@ class SessionScopeResource(ScopeResource):
         # children. when concept conditions can be nested, this will need
         # to be more robust at checking
         if operation == 'remove' or operation == 'replace':
-            if not scope.store:
+            if not instance.store:
                 return http.CONFLICT
 
             # denotes a logical operator node e.g. AND | OR.
-            if scope.store.has_key('children'):
-                for i, x in enumerate(iter(scope.store['children'])):
+            if instance.store.has_key('children'):
+                for i, x in enumerate(iter(instance.store['children'])):
                     # TODO this logic assumes one condition per concept, update
                     # this once this is not the case
                     if x['concept_id'] == concept_id:
                         if operation == 'replace':
-                            scope.store['children'][i] = condition
+                            instance.store['children'][i] = condition
                             break
                         else:
-                            scope.store['children'].pop(i)
+                            instance.store['children'].pop(i)
                             # move up the condition to the top node if it is the
                             # last one
-                            if len(scope.store['children']) == 1:
-                                scope.store = scope.store['children'][0]
+                            if len(instance.store['children']) == 1:
+                                instance.store = instance.store['children'][0]
                             break
                 else:
                     return http.CONFLICT
 
             # standalone condition
-            elif scope.store.get('concept_id') == concept_id:
-                scope.store = None
+            elif instance.store.get('concept_id') == concept_id:
+                instance.store = None
 
             # a conflict in state between the client and the server
             else:
@@ -202,25 +199,25 @@ class SessionScopeResource(ScopeResource):
         # requested content
         elif operation == 'add':
             # ensure the object is valid or fail
-            if not scope.is_valid(condition):
+            if not instance.is_valid(condition):
                 return http.UNPROCESSABLE_ENTITY
 
             # ensure the user has permission to make use of corresponding fields
-            if not scope.has_permission(condition, request.user):
+            if not instance.has_permission(condition, request.user):
                 return http.UNAUTHORIZED
 
-            if not scope.store:
-                scope.store = condition
-            elif scope.store.has_key('children'):
+            if not instance.store:
+                instance.store = condition
+            elif instance.store.has_key('children'):
                 if filter(lambda x: x.get('concept_id', None) == concept_id,
-                    scope.store['children']): return http.CONFLICT
-                scope.store['children'].append(condition)
-            elif scope.store['concept_id'] != concept_id:
-                scope.store = {'type': 'and', 'children': [scope.store, condition]}
+                    instance.store['children']): return http.CONFLICT
+                instance.store['children'].append(condition)
+            elif instance.store['concept_id'] != concept_id:
+                instance.store = {'type': 'and', 'children': [instance.store, condition]}
             else:
                 return http.CONFLICT
 
-        scope.save()
+        instance.save()
         return self._condition(condition)
 
 

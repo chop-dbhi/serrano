@@ -30,7 +30,8 @@ class ReportResource(resources.ModelResource):
 
     @classmethod
     def queryset(self, request):
-        return self.model._default_manager.filter(user=request.user, session=False).order_by('-modified')
+        return self.model._default_manager.filter(user=request.user,
+            session=False).order_by('-modified')
 
     def _export_csv(self, request, inst):
         context = {'user': request.user}
@@ -178,56 +179,59 @@ class ReportResource(resources.ModelResource):
         return resp
 
     def DELETE(self, request, pk):
-        report = request.session['report']
+        instance = request.session['report']
 
-        if report.references(pk):
-            report.reference.delete()
-            report.reference = None
-            report.save()
+        # ensure to deference the session
+        if instance.references(pk):
+            instance.deference(delete=True)
         else:
-            target = self.queryset(request).filter(pk=pk)
-            target.delete()
+            reference = self.queryset(request).filter(pk=pk)
+            reference.delete()
 
         return http.NO_CONTENT
 
     def GET(self, request, pk):
-        report = request.session['report']
+        instance = request.session['report']
         # if this object is already referenced by the session, simple return
-        if not report.references(pk):
+        if not instance.references(pk):
             # attempt to fetch the requested object
-            target = self.get(request, pk=pk)
-            if not target:
+            reference = self.get(request, pk=pk)
+            if not reference:
                 return http.NOT_FOUND
 
-            target.reset(report)
+            reference.reset(instance)
         else:
-            target = report.reference
+            reference = instance.reference
 
+        # XXX: hackity hack..
         if request.GET.has_key('data'):
-            return self._GET(request, target)
+            return self._GET(request, reference)
 
-        return target
+        return reference
 
     def PUT(self, request, pk):
         "Explicitly updates an existing object given the request data."
-        report = request.session['report']
+        instance = request.session['report']
 
-        if report.references(pk):
-            target = report.reference
+        if instance.references(pk):
+            referenced = True
+            reference = instance.reference
         else:
-            target = self.get(request, pk=pk)
-            if not target:
+            referenced = False
+            reference = self.get(request, pk=pk)
+            if not reference:
                 return http.NOT_FOUND
 
-        form = ReportForm(request.data, instance=target)
+        form = ReportForm(request.data, instance=reference)
 
         if form.is_valid():
-            target = form.save()
-            # update the session to reflect the new changes
-            target.reset(report, commit=False)
-            report.reference = target
-            report.commit()
-            return target
+            form.save()
+            # if this is referenced by the session, update the session
+            # instance to reflect this change. this only needs to be a
+            # shallow reset since a PUT only updates local attributes
+            if referenced:
+                reference.reset(instance)
+            return reference
 
         return form.errors
 
@@ -235,19 +239,22 @@ class ReportResource(resources.ModelResource):
 class SessionReportResource(ReportResource):
     "Handles making requests to and from the session's report object."
 
+    fields = (':pk', 'name', 'description', 'modified', 'timesince',
+        'has_changed', 'unique_count', 'scope', 'perspective')
+
     def GET(self, request):
-        session_obj = request.session['report']
+        instance = request.session['report']
         if request.GET.has_key('data'):
-            return self._GET(request, session_obj)
-        return session_obj
+            return self._GET(request, instance)
+        return instance
 
     def PUT(self, request):
-        session_obj = request.session['report']
-        form = SessionReportForm(request.data, instance=session_obj)
+        instance = request.session['report']
+        form = SessionReportForm(request.data, instance=instance)
 
         if form.is_valid():
             form.save()
-            return session_obj
+            return instance
         return form.errors
 
 
