@@ -268,3 +268,21 @@ class ReportResourceCollection(resources.ModelResourceCollection):
     def GET(self, request):
         return self.queryset(request)
 
+    def POST(self, request):
+        _pk = request.data.pop('_id', None)
+        if not _pk:
+            return http.UNPROCESSABLE_ENTITY
+
+        reference = self.get(request, pk=_pk)
+        if not reference:
+            return http.CONFLICT
+
+        instance = reference.fork(commit=False)
+        # this form data only applies to the report object
+        form = ReportForm(request.data, instance=instance)
+
+        if form.is_valid():
+            # halt the typical save, use the fork `commit' instead
+            form.save(commit=False)
+            instance.commit()
+        return form.errors
