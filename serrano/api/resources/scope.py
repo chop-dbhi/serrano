@@ -124,15 +124,6 @@ class SessionScopeResource(ScopeResource):
         "Return this session's current perspective."
         return request.session['scope']
 
-    def POST(self, request):
-        json = request.data
-
-        if not any(x in json for x in ('type', 'operator')):
-            return http.BAD_REQUEST
-
-        return self._condition(json)
-
-
     def PUT(self, request):
         "Explicitly updates an existing object given the request data."
         instance = request.session['scope']
