@@ -314,7 +314,6 @@ class ReportRedirectResource(ReportResource):
                 return http.NOT_FOUND
 
             reference.reset(instance)
-            print instance.__dict__
         else:
             reference = instance.reference
 
