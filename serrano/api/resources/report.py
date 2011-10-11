@@ -5,13 +5,14 @@ from avocado.store.forms import ReportForm, SessionReportForm
 from restlib import http, resources
 from serrano.http import ExcelResponse
 
-__all__ = ('ReportResource', 'SessionReportResource', 'ReportResourceCollection')
+__all__ = ('ReportResource', 'SessionReportResource', 'ReportResourceCollection',
+    'ReportRedirectResource')
 
 class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'unique_count')
+        'has_changed', 'unique_count', 'url', 'report_url')
 
     default_for_related = False
 
@@ -27,6 +28,14 @@ class ReportResource(resources.ModelResource):
     def timesince(self, obj):
         if obj.modified:
             return '%s ago' % timesince(obj.modified)
+
+    @classmethod
+    def url(self, obj):
+        return reverse('api:reports:read', args=[obj.pk])
+
+    @classmethod
+    def report_url(self, obj):
+        return reverse('report-redirect', args=[obj.pk])
 
     @classmethod
     def queryset(self, request):
@@ -240,7 +249,12 @@ class SessionReportResource(ReportResource):
     "Handles making requests to and from the session's report object."
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'unique_count', 'scope', 'perspective')
+        'has_changed', 'unique_count', 'scope', 'perspective', 'report_url')
+
+    @classmethod
+    def report_url(self, obj):
+        if obj.reference:
+            return reverse('report-redirect', args=[obj.reference.pk])
 
     def GET(self, request):
         instance = request.session['report']
@@ -286,3 +300,23 @@ class ReportResourceCollection(resources.ModelResourceCollection):
             form.save(commit=False)
             instance.commit()
         return form.errors
+
+
+class ReportRedirectResource(ReportResource):
+
+    def GET(self, request, pk):
+        instance = request.session['report']
+        # if this object is already referenced by the session, simple return
+        if not instance.references(pk):
+            # attempt to fetch the requested object
+            reference = self.get(request, pk=pk)
+            if not reference:
+                return http.NOT_FOUND
+
+            reference.reset(instance)
+            print instance.__dict__
+        else:
+            reference = instance.reference
+
+        return http.SEE_OTHER(location=reverse('report'))
+
