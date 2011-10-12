@@ -70,21 +70,21 @@ class ReportResource(resources.ModelResource):
 
         return ExcelResponse(list(iterator), name, header)
 
-    def _GET(self, request, inst):
+    def _GET(self, request, instance):
         "The interface for resolving a report, i.e. running a query."
         user = request.user
 
-        if not inst.has_permission(user):
+        if not instance.has_permission(user):
             return http.FORBIDDEN
 
-        format_type = request.GET.get('f', None)
+        format_type = request.GET.get('format', None)
 
         # XXX: hack
         if format_type == 'csv':
-            return self._export_csv(request, inst)
+            return self._export_csv(request, instance)
 
-        page_num = request.GET.get('p', None)
-        per_page = request.GET.get('n', None)
+        page_num = request.GET.get('page', None)
+        per_page = request.GET.get('size', None)
 
         count = unique = None
 
@@ -96,45 +96,41 @@ class ReportResource(resources.ModelResource):
         # fetch the report cache from the session, default to a new dict with
         # a few defaults. if a new dict is used, this implies that this a
         # report has not been resolved yet this session.
-        cache = request.session.get(inst.REPORT_CACHE_KEY, {
+        cache = request.session.get(instance.REPORT_CACHE_KEY, {
             'timestamp': None,
             'page_num': 1,
             'per_page': 10,
             'offset': 0,
             'unique': None,
             'count': None,
-            'datakey': inst.get_datakey(request)
+            'datakey': instance.get_datakey(request)
         })
-
-        # acts as reference to compare to so the resp can be determined
-        old_cache = cache.copy()
-
 
         # test if the cache is still valid, then attempt to fetch the requested
         # page from cache
         timestamp = cache['timestamp']
 
-        if inst.cache_is_valid(timestamp):
+        if instance.cache_is_valid(timestamp):
             # only update the cache if there are values specified for either arg
             if page_num:
                 cache['page_num'] = int(page_num)
             if per_page:
                 cache['per_page'] = int(per_page)
 
-            rows = inst.get_page_from_cache(cache)
+            rows = instance.get_page_from_cache(cache)
 
             # ``rows`` will only be None if no cache was found. attempt to
             # update the cache by running a partial query
             if rows is None:
                 # since the cache is not invalid, the counts do not have to be run
-                queryset, unique, count = inst.get_queryset(timestamp, **context)
+                queryset, unique, count = instance.get_queryset(timestamp, **context)
                 cache['timestamp'] = datetime.now()
 
-                rows = inst.update_cache(cache, queryset);
+                rows = instance.update_cache(cache, queryset);
 
         # when the cache becomes invalid, the cache must be refreshed
         else:
-            queryset, unique, count = inst.get_queryset(timestamp, **context)
+            queryset, unique, count = instance.get_queryset(timestamp, **context)
 
             cache.update({
                 'timestamp': datetime.now(),
@@ -147,24 +143,24 @@ class ReportResource(resources.ModelResource):
                 if unique is not None:
                     cache['unique'] = unique
 
-            rows = inst.refresh_cache(cache, queryset)
+            rows = instance.refresh_cache(cache, queryset)
 
 
-        request.session[inst.REPORT_CACHE_KEY] = cache
+        request.session[instance.REPORT_CACHE_KEY] = cache
 
         # the response is composed of a few different data that is dependent on
         # various conditions. the only required data is the ``rows`` which will
         # always be needed since all other components act on determing the rows
         # to be returned
         resp = {
-            'rows': list(inst.perspective.format(rows, 'html')),
+            'rows': list(instance.perspective.format(rows, 'html')),
         }
 
-        if inst.name:
-            resp['name'] = inst.name
+        if instance.name:
+            resp['name'] = instance.name
 
-        if inst.description:
-            resp['description'] = inst.description
+        if instance.description:
+            resp['description'] = instance.description
 
         # a *no change* requests implies the page has been requested statically
         # and the whole response object must be provided
@@ -174,7 +170,7 @@ class ReportResource(resources.ModelResource):
             'unique': cache['unique'],
         })
 
-        paginator, page = inst.paginator_and_page(cache)
+        paginator, page = instance.paginator_and_page(cache)
 
         if paginator.num_pages > 1:
             resp.update({
