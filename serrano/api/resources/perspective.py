@@ -1,9 +1,10 @@
 from django.utils.timesince import timesince
-from django.core.urlresolvers import reverse
 from restlib import http, resources
 from avocado.store.forms import PerspectiveForm, SessionPerspectiveForm
 
 __all__ = ('PerspectiveResource', 'SessionPerspectiveResource', 'PerspectiveResourceCollection')
+
+PATCH_OPERATIONS = ('add', 'remove', 'replace')
 
 class PerspectiveResource(resources.ModelResource):
     """The standard resource for perspectives. The API is currently limited to
@@ -15,6 +16,10 @@ class PerspectiveResource(resources.ModelResource):
     default_for_related = False
 
     fields = (':pk', 'name', 'description', 'keywords', 'timesince', 'modified')
+
+    middleware = (
+        'serrano.api.middleware.NeverCache',
+    ) + resources.Resource.middleware
 
     @classmethod
     def timesince(self, obj):
@@ -130,6 +135,27 @@ class SessionPerspectiveResource(resources.ModelResource):
 
         return form.errors
 
+    def PATCH(self, request):
+        instance = request.session['perspective']
+
+        if len(request.data) != 1:
+            return http.UNPROCESSABLE_ENTITY
+
+        # XXX: until we move to the jsonpatch library..
+        if not request.data.has_key('replace'):
+            return http.UNPROCESSABLE_ENTITY
+
+        store = request.data['replace']
+
+        if store is not None:
+            if not instance.is_valid({'store': store}):
+                return http.BAD_REQUEST
+            if not instance.has_permission({'store': store}, request.user):
+                return http.UNAUTHORIZED
+
+        instance.write(store)
+        instance.save()
+        return instance
 
 class PerspectiveResourceCollection(resources.ModelResourceCollection):
     resource = PerspectiveResource
