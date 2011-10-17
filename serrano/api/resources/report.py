@@ -295,6 +295,7 @@ class ReportResourceCollection(resources.ModelResourceCollection):
             # halt the typical save, use the fork `commit' instead
             form.save(commit=False)
             instance.commit()
+            return instance
         return form.errors
 
 
