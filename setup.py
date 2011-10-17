@@ -55,8 +55,8 @@ if root_dir != '':
 for dirpath, dirnames, filenames in os.walk(BASE_PACKAGE):
     # Ignore dirnames that start with '.'
     for i, dirname in enumerate(dirnames):
-        if dirname.startswith('.'): del dirnames[i]
-        elif dirname in ('tests', 'fixtures'): del dirnames[i]
+        if dirname.startswith('.'):
+            del dirnames[i]
     if '__init__.py' in filenames:
         packages.append('.'.join(fullsplit(dirpath)))
     elif filenames:
@@ -71,13 +71,14 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 version = __import__(BASE_PACKAGE).get_version()
 
 setup(
-    version = version.replace(' ', '-'),
+    version = version,
     name = 'django-serrano',
     author = 'Byron Ruth',
     author_email = 'ruthb@email.chop.edu',
     description = 'A server implementation and RESTful API for Avocado',
     license = 'BSD',
-    keywords = 'snippets tools utilities',
+    keywords = 'REST API',
+    url = 'https://github.com/cbmi/django-serrano-pre',
 
     packages = packages,
     cmdclass = cmdclasses,
