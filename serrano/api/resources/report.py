@@ -259,12 +259,15 @@ class SessionReportResource(ReportResource):
         return instance
 
     def PUT(self, request):
-        instance = request.session['report']
-        form = SessionReportForm(request.data, instance=instance)
+        reference = request.session['report']
+        form = SessionReportForm(request.data, instance=reference)
 
         if form.is_valid():
-            form.save()
-            return instance
+            instance = form.save()
+            # this may produce a new fork, so make sure we reset if so
+            if instance != reference or not reference.references(instance.pk):
+                reference.reset(instance)
+            return reference
         return form.errors
 
 
