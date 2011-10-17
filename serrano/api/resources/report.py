@@ -12,7 +12,7 @@ class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'unique_count', 'url', 'report_url')
+        'has_changed', 'count', 'unique_count', 'url', 'permalink')
 
     default_for_related = False
 
@@ -34,7 +34,7 @@ class ReportResource(resources.ModelResource):
         return reverse('api:reports:read', args=[obj.pk])
 
     @classmethod
-    def report_url(self, obj):
+    def permalink(self, obj):
         return reverse('report-redirect', args=[obj.pk])
 
     @classmethod
@@ -245,10 +245,10 @@ class SessionReportResource(ReportResource):
     "Handles making requests to and from the session's report object."
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'unique_count', 'scope', 'perspective', 'report_url')
+        'has_changed', 'count', 'unique_count', 'permalink', 'scope', 'perspective')
 
     @classmethod
-    def report_url(self, obj):
+    def permalink(self, obj):
         if obj.reference:
             return reverse('report-redirect', args=[obj.reference.pk])
 
