@@ -90,7 +90,7 @@ class SessionScopeResource(ScopeResource):
     default_for_related = True
 
     fields = (':pk', 'name', 'description', 'store', 'count',
-        'condition_groups->conditions', 'has_changed', 'timesince', 'reference')
+        'condition_groups->conditions', 'has_changed', 'timesince')
 
     @classmethod
     def _condition(self, json):
