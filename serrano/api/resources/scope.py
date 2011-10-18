@@ -180,7 +180,10 @@ class SessionScopeResource(ScopeResource):
 
             # standalone condition
             elif instance.store.get('concept_id') == concept_id:
-                instance.store = None
+                if operation == 'remove':
+                    instance.store = None
+                else:
+                    instance.store = condition
 
             # a conflict in state between the client and the server
             else:
