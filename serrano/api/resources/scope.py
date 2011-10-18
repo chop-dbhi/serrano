@@ -126,13 +126,16 @@ class SessionScopeResource(ScopeResource):
 
     def PUT(self, request):
         "Explicitly updates an existing object given the request data."
-        instance = request.session['scope']
+        reference = request.session['scope']
 
-        form = SessionScopeForm(request.data, instance=instance)
+        form = SessionScopeForm(request.data, instance=reference)
 
         if form.is_valid():
-            form.save()
-            return instance
+            instance = form.save()
+            # this may produce a new fork, so make sure we reset if so
+            if instance != reference and not reference.references(instance.pk):
+                reference.reset(instance)
+            return reference
         return form.errors
 
     def PATCH(self, request):

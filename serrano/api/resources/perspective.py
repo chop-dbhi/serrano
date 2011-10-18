@@ -108,7 +108,7 @@ class SessionPerspectiveResource(resources.ModelResource):
         return request.session['perspective']
 
     def PUT(self, request):
-        instance = request.session['perspective']
+        reference = request.session['perspective']
         data = request.data
 
         # see if the json object is only the ``store``
@@ -118,21 +118,23 @@ class SessionPerspectiveResource(resources.ModelResource):
         store = data.get('store', None)
 
         if store is not None:
-            if not instance.is_valid(store):
+            if not reference.is_valid(store):
                 return http.BAD_REQUEST
-            if not instance.has_permission(store, request.user):
+            if not reference.has_permission(store, request.user):
                 return http.UNAUTHORIZED
 
         # checked if this session references an existing perspective. if so
         # the changes will be applied on the referenced object as a "soft"
         # save. the only caveat is if changes are pending and this request
         # changes the name. if this case, a new perspective is saved
-        form = SessionPerspectiveForm(data, instance=instance)
+        form = SessionPerspectiveForm(data, instance=reference)
 
         if form.is_valid():
-            form.save()
-            return instance
-
+            instance = form.save()
+            # this may produce a new fork, so make sure we reset if so
+            if instance != reference and not reference.references(instance.pk):
+                reference.reset(instance)
+            return reference
         return form.errors
 
     def PATCH(self, request):

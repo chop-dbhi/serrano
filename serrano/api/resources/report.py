@@ -265,7 +265,7 @@ class SessionReportResource(ReportResource):
         if form.is_valid():
             instance = form.save()
             # this may produce a new fork, so make sure we reset if so
-            if instance != reference or not reference.references(instance.pk):
+            if instance != reference and not reference.references(instance.pk):
                 reference.reset(instance)
             return reference
         return form.errors
