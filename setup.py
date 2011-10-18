@@ -72,13 +72,13 @@ version = __import__(BASE_PACKAGE).get_version()
 
 setup(
     version = version,
-    name = 'django-serrano',
+    name = 'serrano',
     author = 'Byron Ruth',
     author_email = 'ruthb@email.chop.edu',
     description = 'A server implementation and RESTful API for Avocado',
     license = 'BSD',
     keywords = 'REST API',
-    url = 'https://github.com/cbmi/django-serrano-pre',
+    url = 'https://github.com/cbmi/django-serrano',
 
     packages = packages,
     cmdclass = cmdclasses,

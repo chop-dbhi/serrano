@@ -1,3 +1,3 @@
+include LICENSE
 global-exclude .DS_Store
-
 prune serrano/tests
