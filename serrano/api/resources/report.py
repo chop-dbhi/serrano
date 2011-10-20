@@ -245,7 +245,13 @@ class SessionReportResource(ReportResource):
     "Handles making requests to and from the session's report object."
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'count', 'unique_count', 'permalink', 'scope', 'perspective')
+        'has_changed', 'count', 'unique_count', 'permalink', 'reference_id',
+        'scope', 'perspective')
+
+    @classmethod
+    def reference_id(self, obj):
+        if obj.reference:
+            return obj.reference.pk
 
     @classmethod
     def permalink(self, obj):
