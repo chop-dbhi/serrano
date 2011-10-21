@@ -265,15 +265,25 @@ class SessionReportResource(ReportResource):
         return instance
 
     def PUT(self, request):
-        reference = request.session['report']
-        form = SessionReportForm(request.data, instance=reference)
+        instance = request.session['report']
+
+        # A temporary shorthand for reverting the state of the session
+        # object with a reference. This will revert any unsaved changed
+        # back to the state of the reference.
+        if request.data.has_key('revert'):
+            if not instance.reference:
+                return http.CONFLICT
+            instance.reference.reset(instance)
+            return instance
+
+        form = SessionReportForm(request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save()
+            reference = form.save()
             # this may produce a new fork, so make sure we reset if so
-            if instance != reference and not reference.references(instance.pk):
+            if instance != reference and not instance.references(reference.pk):
                 reference.reset(instance)
-            return reference
+            return instance
         return form.errors
 
 
