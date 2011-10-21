@@ -95,7 +95,7 @@ class PerspectiveResource(resources.ModelResource):
 class SessionPerspectiveResource(resources.ModelResource):
     model = 'avocado.Perspective'
 
-    fields = (':pk', 'name', 'description', 'keywords', 'store', 'header',
+    fields = (':pk', 'name', 'description', 'keywords', 'read->store', 'header',
         'has_changed', 'timesince', 'modified')
 
     @classmethod
