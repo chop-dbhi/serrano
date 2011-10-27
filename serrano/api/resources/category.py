@@ -6,7 +6,7 @@ __all__ = ('CategoryResource', 'CategoryResourceCollection',)
 class CategoryResource(resources.ModelResource):
     model = 'avocado.Category'
 
-    fields = (':pk', 'name', 'url', 'parent')
+    fields = (':pk', 'name', 'url', 'parent', 'order')
 
     @classmethod
     def url(self, obj):
