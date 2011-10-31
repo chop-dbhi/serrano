@@ -12,7 +12,8 @@ class ReportResource(resources.ModelResource):
     model = 'avocado.Report'
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
-        'has_changed', 'count', 'unique_count', 'url', 'permalink')
+        'has_changed', 'count', 'unique_count', 'url', 'permalink',
+        'model_name', 'model_name_plural')
 
     default_for_related = False
 
@@ -246,7 +247,7 @@ class SessionReportResource(ReportResource):
 
     fields = (':pk', 'name', 'description', 'modified', 'timesince',
         'has_changed', 'count', 'unique_count', 'permalink', 'reference_id',
-        'scope', 'perspective')
+        'scope', 'perspective', 'model_name', 'model_name_plural')
 
     @classmethod
     def reference_id(self, obj):
