@@ -92,7 +92,7 @@ class PerspectiveResource(resources.ModelResource):
         return form.errors
 
 
-class SessionPerspectiveResource(resources.ModelResource):
+class SessionPerspectiveResource(PerspectiveResource):
     model = 'avocado.Perspective'
 
     fields = (':pk', 'name', 'description', 'keywords', 'read->store', 'header',
