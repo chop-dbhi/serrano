@@ -98,6 +98,8 @@ class SessionPerspectiveResource(PerspectiveResource):
     fields = (':pk', 'name', 'description', 'keywords', 'read->store', 'header',
         'has_changed', 'timesince', 'modified')
 
+    default_for_related = True
+
     @classmethod
     def timesince(self, obj):
         if obj.modified:
