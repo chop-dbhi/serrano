@@ -18,8 +18,6 @@ class SessionReportMiddleware(object):
         if not user.is_authenticated():
             return
 
-        modified = False
-
         # fetch this user's session contexts if they exist, otherwise create them
         if not request.session.has_key('report'):
             try:
@@ -27,10 +25,6 @@ class SessionReportMiddleware(object):
             except Report.DoesNotExist:
                 report = self._create_session_objects(user)
 
-            modified = True
             request.session['report'] = report
             request.session['scope'] = report.scope
             request.session['perspective'] = report.perspective
-
-        request.session.modified = modified
-

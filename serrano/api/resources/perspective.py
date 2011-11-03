@@ -37,6 +37,7 @@ class PerspectiveResource(resources.ModelResource):
         # ensure to deference the session
         if instance.references(pk):
             instance.deference(delete=True)
+            request.session['perspective'] = instance
         else:
             reference = self.queryset(request).filter(pk=pk)
             reference.delete()
@@ -56,6 +57,7 @@ class PerspectiveResource(resources.ModelResource):
                 return http.NOT_FOUND
 
             reference.reset(instance)
+            request.session['perspective'] = instance
         else:
             reference = instance.reference
 
@@ -87,6 +89,7 @@ class PerspectiveResource(resources.ModelResource):
             # shallow reset since a PUT only updates local attributes
             if referenced:
                 reference.reset(instance)
+                request.session['perspective'] = instance
             return reference
 
         return form.errors
@@ -136,6 +139,7 @@ class SessionPerspectiveResource(PerspectiveResource):
             # this may produce a new fork, so make sure we reset if so
             if instance != reference and not reference.references(instance.pk):
                 reference.reset(instance)
+            request.session['perspective'] = reference
             return reference
         return form.errors
 
@@ -159,6 +163,7 @@ class SessionPerspectiveResource(PerspectiveResource):
 
         instance.write(store)
         instance.save()
+        request.session['perspective'] = instance
         return instance
 
 class PerspectiveResourceCollection(resources.ModelResourceCollection):

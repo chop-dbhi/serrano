@@ -135,6 +135,7 @@ class SessionScopeResource(ScopeResource):
             # this may produce a new fork, so make sure we reset if so
             if instance != reference and not reference.references(instance.pk):
                 reference.reset(instance)
+            request.session['scope'] = reference
             return reference
         return form.errors
 
@@ -215,6 +216,7 @@ class SessionScopeResource(ScopeResource):
                 return http.CONFLICT
 
         instance.save()
+        request.session['scope'] = instance
         return self._condition(condition)
 
 
