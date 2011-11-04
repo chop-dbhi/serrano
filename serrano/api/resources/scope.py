@@ -35,6 +35,7 @@ class ScopeResource(resources.ModelResource):
         # ensure to deference the session
         if instance.references(pk):
             instance.deference(delete=True)
+            request.session['scope'] = instance
         else:
             reference = self.queryset(request).filter(pk=pk)
             reference.delete()
@@ -54,6 +55,7 @@ class ScopeResource(resources.ModelResource):
                 return http.NOT_FOUND
 
             reference.reset(instance)
+            request.session['scope'] = instance
         else:
             reference = instance.reference
 
@@ -81,6 +83,7 @@ class ScopeResource(resources.ModelResource):
             # shallow reset since a PUT only updates local attributes
             if referenced:
                 reference.reset(instance)
+                request.session['scope'] = instance
             return reference
 
         return form.errors
@@ -126,17 +129,18 @@ class SessionScopeResource(ScopeResource):
 
     def PUT(self, request):
         "Explicitly updates an existing object given the request data."
-        reference = request.session['scope']
+        instance = request.session['scope']
 
-        form = SessionScopeForm(request.data, instance=reference)
+        form = SessionScopeForm(request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save()
-            # this may produce a new fork, so make sure we reset if so
-            if instance != reference and not reference.references(instance.pk):
-                reference.reset(instance)
-            request.session['scope'] = reference
-            return reference
+            # this may produce a new fork, so make sure we reset the session
+            # instance if so
+            new_instance = form.save()
+            if instance != new_instance and not instance.references(new_instance.pk):
+                new_instance.reset(instance)
+            request.session['scope'] = instance
+            return instance
         return form.errors
 
     def PATCH(self, request):

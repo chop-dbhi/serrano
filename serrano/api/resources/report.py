@@ -278,6 +278,7 @@ class SessionReportResource(ReportResource):
             if not instance.reference:
                 return http.CONFLICT
             instance.reference.reset(instance)
+            request.session['report'] = instance
             return instance
 
         form = SessionReportForm(request.data, instance=instance)

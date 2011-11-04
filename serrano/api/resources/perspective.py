@@ -113,7 +113,8 @@ class SessionPerspectiveResource(PerspectiveResource):
         return request.session['perspective']
 
     def PUT(self, request):
-        reference = request.session['perspective']
+        "Explicitly updates an existing object given the request data."
+        instance = request.session['perspective']
         data = request.data
 
         # see if the json object is only the ``store``
@@ -123,24 +124,25 @@ class SessionPerspectiveResource(PerspectiveResource):
         store = data.get('store', None)
 
         if store is not None:
-            if not reference.is_valid(store):
+            if not instance.is_valid(store):
                 return http.BAD_REQUEST
-            if not reference.has_permission(store, request.user):
+            if not instance.has_permission(store, request.user):
                 return http.UNAUTHORIZED
 
         # checked if this session references an existing perspective. if so
         # the changes will be applied on the referenced object as a "soft"
         # save. the only caveat is if changes are pending and this request
         # changes the name. if this case, a new perspective is saved
-        form = SessionPerspectiveForm(data, instance=reference)
+        form = SessionPerspectiveForm(data, instance=instance)
 
         if form.is_valid():
-            instance = form.save()
-            # this may produce a new fork, so make sure we reset if so
-            if instance != reference and not reference.references(instance.pk):
-                reference.reset(instance)
-            request.session['perspective'] = reference
-            return reference
+            # this may produce a new fork, so make sure we reset the session
+            # instance if so
+            new_instance = form.save()
+            if instance != new_instance and not instance.references(new_instance.pk):
+                new_instance.reset(instance)
+            request.session['perspective'] = instance
+            return instance
         return form.errors
 
     def PATCH(self, request):
