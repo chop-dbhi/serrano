@@ -1,10 +1,9 @@
 from django.utils.timesince import timesince
 from django.core.urlresolvers import reverse
-from django.core.cache import cache
 from restlib import http, resources
 from avocado.fields import logictree
 from avocado.store.forms import ScopeForm, SessionScopeForm
-from serrano.cache import session_queue_context
+from serrano.cache import session_queue
 
 __all__ = ('ScopeResource', 'SessionScopeResource', 'ScopeResourceCollection')
 
@@ -149,7 +148,7 @@ class SessionScopeResource(ScopeResource):
         """Adds support for incrementally updating the Scope store. It handles
         adding/removing a condition(s) for a single Concept.
         """
-        with session_queue_context(request.session, cache, 'scope-patch'):
+        with session_queue(request.session, key_prefix='scope-patch'):
             instance = request.session['scope']
 
             if len(request.data) != 1:
