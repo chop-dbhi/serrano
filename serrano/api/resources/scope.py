@@ -1,8 +1,10 @@
 from django.utils.timesince import timesince
 from django.core.urlresolvers import reverse
+from django.core.cache import cache
 from restlib import http, resources
 from avocado.fields import logictree
 from avocado.store.forms import ScopeForm, SessionScopeForm
+from serrano.cache import session_queue_context
 
 __all__ = ('ScopeResource', 'SessionScopeResource', 'ScopeResourceCollection')
 
@@ -147,81 +149,82 @@ class SessionScopeResource(ScopeResource):
         """Adds support for incrementally updating the Scope store. It handles
         adding/removing a condition(s) for a single Concept.
         """
-        instance = request.session['scope']
+        with session_queue_context(request.session, cache, 'scope-patch'):
+            instance = request.session['scope']
 
-        if len(request.data) != 1:
-            return http.UNPROCESSABLE_ENTITY
+            if len(request.data) != 1:
+                return http.UNPROCESSABLE_ENTITY
 
-        operation, condition = request.data.items()[0]
+            operation, condition = request.data.items()[0]
 
-        # both must exist to be processed
-        if operation not in PATCH_OPERATIONS or not condition:
-            return http.UNPROCESSABLE_ENTITY
+            # both must exist to be processed
+            if operation not in PATCH_OPERATIONS or not condition:
+                return http.UNPROCESSABLE_ENTITY
 
-        concept_id = int(condition['concept_id'])
+            concept_id = int(condition['concept_id'])
 
-        # TODO this logic assumes concept conditions are only first-level
-        # children. when concept conditions can be nested, this will need
-        # to be more robust at checking
-        if operation == 'remove' or operation == 'replace':
-            if not instance.store:
-                return http.CONFLICT
+            # TODO this logic assumes concept conditions are only first-level
+            # children. when concept conditions can be nested, this will need
+            # to be more robust at checking
+            if operation == 'remove' or operation == 'replace':
+                if not instance.store:
+                    return http.CONFLICT
 
-            # denotes a logical operator node e.g. AND | OR.
-            if instance.store.has_key('children'):
-                for i, x in enumerate(iter(instance.store['children'])):
-                    # TODO this logic assumes one condition per concept, update
-                    # this once this is not the case
-                    if x['concept_id'] == concept_id:
-                        if operation == 'replace':
-                            instance.store['children'][i] = condition
-                            break
-                        else:
-                            instance.store['children'].pop(i)
-                            # move up the condition to the top node if it is the
-                            # last one
-                            if len(instance.store['children']) == 1:
-                                instance.store = instance.store['children'][0]
-                            break
+                # denotes a logical operator node e.g. AND | OR.
+                if instance.store.has_key('children'):
+                    for i, x in enumerate(iter(instance.store['children'])):
+                        # TODO this logic assumes one condition per concept, update
+                        # this once this is not the case
+                        if x['concept_id'] == concept_id:
+                            if operation == 'replace':
+                                instance.store['children'][i] = condition
+                                break
+                            else:
+                                instance.store['children'].pop(i)
+                                # move up the condition to the top node if it is the
+                                # last one
+                                if len(instance.store['children']) == 1:
+                                    instance.store = instance.store['children'][0]
+                                break
+                    else:
+                        return http.CONFLICT
+
+                # standalone condition
+                elif instance.store.get('concept_id') == concept_id:
+                    if operation == 'remove':
+                        instance.store = None
+                    else:
+                        instance.store = condition
+
+                # a conflict in state between the client and the server
                 else:
                     return http.CONFLICT
 
-            # standalone condition
-            elif instance.store.get('concept_id') == concept_id:
-                if operation == 'remove':
-                    instance.store = None
-                else:
+            # add operations must check the validity and permission of the
+            # requested content
+            elif operation == 'add':
+                # ensure the object is valid or fail
+                if not instance.is_valid(condition):
+                    return http.UNPROCESSABLE_ENTITY
+
+                # ensure the user has permission to make use of corresponding fields
+                if not instance.has_permission(condition, request.user):
+                    return http.UNAUTHORIZED
+
+                if not instance.store:
                     instance.store = condition
+                elif instance.store.has_key('children'):
+                    if filter(lambda x: x.get('concept_id', None) == concept_id,
+                        instance.store['children']): return http.CONFLICT
+                    instance.store['children'].append(condition)
+                elif instance.store['concept_id'] != concept_id:
+                    instance.store = {'type': 'and', 'children': [instance.store, condition]}
+                else:
+                    return http.CONFLICT
 
-            # a conflict in state between the client and the server
-            else:
-                return http.CONFLICT
-
-        # add operations must check the validity and permission of the
-        # requested content
-        elif operation == 'add':
-            # ensure the object is valid or fail
-            if not instance.is_valid(condition):
-                return http.UNPROCESSABLE_ENTITY
-
-            # ensure the user has permission to make use of corresponding fields
-            if not instance.has_permission(condition, request.user):
-                return http.UNAUTHORIZED
-
-            if not instance.store:
-                instance.store = condition
-            elif instance.store.has_key('children'):
-                if filter(lambda x: x.get('concept_id', None) == concept_id,
-                    instance.store['children']): return http.CONFLICT
-                instance.store['children'].append(condition)
-            elif instance.store['concept_id'] != concept_id:
-                instance.store = {'type': 'and', 'children': [instance.store, condition]}
-            else:
-                return http.CONFLICT
-
-        instance.save()
-        request.session['scope'] = instance
-        return self._condition(condition)
+            instance.save()
+            request.session['scope'] = instance
+            return self._condition(condition)
 
 
 class ScopeResourceCollection(resources.ModelResourceCollection):
