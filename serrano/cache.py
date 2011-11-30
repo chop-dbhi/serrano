@@ -17,8 +17,8 @@ class cache_queue(object):
 
     def __enter__(self):
         # initialize the queues if needed
-        self.cache.add(self.queue_push_key, '1')
-        self.cache.add(self.queue_wait_key, '1')
+        self.cache.add(self.queue_push_key, 1)
+        self.cache.add(self.queue_wait_key, 1)
 
         # take a number
         index = self.cache.incr(self.queue_push_key) - 1
