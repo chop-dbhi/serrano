@@ -169,8 +169,15 @@ class SessionScopeResource(ScopeResource):
                 if not instance.store:
                     return http.CONFLICT
 
+                # standalone condition
+                if instance.store.get('concept_id', None) == concept_id:
+                    if operation == 'remove':
+                        instance.store = None
+                    else:
+                        instance.store = condition
+
                 # denotes a logical operator node e.g. AND | OR.
-                if instance.store.has_key('children'):
+                elif instance.store.has_key('children'):
                     for i, x in enumerate(iter(instance.store['children'])):
                         # TODO this logic assumes one condition per concept, update
                         # this once this is not the case
@@ -187,13 +194,6 @@ class SessionScopeResource(ScopeResource):
                                 break
                     else:
                         return http.CONFLICT
-
-                # standalone condition
-                elif instance.store.get('concept_id') == concept_id:
-                    if operation == 'remove':
-                        instance.store = None
-                    else:
-                        instance.store = condition
 
                 # a conflict in state between the client and the server
                 else:
@@ -212,12 +212,13 @@ class SessionScopeResource(ScopeResource):
 
                 if not instance.store:
                     instance.store = condition
+                # top-level condition is part of a concept, nest the conditions
+                elif instance.store.get('concept_id', None) != concept_id:
+                    instance.store = {'type': 'and', 'children': [instance.store, condition]}
                 elif instance.store.has_key('children'):
                     if filter(lambda x: x.get('concept_id', None) == concept_id,
                         instance.store['children']): return http.CONFLICT
                     instance.store['children'].append(condition)
-                elif instance.store['concept_id'] != concept_id:
-                    instance.store = {'type': 'and', 'children': [instance.store, condition]}
                 else:
                     return http.CONFLICT
 
