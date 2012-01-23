@@ -111,10 +111,13 @@ class SessionScopeResource(ScopeResource):
 
     @classmethod
     def condition_groups(self, obj):
+        groups = []
         if obj.store:
-            if obj.store.has_key('children'):
-                return map(self._condition, obj.store['children'])
-            return [self._condition(obj.store)]
+            if 'concept_id' not in obj.store:
+                groups += map(self._condition, obj.store['children'])
+            else:
+                groups.append(self._condition(obj.store))
+        return groups
 
     @classmethod
     def reference(self, obj):
@@ -170,15 +173,18 @@ class SessionScopeResource(ScopeResource):
                     return http.CONFLICT
 
                 # standalone condition
-                if instance.store.get('concept_id', None) == concept_id:
-                    if operation == 'remove':
-                        instance.store = None
+                if 'concept_id' in instance.store:
+                    if instance.store['concept_id'] == concept_id:
+                        if operation == 'remove':
+                            instance.store = None
+                        else:
+                            instance.store = condition
                     else:
-                        instance.store = condition
+                        return http.CONFLICT
 
                 # denotes a logical operator node e.g. AND | OR.
-                elif instance.store.has_key('children'):
-                    for i, x in enumerate(iter(instance.store['children'])):
+                else:
+                    for i, x in enumerate(instance.store['children']):
                         # TODO this logic assumes one condition per concept, update
                         # this once this is not the case
                         if x['concept_id'] == concept_id:
@@ -195,10 +201,6 @@ class SessionScopeResource(ScopeResource):
                     else:
                         return http.CONFLICT
 
-                # a conflict in state between the client and the server
-                else:
-                    return http.CONFLICT
-
             # add operations must check the validity and permission of the
             # requested content
             elif operation == 'add':
@@ -213,14 +215,15 @@ class SessionScopeResource(ScopeResource):
                 if not instance.store:
                     instance.store = condition
                 # top-level condition is part of a concept, nest the conditions
-                elif instance.store.get('concept_id', None) != concept_id:
-                    instance.store = {'type': 'and', 'children': [instance.store, condition]}
-                elif instance.store.has_key('children'):
-                    if filter(lambda x: x.get('concept_id', None) == concept_id,
-                        instance.store['children']): return http.CONFLICT
-                    instance.store['children'].append(condition)
+                elif 'concept_id' in instance.store:
+                    if instance.store['concept_id'] != concept_id:
+                        instance.store = {'type': 'and', 'children': [instance.store, condition]}
+                    else:
+                        return http.CONFLICT
                 else:
-                    return http.CONFLICT
+                    if filter(lambda x: x['concept_id'] == concept_id, instance.store['children']):
+                        return http.CONFLICT
+                    instance.store['children'].append(condition)
 
             instance.save()
             request.session['scope'] = instance
