@@ -165,6 +165,20 @@ class SessionScopeResource(ScopeResource):
 
             concept_id = int(condition['concept_id'])
 
+            # Make sure it is a valid structure..
+            if not instance.is_valid(condition):
+                return http.UNPROCESSABLE_ENTITY
+
+            # Permission check..
+            if not instance.has_permission(condition):
+                return http.UNAUTHORIZED
+
+            # XXX mad ghetto.. but better than whorking the session
+            try:
+                logictree.transform(condition).text
+            except Exception:
+                return http.UNPROCESSABLE_ENTITY
+
             # TODO this logic assumes concept conditions are only first-level
             # children. when concept conditions can be nested, this will need
             # to be more robust at checking
