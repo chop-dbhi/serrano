@@ -149,27 +149,18 @@ class ReportResource(resources.ModelResource):
 
         request.session[instance.REPORT_CACHE_KEY] = cache
 
+        # Create the initial response based on this resource's fields
+        resp = self.resolve_fields(instance)
+
         # the response is composed of a few different data that is dependent on
         # various conditions. the only required data is the ``rows`` which will
         # always be needed since all other components act on determing the rows
         # to be returned
-        resp = {
-            'rows': list(instance.perspective.format(rows, 'html')),
-        }
-
-        if instance.name:
-            resp['name'] = instance.name
-
-        if instance.description:
-            resp['description'] = instance.description
+        resp['rows'] = list(instance.perspective.format(rows, 'html'))
 
         # a *no change* requests implies the page has been requested statically
         # and the whole response object must be provided
-        resp.update({
-            'per_page': cache['per_page'],
-            'count': cache['count'],
-            'unique': cache['unique'],
-        })
+        resp['per_page'] = cache['per_page']
 
         paginator, page = instance.paginator_and_page(cache)
 
