@@ -97,27 +97,26 @@ class SessionScopeResource(ScopeResource):
         'condition_groups->conditions', 'has_changed', 'timesince')
 
     @classmethod
-    def _condition(self, json):
-        text = logictree.transform(json).text
-
-        j = ''
-        if text.has_key('type'):
-            j = ' %s ' % text['type']
-
-        return {
-            'concept_id': json['concept_id'],
-            'condition': j.join(text['conditions'])
-        }
+    def condition_groups(self, obj):
+        if obj.store:
+            return self.condition_text(obj.store)
+        return []
 
     @classmethod
-    def condition_groups(self, obj):
-        groups = []
-        if obj.store:
-            if 'concept_id' not in obj.store:
-                groups += map(self._condition, obj.store['children'])
-            else:
-                groups.append(self._condition(obj.store))
-        return groups
+    def condition_text(self, obj, text_list=None):
+        if text_list is None: text_list = []
+
+        if 'concept_id' in obj:
+            data = logictree.transform(obj).text
+            text = ''
+            if data.has_key('type'):
+                text = ' %s ' % data['type']
+            text_list.append(text.join(data['conditions']))
+
+        elif 'children' in obj:
+            text_list += map(self.condition_text, obj['children'])
+
+        return text_list
 
     @classmethod
     def reference(self, obj):
@@ -241,7 +240,7 @@ class SessionScopeResource(ScopeResource):
 
             instance.save()
             request.session['scope'] = instance
-            return self._condition(condition)
+            return instance
 
 
 class ScopeResourceCollection(resources.ModelResourceCollection):
