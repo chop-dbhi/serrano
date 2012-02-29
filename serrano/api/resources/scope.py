@@ -100,23 +100,27 @@ class SessionScopeResource(ScopeResource):
     def condition_groups(self, obj):
         if obj.store:
             return self.condition_text(obj.store)
-        return []
+        return {}
 
     @classmethod
-    def condition_text(self, obj, text_list=None):
-        if text_list is None: text_list = []
+    def condition_text(self, obj, text_dict=None):
+        if text_dict is None: text_dict = {}
 
         if 'concept_id' in obj:
             data = logictree.transform(obj).text
             text = ''
             if data.has_key('type'):
                 text = ' %s ' % data['type']
-            text_list.append(text.join(data['conditions']))
+
+            cid = obj['concept_id']
+            if cid not in text_dict:
+                text_dict[cid] = []
+            text_dict[cid].append(text.join(data['conditions']))
 
         elif 'children' in obj:
-            text_list += map(self.condition_text, obj['children'])
+            map(lambda x: self.condition_text(x, text_dict), obj['children'])
 
-        return text_list
+        return text_dict
 
     @classmethod
     def reference(self, obj):
@@ -240,7 +244,9 @@ class SessionScopeResource(ScopeResource):
 
             instance.save()
             request.session['scope'] = instance
-            return instance
+            resp = self.resolve_fields(instance)
+            resp['patch_condition_text'] = self.condition_text(condition)[concept_id]
+            return resp
 
 
 class ScopeResourceCollection(resources.ModelResourceCollection):
