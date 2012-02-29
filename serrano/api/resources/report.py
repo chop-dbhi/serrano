@@ -65,7 +65,7 @@ class ReportResource(resources.ModelResource):
         queryset, unique, count = inst.get_queryset(timestamp, **context)
 
         rows = inst._execute_raw_query(queryset)
-        iterator = inst.perspective.format(rows, 'csv')
+        iterator = inst.perspective.format(rows, 'csv', request=request)
         header = inst.perspective.get_columns_as_fields()
         name = 'report-' + datetime.now().strftime('%Y-%m-%d-%H,%M,%S')
 
@@ -156,7 +156,7 @@ class ReportResource(resources.ModelResource):
         # various conditions. the only required data is the ``rows`` which will
         # always be needed since all other components act on determing the rows
         # to be returned
-        resp['rows'] = list(instance.perspective.format(rows, 'html'))
+        resp['rows'] = list(instance.perspective.format(rows, 'html', request=request))
 
         # a *no change* requests implies the page has been requested statically
         # and the whole response object must be provided
