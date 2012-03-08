@@ -173,14 +173,15 @@ class SessionScopeResource(ScopeResource):
                 return http.UNPROCESSABLE_ENTITY
 
             # Permission check..
-            if not instance.has_permission(condition):
+            if operation != 'remove' and not instance.has_permission(condition):
                 return http.UNAUTHORIZED
 
-            # XXX mad ghetto.. but better than whorking the session
-            try:
-                logictree.transform(condition).text
-            except Exception:
-                return http.UNPROCESSABLE_ENTITY
+            if operation != 'remove':
+                # XXX mad ghetto.. but better than whorking the session
+                try:
+                    logictree.transform(condition).text
+                except Exception, e:
+                    return http.UNPROCESSABLE_ENTITY, e.message
 
             # TODO this logic assumes concept conditions are only first-level
             # children. when concept conditions can be nested, this will need
@@ -245,7 +246,8 @@ class SessionScopeResource(ScopeResource):
             instance.save()
             request.session['scope'] = instance
             resp = self.resolve_fields(instance)
-            resp['patch_condition_text'] = self.condition_text(condition)[concept_id]
+            if operation != 'remove':
+                resp['patch_condition_text'] = self.condition_text(condition)[concept_id]
             return resp
 
 
