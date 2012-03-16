@@ -1,48 +1,41 @@
-from restlib import http, resources
+from restlib2 import resources, utils
+from avocado.models import Criterion
 
-__all__ = ('CriterionResource', 'CriterionResourceCollection')
+class CriterionResource(resources.Resource):
+    data_template = {
+        'keymap': {'full_description': 'description', 'category': 'domain',
+            'view_responses': 'viewset'},
+        'fields': [':pk', 'name', 'full_description', 'category',
+            'view_responses']
+    }
 
-class SimpleCriterionResource(resources.ModelResource):
-    model = 'avocado.Criterion'
-    fields = (':pk', 'name', 'full_description->description', 'category->domain')
+    def is_not_found(self, request, pk):
+        return not Criterion.objects.public(user=request.user).filter(pk=pk).exists()
 
-    @classmethod
-    def queryset(self, request):
-        "Overriden to allow for user specificity."
-        return self.model.objects.public(user=request.user)
+    def get(self, request, pk):
+        obj = Criterion.objects.public(user=request.user).get(pk=pk)
+        return utils.serialize(obj, **self.data_template)
 
-    def GET(self, request, pk):
-        obj = self.get(request, pk=pk)
+class CriteriaResource(resources.Resource):
+    data_template = {
+        'keymap': {'full_description': 'description', 'category': 'domain'},
+        'fields': [':pk', 'name', 'full_description', 'category'],
+    }
 
-        if not obj:
-            return http.NOT_FOUND
+    search_template = {
+        'fields': [':pk'],
+        'values_list': True,
+        'flat': True,
+    }
 
-        return obj
+    def get(self, request):
+        queryset = Criterion.objects.public(user=request.user)
 
-
-class CriterionResource(SimpleCriterionResource):
-    fields = (':pk', 'name', 'full_description->description',
-        'category->domain', 'view_responses->viewset')
-    default_for_related = False
-
-
-class CriterionResourceCollection(resources.ModelResourceCollection):
-    resource = SimpleCriterionResource
-
-    middleware = ('serrano.api.middleware.CSRFExemption',) + \
-        resources.Resource.middleware
-
-    # HACK.. as with the custom middleware above
-    csrf_exempt = True
-
-    def GET(self, request):
-        queryset = self.queryset(request)
-
-        # apply fulltext if the 'q' GET param exists
+        # Apply fulltext if the 'q' GET param exists
         if request.GET.has_key('q'):
-            queryset = self.model.objects.fulltext_search(request.GET.get('q'),
-                queryset, True)
+            queryset = Criterion.objects.fulltext_search(request.GET.get('q'), queryset, True)
             queryset.query.clear_ordering(True)
-            return list(queryset.values_list('id', flat=True))
+            return utils.serialize(queryset, **self.search_template)
 
-        return queryset.order_by('category', 'order')
+        queryset = queryset.order_by('category', 'order')
+        return utils.serialize(queryset, **self.data_template)

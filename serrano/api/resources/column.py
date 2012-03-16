@@ -1,39 +1,34 @@
-from itertools import groupby
-from restlib import resources
+from restlib2 import resources, utils
+from avocado.models import Column
 
-__all__ = ('ColumnResource', 'ColumnResourceCollection')
+class ColumnsResource(resources.Resource):
+    data_template = {
+        'select_related': ['category'],
+        'fields': [':pk', 'name', 'description', 'category'],
+        'keymap': {'category': 'domain'},
+        'related': {
+            'category': {
+                'fields': [':pk', 'name', 'order', 'parent'],
+                'related': {
+                    'parent': {'fields': [':pk']}
+                }
+            }
+        }
+    }
 
-class ColumnResource(resources.ModelResource):
-    model = 'avocado.Column'
+    search_template = {
+        'fields': [':pk'],
+        'values_list': True,
+        'flat': True,
+    }
 
-    fields = (':pk', 'name', 'full_description->description')
-
-    @classmethod
-    def queryset(self, request):
-        "Overriden to allow for user specificity."
-        return self.model.objects.public(user=request.user)
-
-
-class ColumnResourceCollection(resources.ModelResourceCollection):
-    resource = ColumnResource
-
-    def GET(self, request):
-        queryset = self.queryset(request)
-
-        # apply fulltext if the 'q' GET param exists
+    def get(self, request):
+        queryset = Column.objects.public(user=request.user)
+        # Apply fulltext if the 'q' GET param exists
         if request.GET.has_key('q'):
-            queryset = self.model.objects.fulltext_search(request.GET.get('q'),
-                queryset, True)
-            return list(queryset.values_list('id', flat=True))
+            queryset = Column.objects.fulltext_search(request.GET.get('q'), queryset, True)
+            queryset.query.clear_ordering(True)
+            return utils.serialize(queryset, **self.search_template)
 
         queryset = queryset.order_by('category', 'order')
-
-        # TODO change to flattened out list of columns, not grouped by
-        # category since this is only relevent for cilantro as a client
-        return [{
-            'id': category.id,
-            'name': category.name,
-            'columns': list(columns),
-        } for category, columns in groupby(list(queryset),
-            lambda x: x.category)]
-
+        return utils.serialize(queryset, **self.data_template)

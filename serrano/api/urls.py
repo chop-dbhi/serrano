@@ -1,17 +1,16 @@
 from django.conf.urls.defaults import *
 
-category_patterns = patterns('serrano.api.resources',
-    url(r'^$', 'CategoryResourceCollection', name='read'),
-    url(r'^(?P<pk>\d+)/$', 'CategoryResource', name='read'),
+domain_patterns = patterns('serrano.api.resources',
+    url(r'^$', 'DomainsResource', name='read'),
 )
 
 criterion_patterns = patterns('serrano.api.resources',
-    url(r'^$', 'CriterionResourceCollection', name='read'),
+    url(r'^$', 'CriteriaResource', name='read'),
     url(r'^(?P<pk>\d+)/$', 'CriterionResource', name='read'),
 )
 
 column_patterns = patterns('serrano.api.resources',
-    url(r'^$', 'ColumnResourceCollection', name='read'),
+    url(r'^$', 'ColumnsResource', name='read'),
 )
 
 report_patterns = patterns('serrano.api.resources',
@@ -35,7 +34,7 @@ perspective_patterns = patterns('serrano.api.resources',
 urlpatterns = patterns('',
     url(r'^criteria/', include(criterion_patterns, namespace='criteria')),
     url(r'^columns/', include(column_patterns, namespace='columns')),
-    url(r'^domains/', include(category_patterns, namespace='categories')),
+    url(r'^domains/', include(domain_patterns, namespace='categories')),
     url(r'^reports/', include(report_patterns, namespace='reports')),
     url(r'^scope/', include(scope_patterns, namespace='scope')),
     url(r'^perspectives/', include(perspective_patterns, namespace='perspectives')),
