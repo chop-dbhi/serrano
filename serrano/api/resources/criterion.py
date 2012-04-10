@@ -9,7 +9,7 @@ class CriterionResource(resources.Resource):
             'view_responses']
     }
 
-    def is_not_found(self, request, pk):
+    def is_not_found(self, request, response, pk):
         return not Criterion.objects.public(user=request.user).filter(pk=pk).exists()
 
     def get(self, request, pk):
