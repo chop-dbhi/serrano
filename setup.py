@@ -1,9 +1,8 @@
+import os
+import sys
 from distutils.core import setup
 from distutils.command.install_data import install_data
 from distutils.command.install import INSTALL_SCHEMES
-
-import os
-import sys
 
 BASE_PACKAGE = 'serrano'
 
@@ -75,15 +74,22 @@ setup(
     name = 'serrano',
     author = 'Byron Ruth',
     author_email = 'ruthb@email.chop.edu',
-    description = 'A server implementation and RESTful API for Avocado',
+    description = 'Hypermedia implementation for Avocado',
     license = 'BSD',
-    keywords = 'REST API',
-    url = 'https://github.com/cbmi/django-serrano',
+    keywords = 'hypermedia rest api avocado serrano cilantro harvest',
+    url = 'http://cbmi.github.com/serrano',
 
     packages = packages,
     cmdclass = cmdclasses,
 
-    install_requires = ['avocado>=0.9.1b1', 'django-restlib2'],
+    install_requires = [
+        'avocado',
+        'django-restlib2'
+    ],
+
+    dependency_links = [
+        'http://github.com/cbmi/avocado/tarball/master#egg=avocado',
+    ],
 
     data_files = data_files,
     classifiers = [
