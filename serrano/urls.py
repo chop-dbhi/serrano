@@ -1,7 +1,6 @@
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import patterns, url, include
 
 urlpatterns = patterns('',
-    url(r'^api/', include('serrano.api.urls', namespace='api')),
-    url(r'^reports/(?P<pk>\d+)/$', 'serrano.api.resources.ReportRedirectResource',
-        name='report-redirect'),
+    url(r'^fields/', include('serrano.resources.datafield')),
+    url(r'^concepts/', include('serrano.resources.dataconcept')),
 )
