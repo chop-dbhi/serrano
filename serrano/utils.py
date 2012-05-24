@@ -8,7 +8,7 @@ def get_data_context(pk=None, user=None):
             return DataContext.objects.get(pk=pk)
         except DataContext.DoesNotExist:
             pass
-    if user:
+    if user and user.is_authenticated():
         try:
             return DataContext.objects.get(user=user, session=True)
         except DataContext.DoesNotExist:
