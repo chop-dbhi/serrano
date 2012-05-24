@@ -1,3 +1,4 @@
+from copy import deepcopy
 from collections import defaultdict
 from decimal import Decimal
 from django.conf.urls import patterns, url
@@ -64,10 +65,11 @@ class DataFieldResource(DataFieldBase):
         'fields': [
             ':pk', 'name', 'plural_name', 'description', 'keywords',
             'category', 'app_name', 'model_name', 'field_name',
-            'modified', 'published', 'archived'
+            'modified', 'published', 'archived', 'operators'
         ],
         'key_map': {
             'plural_name': 'get_plural_name',
+            'operators': 'operator_choices',
         },
         'related': {
             'category': {
@@ -93,24 +95,26 @@ class DataFieldResource(DataFieldBase):
     def serialize(self, instance):
         obj = utils.serialize(instance, **self.template)
         obj['url'] = reverse('datafield', args=[instance.pk])
-        obj['data'] = utils.serialize(instance, **self.data_template)
+
+        if instance.enumerable and not instance.searchable:
+            data_template = deepcopy(self.data_template)
+            data_template['fields'].append('choices')
+            obj['data'] = utils.serialize(instance, **data_template)
+        else:
+            obj['data'] = utils.serialize(instance, **self.data_template)
         obj['links'] = {
             'values': {
                 'rel': 'data',
                 'href': reverse('datafield-values', args=[instance.pk]),
             },
-            'stats': {
-                'rel': 'data',
-                'href': reverse('datafield-stats', args=[instance.pk]),
-            },
+#            'stats': {
+#                'rel': 'data',
+#                'href': reverse('datafield-stats', args=[instance.pk]),
+#            },
             'distribution': {
                 'rel': 'data',
                 'href': reverse('datafield-distribution', args=[instance.pk]),
             },
-#            'concepts': {
-#                'rel': 'related',
-#                'href': reverse('datafield-concepts', args=[instance.pk]),
-#            },
         }
         return obj
 
