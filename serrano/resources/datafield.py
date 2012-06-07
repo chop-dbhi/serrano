@@ -95,13 +95,8 @@ class DataFieldResource(DataFieldBase):
     def serialize(self, instance):
         obj = utils.serialize(instance, **self.template)
         obj['url'] = reverse('datafield', args=[instance.pk])
+        obj['data'] = utils.serialize(instance, **self.data_template)
 
-        if instance.enumerable and not instance.searchable:
-            data_template = deepcopy(self.data_template)
-            data_template['fields'].append('choices')
-            obj['data'] = utils.serialize(instance, **data_template)
-        else:
-            obj['data'] = utils.serialize(instance, **self.data_template)
         obj['links'] = {
             'values': {
                 'rel': 'data',
