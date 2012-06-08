@@ -82,15 +82,6 @@ setup(
     packages = packages,
     cmdclass = cmdclasses,
 
-    install_requires = [
-        'avocado',
-        'django-restlib2'
-    ],
-
-    dependency_links = [
-        'http://github.com/cbmi/avocado/tarball/master#egg=avocado',
-    ],
-
     data_files = data_files,
     classifiers = [
         'Development Status :: 4 - Beta',
