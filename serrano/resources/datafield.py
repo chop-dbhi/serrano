@@ -1,4 +1,3 @@
-from copy import deepcopy
 from collections import defaultdict
 from decimal import Decimal
 from django.conf.urls import patterns, url
@@ -7,15 +6,15 @@ from django.db.models import Q, Count
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.encoding import smart_unicode
-from restlib2 import resources, utils
+from restlib2 import utils
 from modeltree.tree import trees
 from avocado.conf import settings as _settings
 from avocado.models import DataField
 from avocado.stats import cluster
-from serrano.utils import get_data_context
+from .base import BaseResource
 
 DATA_CHOICES_MAP = _settings.DATA_CHOICES_MAP
-# SQLITE_AGG_EXT = getattr(settings, 'SQLITE_AGG_EXT', False)
+SQLITE_AGG_EXT = getattr(settings, 'SQLITE_AGG_EXT', False)
 # AGG_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
 
 # Apply the 'rule of thumb' for determining the appropriate number of
@@ -29,7 +28,7 @@ SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 can_change_datafield = lambda u: u.has_perm('avocado.change_datafield')
 
 
-class DataFieldBase(resources.Resource):
+class DataFieldBase(BaseResource):
     def get_queryset(self, request):
         queryset = DataField.objects.all()
         if not can_change_datafield(request.user):
@@ -165,13 +164,24 @@ class DataFieldResource(DataFieldBase):
 class DataFieldValues(DataFieldBase):
     "DataField Values Resource"
 
+    param_defaults = {
+        'query': ''
+    }
+
     def get(self, request, pk):
         instance = request.instance
 
-        queryset = instance.query().annotate(count=Count(instance.field_name))\
+        params = self.get_params(request)
+
+        tree = trees[instance.model]
+        context = self.get_context(request)
+        queryset = context.apply(queryset=instance.query(), tree=tree)
+
+        queryset = queryset.annotate(count=Count(instance.field_name))\
             .order_by(instance.field_name)
 
-        query = request.GET.get('query', '').strip()
+        query = params.get('query').strip()
+
         if query:
             queryset = queryset.search_values(query)
 
@@ -223,20 +233,21 @@ class DataFieldDistribution(DataFieldBase):
     def get(self, request, pk):
         instance = request.instance
 
+        params = self.get_params(request)
+
         # Only one grouping is currently supported
-        dimensions = request.GET.getlist('dimension')
+        dimensions = params.getlist('dimension')
         # aggregates = request.GET.getlist('aggregate')
 
-        context_pk = request.GET.get('context')
-        nulls = request.GET.get('nulls')
-        sort = request.GET.get('sort')
-        _cluster = request.GET.get('cluster')
+        nulls = params.get('nulls')
+        sort = params.get('sort')
+        _cluster = params.get('cluster')
 
         tree = trees[instance.model]
 
         # Get the appropriate data context
-        cxt = get_data_context(pk=context_pk, user=getattr(request, 'user', None))
-        queryset = cxt.apply(tree=tree)
+        context = self.get_context(request)
+        queryset = context.apply(tree=tree)
 
         # Explicit fields to group by, ignore ones that dont exist or the
         # user does not have permission to view. Default is to group by the

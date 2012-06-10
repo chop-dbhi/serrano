@@ -1,14 +1,8 @@
-from collections import defaultdict
-from decimal import Decimal
 from django.conf.urls import patterns, url
-from django.db import router
-from django.db.models import Q
-from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.utils.encoding import smart_unicode
-from restlib2 import resources, utils
-from modeltree.tree import trees
+from restlib2 import utils
 from avocado.models import DataConcept
+from .base import BaseResource
 from serrano.resources.datafield import DataFieldResource
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
@@ -17,7 +11,7 @@ SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 can_change_dataconcept = lambda u: u.has_perm('avocado.change_dataconcept')
 
 
-class DataConceptBase(resources.Resource):
+class DataConceptBase(BaseResource):
     def get_queryset(self, request):
         queryset = DataConcept.objects.all()
         if not can_change_dataconcept(request.user):
