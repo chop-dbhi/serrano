@@ -66,9 +66,10 @@ class DataConceptResource(DataConceptBase):
 
     # Template for top-level attributes
     conceptfield_template = {
-        'fields': ['name', 'plural_name', 'description', 'keywords'],
+        'fields': ['alt_name', 'alt_plural_name'],
         'key_map': {
-            'plural_name': 'get_plural_name',
+            'alt_name': 'name',
+            'alt_plural_name': 'get_plural_name',
         },
     }
 
@@ -78,12 +79,11 @@ class DataConceptResource(DataConceptBase):
 
         fields = []
         for cfield in instance.concept_fields.select_related('field').iterator():
-            field_obj = DataFieldResource.serialize(cfield.field)
-            # Only if a custom name is defined for the concept field do we
-            # need to override the descriptive data.
-            if cfield.name:
-                field_obj.update(utils.serialize(field, **self.conceptfield_template))
-            fields.append(field_obj)
+            field = DataFieldResource.serialize(cfield.field)
+            # Add the alternate name specific to the relationship between the
+            # concept and the field.
+            field.update(utils.serialize(cfield, **self.conceptfield_template))
+            fields.append(field)
 
         obj['fields'] = fields
         obj['url'] = reverse('dataconcept', args=[instance.pk])
