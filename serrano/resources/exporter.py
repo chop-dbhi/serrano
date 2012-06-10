@@ -49,8 +49,20 @@ class ExporterResource(resources.Resource):
 
         # Special case for JSON+HTML formatted especially for app consumption
         if not export:
+            page = request.GET.get('page')
+            per_page = 50
+            paginator = BufferedPaginator(cxt.count, per_page=per_page)
+
+            try:
+                page = paginator.page(page)
+            except PageNotAnInteger:
+                page = paginator.page(1)
+            except EmptyPage:
+                page = paginator.page(paginator.num_pages)
+
+            offset = page.offset()
             queryset = view.apply(cxt.apply())
-            iterator = queryset[:100].raw()
+            iterator = queryset[offset:offset + per_page].raw()
             # Insert formatter to process the primary key as a raw value
             keys = [queryset.model._meta.pk.name]
             exporter.params.insert(0, (keys, 1, RawFormatter(keys=keys)))
@@ -66,7 +78,9 @@ class ExporterResource(resources.Resource):
 
             data = {
                 'rows': rows,
-                'header': header
+                'header': header,
+                'num_pages': paginator.num_pages,
+                'page_num': page.number,
             }
             resp.content = json.dumps(data)
             resp['Content-Type'] = 'application/json'
