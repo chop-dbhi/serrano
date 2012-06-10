@@ -3,7 +3,7 @@ from collections import defaultdict
 from decimal import Decimal
 from django.conf.urls import patterns, url
 from django.db import router
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.encoding import smart_unicode
@@ -168,16 +168,23 @@ class DataFieldValues(DataFieldBase):
     def get(self, request, pk):
         instance = request.instance
 
+        queryset = instance.query().annotate(count=Count(instance.field_name))\
+            .order_by(instance.field_name)
+
         query = request.GET.get('query', '').strip()
-
         if query:
-            queryset = instance.search_values(query)
-            return [{
-                'name': smart_unicode(DATA_CHOICES_MAP.get(value, value)),
-                'value': value
-            } for value in queryset]
+            queryset = queryset.search_values(query)
 
-        return [{'name': v, 'value': k} for k, v in instance.choices]
+        results = []
+
+        for obj in queryset.iterator():
+            value = obj[instance.field_name]
+            results.append({
+                'name': smart_unicode(DATA_CHOICES_MAP.get(value, value)),
+                'value': value,
+                'count': obj['count'],
+            })
+        return results
 
 
 class DataFieldStats(DataFieldBase):
