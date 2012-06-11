@@ -177,9 +177,8 @@ class DataFieldValues(DataFieldBase):
 
         tree = trees[instance.model]
         context = self.get_context(request)
-        queryset = context.apply(tree=tree)
-
-        queryset = queryset.values(instance.field_name).annotate(count=Count(instance.field_name))
+        queryset = context.apply(queryset=instance.query(), tree=tree)\
+            .annotate(count=Count(instance.field_name))
         query = params.get('query').strip()
 
         if query:
