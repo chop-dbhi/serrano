@@ -170,29 +170,32 @@ class DataFieldValues(DataFieldBase):
 
     def get(self, request, pk):
         instance = request.instance
+        # Distinct set of values
+        values = instance.query().distinct().order_by(instance.field_name)
 
         params = self.get_params(request)
 
         tree = trees[instance.model]
         context = self.get_context(request)
-        queryset = context.apply(queryset=instance.query(), tree=tree)
+        queryset = context.apply(tree=tree)
 
-        queryset = queryset.annotate(count=Count(instance.field_name))\
-            .order_by(instance.field_name)
-
+        queryset = queryset.values(instance.field_name).annotate(count=Count(instance.field_name))
         query = params.get('query').strip()
 
         if query:
             queryset = queryset.search_values(query)
 
-        results = []
-
+        counts = {}
         for obj in queryset.iterator():
+            counts[obj[instance.field_name]] = obj['count']
+
+        results = []
+        for obj in values.iterator():
             value = obj[instance.field_name]
             results.append({
                 'name': smart_unicode(DATA_CHOICES_MAP.get(value, value)),
                 'value': value,
-                'count': obj['count'],
+                'count': counts.get(value, 0)
             })
         return results
 
