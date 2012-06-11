@@ -7,37 +7,40 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.paginator import EmptyPage, PageNotAnInteger
-from restlib2 import resources
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
 from avocado.exporters import registry as exporters
-from .dataview import DataViewResource
-from .datacontext import DataContextResource
+from .base import BaseResource
 
 EXPORTER_MIMETYPES = ['json', 'csv', 'excel', 'r', 'sas']
 
 
-class ExporterResource(resources.Resource):
+class ExporterResource(BaseResource):
     use_etags = False
 
     def get(self, request):
-        cxt = DataContextResource.get_object(request, session=True)
-        view = DataViewResource.get_object(request, session=True)
+        params = self.get_params(request)
+
+        context = self.get_context(request)
+        view = self.get_view(request)
 
         resp = HttpResponse()
 
-        if not cxt or not view:
-            resp.status_code = 422
-            resp._raw_content = {'error': 'No data can be produced, a context or view does not exist'}
-            return resp
+        if not context or not view:
+            return {
+                'rows': [],
+                'header': [],
+                'num_pages': 0,
+                'page_num': 1,
+            }
 
         # GET param to explicitly export the data
-        export = request.GET.get('export')
+        export = params.get('export')
 
         if export:
             exporter_name = export
             if exporter_name not in EXPORTER_MIMETYPES:
-                resp.content = 'Format "{}" not supported. Choose one of the following: {}'.format(exporter_name, ', '.join(EXPORTER_MIMETYPES.values()))
+                resp.content = "Format '{}' not supported. Choose one of the following: {}".format(exporter_name, ', '.join(EXPORTER_MIMETYPES.values()))
                 resp.status_code = 422
                 return resp
         else:
@@ -51,7 +54,7 @@ class ExporterResource(resources.Resource):
         if not export:
             page = request.GET.get('page')
             per_page = 50
-            paginator = BufferedPaginator(cxt.count, per_page=per_page)
+            paginator = BufferedPaginator(context.count, per_page=per_page)
 
             try:
                 page = paginator.page(page)
@@ -61,13 +64,19 @@ class ExporterResource(resources.Resource):
                 page = paginator.page(paginator.num_pages)
 
             offset = page.offset()
-            queryset = view.apply(cxt.apply())
+            queryset = view.apply(context.apply())
             iterator = queryset[offset:offset + per_page].raw()
             # Insert formatter to process the primary key as a raw value
             keys = [queryset.model._meta.pk.name]
             exporter.params.insert(0, (keys, 1, RawFormatter(keys=keys)))
 
-            header = [c.name for c in dataview_node.concepts]
+            header = []
+            for concept in dataview_node.concepts:
+                obj = {'id': concept.id, 'name': concept.name}
+                ordering = filter(lambda x: x[0] == obj['id'], dataview_node.ordering)
+                if ordering:
+                    obj['direction'] = ordering[0][1]
+                header.append(obj)
 
             rows = []
             for row in exporter.read(iterator):
@@ -85,7 +94,7 @@ class ExporterResource(resources.Resource):
             resp.content = json.dumps(data)
             resp['Content-Type'] = 'application/json'
         else:
-            queryset = view.apply(cxt.apply(), include_pk=False)
+            queryset = view.apply(context.apply(), include_pk=False)
             iterator = queryset.raw()
 
             file_extension = exporter_class.file_extension
