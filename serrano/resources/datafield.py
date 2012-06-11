@@ -1,7 +1,9 @@
+import json
 from collections import defaultdict
 from decimal import Decimal
 from django.conf.urls import patterns, url
 from django.db import router
+from django.http import HttpResponse
 from django.db.models import Q, Count
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -10,17 +12,18 @@ from restlib2 import utils
 from modeltree.tree import trees
 from avocado.conf import settings as _settings
 from avocado.models import DataField
-from avocado.stats import cluster
+from avocado.stats import cluster as stats_cluster
 from .base import BaseResource
 
 DATA_CHOICES_MAP = _settings.DATA_CHOICES_MAP
 SQLITE_AGG_EXT = getattr(settings, 'SQLITE_AGG_EXT', False)
-# AGG_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
+AGG_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
 
 # Apply the 'rule of thumb' for determining the appropriate number of
 # clusters relative to the # of observations. Default to 50 to ensure
 # a trend is somewhat visible
-REQUIRED_OBSERVATIONS = 500
+MINIMUM_OBSERVATIONS = 500
+MAXIMUM_OBSERVATIONS = 20000
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -29,6 +32,10 @@ can_change_datafield = lambda u: u.has_perm('avocado.change_datafield')
 
 
 class DataFieldBase(BaseResource):
+    param_defaults = {
+        'query': '',
+    }
+
     def get_queryset(self, request):
         queryset = DataField.objects.all()
         if not can_change_datafield(request.user):
@@ -113,12 +120,14 @@ class DataFieldResource(DataFieldBase):
         return obj
 
     def get(self, request, pk=None):
+        params = self.get_params(request)
+
         # Process GET parameters
-        sort = request.GET.get('sort', None)        # default: model ordering
-        direction = request.GET.get('direction', None)  # default: desc
-        published = request.GET.get('published', None)
-        archived = request.GET.get('archived', None)
-        query = request.GET.get('query', '').strip()
+        sort = params.get('sort')        # default: model ordering
+        direction = params.get('direction')  # default: desc
+        published = params.get('published')
+        archived = params.get('archived')
+        query = params.get('query').strip()
 
         queryset = self.get_queryset(request)
 
@@ -164,14 +173,8 @@ class DataFieldResource(DataFieldBase):
 class DataFieldValues(DataFieldBase):
     "DataField Values Resource"
 
-    param_defaults = {
-        'query': ''
-    }
-
     def get(self, request, pk):
         instance = request.instance
-        # Distinct set of values
-        values = instance.query().distinct().order_by(instance.field_name)
 
         params = self.get_params(request)
 
@@ -189,8 +192,7 @@ class DataFieldValues(DataFieldBase):
             counts[obj[instance.field_name]] = obj['count']
 
         results = []
-        for obj in values.iterator():
-            value = obj[instance.field_name]
+        for value in instance.values:
             results.append({
                 'name': smart_unicode(DATA_CHOICES_MAP.get(value, value)),
                 'value': value,
@@ -243,7 +245,7 @@ class DataFieldDistribution(DataFieldBase):
 
         nulls = params.get('nulls')
         sort = params.get('sort')
-        _cluster = params.get('cluster')
+        cluster = params.get('cluster')
 
         tree = trees[instance.model]
 
@@ -282,27 +284,7 @@ class DataFieldDistribution(DataFieldBase):
                 q = q | Q(**{field: None})
             stats = stats.exclude(q)
 
-        # Apply ordering. If any of the fields are enumerable, ordering should
-        # be relative to those fields. For continuous data, the ordering is
-        # relative to the count of each group
-        if any([d.enumerable for d in fields]) and not sort == 'count':
-            stats = stats.order_by(*groupby)
-        else:
-            stats = stats.order_by('-count')
-
-        # Specify additional aggregations
-#        if any(aggregates):
-#            db = router.db_for_read(instance.model)
-#            stddev_supported = True
-#            if 'sqlite' in settings.DATABASES[db]['ENGINE'] and not SQLITE_AGG_EXT:
-#                stddev_supported = False
-#
-#            for agg in aggregates:
-#                if agg in AGG_FUNCTIONS:
-#                    if (agg == 'stddev' or agg == 'variance') and not stddev_supported:
-#                        continue
-#                    stats = getattr(stats, agg)()
-
+        # Begin constructing the response
         resp = {
             'data': [],
             'outliers': [],
@@ -316,6 +298,17 @@ class DataFieldDistribution(DataFieldBase):
         # Nothing to do
         if not length:
             return resp
+
+        if length > MAXIMUM_OBSERVATIONS:
+            return HttpResponse(json.dumps({'error': 'Data too large'}), status=422)
+
+        # Apply ordering. If any of the fields are enumerable, ordering should
+        # be relative to those fields. For continuous data, the ordering is
+        # relative to the count of each group
+        if any([d.enumerable for d in fields]) and not sort == 'count':
+            stats = stats.order_by(*groupby)
+        else:
+            stats = stats.order_by('-count')
 
         clustered = False
         points = list(stats)
@@ -334,11 +327,11 @@ class DataFieldDistribution(DataFieldBase):
 
             # Perform k-means clustering. Determine centroids and calculate
             # the weighted count relatives to the centroid and observations
-            # within the cluster.
-            if _cluster != 'false' and length >= REQUIRED_OBSERVATIONS:
+            # within the stats_cluster.
+            if cluster != 'false' and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
-                result = cluster.kmeans_optm(obs)
+                result = stats_cluster.kmeans_optm(obs)
                 outliers = [points[i] for i in result['outliers']]
 
                 dist_weights = defaultdict(lambda: {'dist': [], 'count': []})
@@ -366,7 +359,7 @@ class DataFieldDistribution(DataFieldBase):
                         'count': int(sum(weighted_counts)),
                     })
             else:
-                indexes = cluster.find_outliers(obs, whitened=False)
+                indexes = stats_cluster.find_outliers(obs, whitened=False)
 
                 outliers = []
                 for idx in indexes:
