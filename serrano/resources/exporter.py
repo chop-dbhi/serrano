@@ -64,7 +64,7 @@ class ExporterResource(BaseResource):
                 page = paginator.page(paginator.num_pages)
 
             offset = page.offset()
-            queryset = view.apply(context.apply())
+            queryset = view.apply(context.apply()).distinct()
             iterator = queryset[offset:offset + per_page].raw()
             # Insert formatter to process the primary key as a raw value
             keys = [queryset.model._meta.pk.name]
@@ -94,7 +94,7 @@ class ExporterResource(BaseResource):
             resp.content = json.dumps(data)
             resp['Content-Type'] = 'application/json'
         else:
-            queryset = view.apply(context.apply(), include_pk=False)
+            queryset = view.apply(context.apply(), include_pk=False).distinct()
             iterator = queryset.raw()
 
             file_extension = exporter_class.file_extension
