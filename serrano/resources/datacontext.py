@@ -63,7 +63,7 @@ class DataContextResource(DataContextBase):
 
         if form.is_valid():
             instance = form.save(commit=False)
-            instance.count = instance.apply().count()
+            instance.count = instance.apply().distinct().count()
             form.save()
             resp = HttpResponse(status=201)
             resp._raw_content = self.serialize(instance)
@@ -81,7 +81,7 @@ class DataContextResource(DataContextBase):
         if form.is_valid():
             instance = form.save(commit=False)
             if form.count_needs_update:
-                instance.count = instance.apply().count()
+                instance.count = instance.apply().distinct().count()
             form.save()
             resp = HttpResponse(status=200)
             resp._raw_content = self.serialize(instance)
