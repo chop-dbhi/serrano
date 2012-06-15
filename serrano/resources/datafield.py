@@ -19,11 +19,8 @@ DATA_CHOICES_MAP = _settings.DATA_CHOICES_MAP
 SQLITE_AGG_EXT = getattr(settings, 'SQLITE_AGG_EXT', False)
 AGG_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
 
-# Apply the 'rule of thumb' for determining the appropriate number of
-# clusters relative to the # of observations. Default to 50 to ensure
-# a trend is somewhat visible
 MINIMUM_OBSERVATIONS = 500
-MAXIMUM_OBSERVATIONS = 20000
+MAXIMUM_OBSERVATIONS = 50000
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -180,7 +177,7 @@ class DataFieldValues(DataFieldBase):
 
         tree = trees[instance.model]
         context = self.get_context(request)
-        queryset = context.apply(queryset=instance.query(), tree=tree)\
+        queryset = context.apply(queryset=instance.query(), tree=tree).distinct()\
             .annotate(count=Count(instance.field_name))
         query = params.get('query').strip()
 
@@ -246,6 +243,7 @@ class DataFieldDistribution(DataFieldBase):
         nulls = params.get('nulls')
         sort = params.get('sort')
         cluster = params.get('cluster')
+        k = params.get('n')
 
         tree = trees[instance.model]
 
@@ -331,7 +329,7 @@ class DataFieldDistribution(DataFieldBase):
             if cluster != 'false' and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
-                result = stats_cluster.kmeans_optm(obs)
+                result = stats_cluster.kmeans_optm(obs, k=k)
                 outliers = [points[i] for i in result['outliers']]
 
                 dist_weights = defaultdict(lambda: {'dist': [], 'count': []})
