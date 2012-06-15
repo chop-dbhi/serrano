@@ -1,5 +1,6 @@
-*.pyc
-*.swp
+*.py[co]
+*.sw[po]
 .DS_Store
 MANIFEST
 dist
+.coverage
