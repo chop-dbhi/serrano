@@ -10,7 +10,7 @@ kwargs = {
     # Dependencies
     'install_requires': [
         'avocado>=2.0a', # Hack, to work with the dependency link
-        'restlib2>=1.0a', # Hack, to work with the dependency link
+        'restlib2>=0.1a', # Hack, to work with the dependency link
     ],
 
     # Test dependencies
@@ -24,7 +24,7 @@ kwargs = {
     # Resources unavailable on PyPi
     'dependency_links': [
         'https://github.com/cbmi/avocado/tarball/2.x#egg=avocado-2.0',
-        'https://github.com/bruth/restlib2/tarball/master#egg=restlib2-1.0',
+        'https://github.com/bruth/restlib2/tarball/master#egg=restlib2-0.1',
     ],
 
     # Metadata
