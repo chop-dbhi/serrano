@@ -9,7 +9,7 @@ kwargs = {
 
     # Dependencies
     'install_requires': [
-        'avocado>=2.0a', # Hack, to work with the dependency link
+        'avocado[permissions,search,clustering,extras]>=2.0a', # Hack, to work with the dependency link
         'restlib2>=0.1a', # Hack, to work with the dependency link
     ],
 
