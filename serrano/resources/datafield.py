@@ -84,11 +84,10 @@ class DataFieldResource(DataFieldBase):
     # Template for data-related attributes
     data_template = {
         'fields': [
-            'type', 'modified', 'enumerable', 'searchable', 'unit',
-            'plural_unit'
+            'simple_type', 'internal_type', 'modified', 'enumerable',
+            'searchable', 'unit', 'plural_unit'
         ],
         'key_map': {
-            'type': 'datatype',
             'modified': 'data_modified',
             'plural_unit': 'get_plural_unit',
         }
@@ -206,7 +205,7 @@ class DataFieldStats(DataFieldBase):
 
         stats = instance.count()
 
-        if instance.datatype == 'number':
+        if instance.simple_type == 'number':
             stats = stats.avg().max().min().sum()
 
             # SQLite does not support STDDEV and VARIANCE, so do not include
@@ -314,7 +313,7 @@ class DataFieldDistribution(DataFieldBase):
 
         # For N-dimensional continuous data, check if clustering should occur
         # to down-sample the data.
-        if all([d.datatype == 'number' for d in fields]):
+        if all([d.simple_type == 'number' for d in fields]):
             # Extract observations for clustering
             obs = []
             for point in points:

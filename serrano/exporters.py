@@ -1,4 +1,4 @@
-from avocado.exporters import JSONExporter, registry
+from avocado.export import JSONExporter, registry
 
 
 class JSONHTMLExporter(JSONExporter):

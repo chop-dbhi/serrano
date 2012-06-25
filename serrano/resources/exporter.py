@@ -9,7 +9,7 @@ from django.conf.urls import patterns, url
 from django.core.paginator import EmptyPage, PageNotAnInteger
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
-from avocado.exporters import registry as exporters
+from avocado.export import registry as exporters
 from .base import BaseResource
 
 EXPORTER_MIMETYPES = ['json', 'csv', 'excel', 'r', 'sas']
