@@ -50,6 +50,10 @@ class DataContextBase(resources.Resource):
             request.instance = instance
         return False
 
+    def is_gone(self, request, response, **kwargs):
+        if hasattr(request, 'instance'):
+            return request.instance.archived
+
 
 class DataContextResource(DataContextBase):
     "DataContext Summary Resource"
@@ -90,6 +94,12 @@ class DataContextResource(DataContextBase):
             resp = HttpResponse(status=codes.unprocessable_entity)
             resp._raw_content = dict(form.errors)
         return resp
+
+    def delete(self, request, pk):
+        if request.instance.session:
+            return HttpResponse(status=codes.bad_request)
+        request.instance.delete()
+        return HttpResponse(status=codes.no_content)
 
 
 class DataContextHistoryResource(DataContextBase):
