@@ -2,12 +2,10 @@ import json
 from collections import defaultdict
 from decimal import Decimal
 from django.conf.urls import patterns, url
-from django.db import router
 from django.http import HttpResponse
-from django.db.models import Q, Count
+from django.db.models import Q
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.utils.encoding import smart_unicode
 from restlib2 import utils
 from restlib2.http import codes
 from modeltree.tree import trees
@@ -105,10 +103,10 @@ class DataFieldResource(DataFieldBase):
                 'rel': 'data',
                 'href': reverse('datafield-values', args=[instance.pk]),
             },
-#            'stats': {
-#                'rel': 'data',
-#                'href': reverse('datafield-stats', args=[instance.pk]),
-#            },
+            'stats': {
+                'rel': 'data',
+                'href': reverse('datafield-stats', args=[instance.pk]),
+            },
             'distribution': {
                 'rel': 'data',
                 'href': reverse('datafield-distribution', args=[instance.pk]),
@@ -204,20 +202,18 @@ class DataFieldStats(DataFieldBase):
     def get(self, request, pk):
         instance = request.instance
 
-        stats = instance.count()
+        stats = None
 
         if instance.simple_type == 'number':
-            stats = stats.avg().max().min().sum()
+            stats = instance.max().min().avg()
+        elif instance.simple_type == 'string' and instance.enumerable:
+            stats = instance.count(distinct=True)
 
-            # SQLite does not support STDDEV and VARIANCE, so do not include
-            # them unless the extension has been installed
-            db = router.db_for_read(instance.model)
-            if 'sqlite' not in settings.DATABASES[db]['ENGINE'] or SQLITE_AGG_EXT:
-                stats = stats.stddev().variance()
+        if stats is None:
+            resp = {}
+        else:
+            resp = iter(stats).next()
 
-        resp = iter(stats).next()
-        resp['size'] = instance.size
-        resp['mode'] = instance.count(instance.field_name).order_by('-count')[0]['value']
         resp['links'] = {
             'parent': {
                 'rel': 'parent',
