@@ -45,8 +45,8 @@ class DataConceptResource(DataConceptBase):
     template = {
         'fields': [
             ':pk', 'name', 'plural_name', 'description', 'keywords',
-            'category', 'modified', 'published', 'archived', 'formatter',
-            'queryview'
+            'category', 'order', 'modified', 'published', 'archived',
+            'formatter', 'queryview'
         ],
         'key_map': {
             'plural_name': 'get_plural_name',
