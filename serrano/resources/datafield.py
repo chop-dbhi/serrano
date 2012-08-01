@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.encoding import smart_unicode
 from restlib2 import utils
+from restlib2.http import codes
 from modeltree.tree import trees
 from avocado.conf import settings as _settings
 from avocado.models import DataField
@@ -297,7 +298,8 @@ class DataFieldDistribution(DataFieldBase):
             return resp
 
         if length > MAXIMUM_OBSERVATIONS:
-            return HttpResponse(json.dumps({'error': 'Data too large'}), status=422)
+            return HttpResponse(json.dumps({'error': 'Data too large'}),
+                status=codes.unprocessable_entity)
 
         # Apply ordering. If any of the fields are enumerable, ordering should
         # be relative to those fields. For continuous data, the ordering is

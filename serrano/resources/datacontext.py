@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from restlib2 import resources, utils
+from restlib2.http import codes
 from avocado.models import DataContext
 from serrano.forms import DataContextForm
 
@@ -65,10 +66,10 @@ class DataContextResource(DataContextBase):
             instance = form.save(commit=False)
             instance.count = instance.apply().distinct().count()
             form.save()
-            resp = HttpResponse(status=201)
+            resp = HttpResponse(status=codes.created)
             resp._raw_content = self.serialize(instance)
         else:
-            resp = HttpResponse(status=422)
+            resp = HttpResponse(status=codes.unprocessable_entity)
             resp._raw_content = dict(form.errors)
         return resp
 
@@ -83,10 +84,10 @@ class DataContextResource(DataContextBase):
             if form.count_needs_update:
                 instance.count = instance.apply().distinct().count()
             form.save()
-            resp = HttpResponse(status=200)
+            resp = HttpResponse(status=codes.ok)
             resp._raw_content = self.serialize(instance)
         else:
-            resp = HttpResponse(status=422)
+            resp = HttpResponse(status=codes.unprocessable_entity)
             resp._raw_content = dict(form.errors)
         return resp
 

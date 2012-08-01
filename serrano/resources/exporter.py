@@ -7,6 +7,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.paginator import EmptyPage, PageNotAnInteger
+from restlib2.http import codes
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
 from avocado.export import registry as exporters
@@ -41,7 +42,7 @@ class ExporterResource(BaseResource):
             exporter_name = export
             if exporter_name not in EXPORTER_MIMETYPES:
                 resp.content = "Format '{}' not supported. Choose one of the following: {}".format(exporter_name, ', '.join(EXPORTER_MIMETYPES.values()))
-                resp.status_code = 422
+                resp.status_code = codes.unprocessable_entity
                 return resp
         else:
             exporter_name = 'json+html'
