@@ -14,7 +14,7 @@ from avocado.models import DataField
 from avocado.stats import cluster as stats_cluster
 from .base import BaseResource
 
-DATA_CHOICES_MAP = _settings.DATA_CHOICES_MAP
+RAW_DATA_MAP = _settings.RAW_DATA_MAP
 SQLITE_AGG_EXT = getattr(settings, 'SQLITE_AGG_EXT', False)
 AGG_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
 
@@ -166,33 +166,34 @@ class DataFieldResource(DataFieldBase):
 
 
 class DataFieldValues(DataFieldBase):
-    "DataField Values Resource"
+    """DataField Values Resource
+
+    This resource can be overriden for any datafield to use a more
+    performant search implementation.
+    """
 
     def get(self, request, pk):
         instance = request.instance
 
         params = self.get_params(request)
-
-        tree = trees[instance.model]
-        context = self.get_context(request)
-        queryset = context.apply(queryset=instance.query(), tree=tree).distinct()\
-            .annotate(count=Count(instance.field_name))
         query = params.get('query').strip()
 
-        if query:
-            queryset = queryset.search_values(query)
-
-        counts = {}
-        for obj in queryset.iterator():
-            counts[obj[instance.field_name]] = obj['count']
-
         results = []
-        for value in instance.values:
-            results.append({
-                'name': smart_unicode(DATA_CHOICES_MAP.get(value, value)),
-                'value': value,
-                'count': counts.get(value, 0)
-            })
+
+        # If a query term is supplied, perform the icontains search
+        if query:
+            for value in instance.search(query):
+                results.append({
+                    'label': RAW_DATA_MAP.get(value, value),
+                    'value': value,
+                })
+        # ..otherwise use the cached choices
+        else:
+            for value, name in instance.choices:
+                results.append({
+                    'label': name,
+                    'value': value,
+                })
         return results
 
 
