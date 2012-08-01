@@ -1,21 +1,29 @@
 from django.template import defaultfilters as filters
-from avocado.formatters import Formatter, registry
+from avocado.formatters import Formatter
 
 
 class HTMLFormatter(Formatter):
-    def to_html(self, values, fields=None, **context):
+    delimiter = u' '
+
+    html_map = {
+        None: '<em>n/a</em>'
+    }
+
+    def to_html(self, values, **context):
         toks = []
         for value in values.values():
-            if value is None:
+            # Check the html_map first
+            if value in self.html_map:
+                tok = self.html_map[value]
+            # Ignore NoneTypes
+            elif value is None:
                 continue
-            if type(value) is float:
+            # Prettify floats
+            elif type(value) is float:
                 tok = filters.floatformat(value)
             else:
                 tok = unicode(value)
             toks.append(tok)
-        return u' '.join(toks)
+        return self.delimiter.join(toks)
 
     to_html.process_multiple = True
-
-
-registry.register(HTMLFormatter, 'HTML')
