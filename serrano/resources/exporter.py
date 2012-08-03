@@ -17,7 +17,9 @@ EXPORTER_MIMETYPES = ['json', 'csv', 'excel', 'r', 'sas']
 
 
 class ExporterResource(BaseResource):
-    use_etags = False
+    use_etags = True
+    cache_max_age = 0
+    private_cache = True
 
     def get(self, request):
         params = self.get_params(request)

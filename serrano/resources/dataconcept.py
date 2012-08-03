@@ -68,12 +68,12 @@ class DataConceptResource(DataConceptBase):
     }
 
     @classmethod
-    def serialize(self, instance):
+    def prepare(self, instance):
         obj = utils.serialize(instance, **self.template)
 
         fields = []
         for cfield in instance.concept_fields.select_related('field').iterator():
-            field = DataFieldResource.serialize(cfield.field)
+            field = DataFieldResource.prepare(cfield.field)
             # Add the alternate name specific to the relationship between the
             # concept and the field.
             field.update(utils.serialize(cfield, **self.conceptfield_template))
@@ -115,12 +115,12 @@ class DataConceptResource(DataConceptBase):
 
         # Early exit if dealing with a single object, no need to apply sorting
         if pk:
-            return self.serialize(request.instance)
+            return self.prepare(request.instance)
 
         # If there is a query parameter, perform the search
         if query:
             results = DataConcept.objects.search(query, queryset)
-            return map(lambda x: self.serialize(x.object), results)
+            return map(lambda x: self.prepare(x.object), results)
 
         # Apply sorting
         if sort == 'name':
@@ -129,8 +129,7 @@ class DataConceptResource(DataConceptBase):
             else:
                 queryset = queryset.order_by('-name')
 
-        return map(self.serialize, queryset.iterator())
-
+        return map(self.prepare, queryset.iterator())
 
 
 # Resource endpoints

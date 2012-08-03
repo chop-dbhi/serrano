@@ -8,12 +8,16 @@ from serrano.forms import DataViewForm
 
 
 class DataViewBase(resources.Resource):
+    use_etags = True
+    cache_max_age = 0
+    private_cache = True
+
     template = {
         'exclude': ['user', 'session_key'],
     }
 
     @classmethod
-    def serialize(self, instance):
+    def prepare(self, instance):
         obj = utils.serialize(instance, **self.template)
         obj['url'] = reverse('dataview', args=[instance.pk])
         return obj
@@ -59,22 +63,20 @@ class DataViewResource(DataViewBase):
 
     def get(self, request, **kwargs):
         if 'session' in kwargs or 'pk' in kwargs:
-            return self.serialize(request.instance)
-        return map(self.serialize, self.get_queryset(request))
+            return self.prepare(request.instance)
+        return map(self.prepare, self.get_queryset(request))
 
     def post(self, request):
         form = DataViewForm(request, request.data)
 
         if form.is_valid():
             instance = form.save()
-            resp = HttpResponse(status=codes.created)
-            resp._raw_content = self.serialize(instance)
+            response = HttpResponse(status=codes.created)
+            self.write(request, response, self.prepare(instance))
         else:
-            resp = HttpResponse(status=codes.unprocessable_entity)
-            resp._raw_content = dict(form.errors)
-        return resp
-
-        return resp
+            response = HttpResponse(status=codes.unprocessable_entity)
+            self.write(request, response, self.prepare(dict(form.errors)))
+        return response
 
     def put(self, request, **kwargs):
         instance = request.instance
@@ -82,12 +84,12 @@ class DataViewResource(DataViewBase):
 
         if form.is_valid():
             instance = form.save()
-            resp = HttpResponse(status=codes.ok)
-            resp._raw_content = self.serialize(instance)
+            response = HttpResponse(status=codes.ok)
+            self.write(request, response, self.prepare(instance))
         else:
-            resp = HttpResponse(status=codes.unprocessable_entity)
-            resp._raw_content = dict(form.errors)
-        return resp
+            response = HttpResponse(status=codes.unprocessable_entity)
+            self.write(request, response, self.prepare(dict(form.errors)))
+        return response
 
     def delete(self, request, pk):
         if request.instance.session:
@@ -101,7 +103,7 @@ class DataViewHistoryResource(DataViewBase):
 
     def get(self, request):
         queryset = self.get_queryset(request, archived=True).iterator()
-        return map(self.serialize, queryset)
+        return map(self.prepare, queryset)
 
 
 # Resource endpoints

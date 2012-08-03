@@ -93,7 +93,7 @@ class DataFieldResource(DataFieldBase):
     }
 
     @classmethod
-    def serialize(self, instance):
+    def prepare(self, instance):
         obj = utils.serialize(instance, **self.template)
         obj['url'] = reverse('datafield', args=[instance.pk])
         obj['data'] = utils.serialize(instance, **self.data_template)
@@ -148,12 +148,12 @@ class DataFieldResource(DataFieldBase):
 
         # Early exit if dealing with a single object, no need to apply sorting
         if pk:
-            return self.serialize(request.instance)
+            return self.prepare(request.instance)
 
         # If there is a query parameter, perform the search
         if query:
             results = DataField.objects.search(query, queryset)
-            return map(lambda x: self.serialize(x.object), results)
+            return map(lambda x: self.prepare(x.object), results)
 
         # Apply sorting
         if sort == 'name':
@@ -162,7 +162,7 @@ class DataFieldResource(DataFieldBase):
             else:
                 queryset = queryset.order_by('-name')
 
-        return map(self.serialize, queryset.iterator())
+        return map(self.prepare, queryset.iterator())
 
 
 class DataFieldValues(DataFieldBase):
