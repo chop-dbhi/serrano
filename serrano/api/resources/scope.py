@@ -104,18 +104,15 @@ class SessionScopeResource(ScopeResource):
 
     @classmethod
     def condition_text(self, obj, text_dict=None):
-        if text_dict is None: text_dict = {}
+        if text_dict is None:
+            text_dict = {}
 
         if 'concept_id' in obj:
-            data = logictree.transform(obj).text
-            text = ''
-            if data.has_key('type'):
-                text = ' %s ' % data['type']
-
-            cid = obj['concept_id']
-            if cid not in text_dict:
-                text_dict[cid] = []
-            text_dict[cid].append(text.join(data['conditions']))
+            text = logictree.transform(obj).text
+            concept_id = obj['concept_id']
+            if concept_id not in text_dict:
+                text_dict[concept_id] = []
+            text_dict[concept_id].append(text)
 
         elif 'children' in obj:
             map(lambda x: self.condition_text(x, text_dict), obj['children'])

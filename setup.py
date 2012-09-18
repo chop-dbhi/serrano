@@ -83,7 +83,7 @@ setup(
     packages = packages,
     cmdclass = cmdclasses,
 
-    install_requires = ['avocado>=0.9.1b1'],
+    install_requires = ['avocado>=0.9.1b9'],
 
     data_files = data_files,
     classifiers = [
