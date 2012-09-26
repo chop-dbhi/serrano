@@ -17,9 +17,13 @@ EXPORTER_MIMETYPES = ['json', 'csv', 'excel', 'r', 'sas']
 
 
 class ExporterResource(BaseResource):
-    use_etags = True
     cache_max_age = 0
     private_cache = True
+
+    param_defaults = {
+        'page': 1,
+        'per_page': 10,
+    }
 
     def get(self, request):
         params = self.get_params(request)
@@ -55,8 +59,8 @@ class ExporterResource(BaseResource):
 
         # Special case for JSON+HTML formatted especially for app consumption
         if not export:
-            page = request.GET.get('page')
-            per_page = 50
+            page = params.get('page')
+            per_page = params.get('per_page')
             paginator = BufferedPaginator(context.count, per_page=per_page)
 
             try:
@@ -125,6 +129,7 @@ class ExporterResource(BaseResource):
             resp['Content-Type'] = content_type
 
         return resp
+
 
 
 # Resource endpoints

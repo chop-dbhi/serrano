@@ -8,7 +8,6 @@ from serrano.forms import DataContextForm
 
 
 class DataContextBase(resources.Resource):
-    use_etags = True
     cache_max_age = 0
     private_cache = True
 
