@@ -78,7 +78,7 @@ class DataContextResource(DataContextBase):
             self.write(request, response, self.prepare(instance))
         else:
             response = HttpResponse(status=codes.unprocessable_entity)
-            self.write(request, response, self.prepare(dict(form.errors)))
+            self.write(request, response, dict(form.errors))
         return response
 
     def put(self, request, **kwargs):
@@ -94,7 +94,7 @@ class DataContextResource(DataContextBase):
             self.write(request, response, self.prepare(instance))
         else:
             response = HttpResponse(status=codes.unprocessable_entity)
-            self.write(request, response, self.prepare(dict(form.errors)))
+            self.write(request, response, dict(form.errors))
         return response
 
     def delete(self, request, pk):
