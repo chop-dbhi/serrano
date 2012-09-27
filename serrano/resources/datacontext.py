@@ -71,7 +71,6 @@ class DataContextResource(DataContextBase):
 
         if form.is_valid():
             instance = form.save(commit=False)
-            instance.count = instance.apply().distinct().count()
             form.save()
             response = HttpResponse(status=codes.created)
             self.write(request, response, self.prepare(instance))
