@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
+from django.views.decorators.cache import never_cache
 from restlib2 import resources, utils
 from restlib2.http import codes
 from avocado.models import DataView
@@ -106,10 +107,13 @@ class DataViewHistoryResource(DataViewBase):
         return map(self.prepare, queryset)
 
 
+dataview_resource = never_cache(DataViewResource())
+dataview_history_resource = never_cache(DataViewHistoryResource())
+
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', DataViewResource(), name='dataview'),
-    url(r'^session/$', DataViewResource(), {'session': True}, name='dataview'),
-    url(r'^(?P<pk>\d+)/$', DataViewResource(), name='dataview'),
-    url(r'^history/$', DataViewHistoryResource(), name='dataview-history'),
+    url(r'^$', dataview_resource, name='dataview'),
+    url(r'^session/$', dataview_resource, {'session': True}, name='dataview'),
+    url(r'^(?P<pk>\d+)/$', dataview_resource, name='dataview'),
+    url(r'^history/$', dataview_history_resource, name='dataview-history'),
 )

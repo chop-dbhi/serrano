@@ -1,6 +1,7 @@
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
+from django.views.decorators.cache import never_cache
 from restlib2 import resources, utils
 from restlib2.http import codes
 from avocado.models import DataContext
@@ -110,10 +111,13 @@ class DataContextHistoryResource(DataContextBase):
         return map(self.prepare, queryset)
 
 
+datacontext_resource = never_cache(DataContextResource())
+datacontext_history_resource = never_cache(DataContextHistoryResource())
+
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', DataContextResource(), name='datacontext'),
-    url(r'^session/$', DataContextResource(), {'session': True}, name='datacontext'),
-    url(r'^(?P<pk>\d+)/$', DataContextResource(), name='datacontext'),
-    url(r'^history/$', DataContextHistoryResource(), name='datacontext-history'),
+    url(r'^$', datacontext_resource, name='datacontext'),
+    url(r'^session/$', datacontext_resource, {'session': True}, name='datacontext'),
+    url(r'^(?P<pk>\d+)/$', datacontext_resource, name='datacontext'),
+    url(r'^history/$', datacontext_history_resource, name='datacontext-history'),
 )
