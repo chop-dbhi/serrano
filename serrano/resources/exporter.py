@@ -61,6 +61,12 @@ class ExporterResource(BaseResource):
         if not export:
             page = params.get('page')
             per_page = params.get('per_page')
+
+            # For new contexts, `count` will be `None`
+            if context.count is None:
+                context.count = context.apply().distinct().count()
+                context.save()
+
             paginator = BufferedPaginator(context.count, per_page=per_page)
 
             try:
