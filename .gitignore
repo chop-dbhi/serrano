@@ -1,6 +1,10 @@
-*.py[co]
-*.sw[po]
+*.py?
+*.sw?
+*.egg
+*.egg-info
 .DS_Store
+.coverage
 MANIFEST
 dist
-.coverage
+docs
+profiled_tests.txt

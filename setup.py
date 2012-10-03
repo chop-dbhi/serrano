@@ -2,19 +2,23 @@ from setuptools import setup, find_packages
 
 kwargs = {
     # Packages
-    'packages': find_packages(),
+    'packages': find_packages(exclude=['tests']),
     'include_package_data': True,
 
     # Dependencies
     'install_requires': [
-        'avocado[permissions,search,clustering,extras]>=2.0a', # Hack, to work with the dependency link
+        'avocado>=2.0a', # Hack, to work with the dependency link
         'restlib2>=0.2a', # Hack, to work with the dependency link
     ],
 
     # Test dependencies
     'tests_require': [
+        'avocado[permissions,search,clustering,extras]>=2.0a'
         'coverage',
+        'whoosh',
     ],
+
+    'test_suite': 'test_suite',
 
     # Optional dependencies
     'extras_require': {},
