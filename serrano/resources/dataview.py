@@ -2,25 +2,29 @@ from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
-from restlib2 import resources, utils
+from restlib2 import resources
 from restlib2.http import codes
+from preserialize.serialize import serialize
 from avocado.models import DataView
 from serrano.forms import DataViewForm
+from . import templates
 
 
 class DataViewBase(resources.Resource):
-    use_etags = True
     cache_max_age = 0
     private_cache = True
 
-    template = {
-        'exclude': ['user', 'session_key'],
-    }
+    template = templates.DataView
 
     @classmethod
     def prepare(self, instance):
-        obj = utils.serialize(instance, **self.template)
-        obj['url'] = reverse('dataview', args=[instance.pk])
+        obj = serialize(instance, **self.template)
+        obj['_links'] = {
+            'self': {
+                'rel': 'self',
+                'href': reverse('serrano:dataview', args=[instance.pk]),
+            }
+        }
         return obj
 
     @classmethod
@@ -112,7 +116,7 @@ dataview_history_resource = never_cache(DataViewHistoryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', dataview_resource, name='dataview'),
+    url(r'^$', dataview_resource, name='dataviews'),
     url(r'^session/$', dataview_resource, {'session': True}, name='dataview'),
     url(r'^(?P<pk>\d+)/$', dataview_resource, name='dataview'),
     url(r'^history/$', dataview_history_resource, name='dataview-history'),

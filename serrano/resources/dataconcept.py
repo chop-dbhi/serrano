@@ -1,9 +1,11 @@
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
-from restlib2 import utils
+from preserialize.serialize import serialize
 from avocado.models import DataConcept
-from .base import BaseResource
+from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.datafield import DataFieldResource
+from .base import BaseResource
+from . import templates
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -12,6 +14,12 @@ can_change_dataconcept = lambda u: u.has_perm('avocado.change_dataconcept')
 
 
 class DataConceptBase(BaseResource):
+    param_defaults = {
+        'query': '',
+    }
+
+    template = templates.DataConcept
+
     def get_queryset(self, request):
         queryset = DataConcept.objects.all()
         if not can_change_dataconcept(request.user):
@@ -25,71 +33,63 @@ class DataConceptBase(BaseResource):
         except DataConcept.DoesNotExist:
             pass
 
-    def is_forbidden(self, request, response, *args, **kwargs):
-        "Ensure non-privileged users cannot make any changes."
-        if request.method not in SAFE_METHODS and not can_change_dataconcept(request.user):
-            return True
-
-    def is_not_found(self, request, response, pk=None, *args, **kwargs):
-        if pk:
-            instance = self.get_object(request, pk=pk)
-            if instance is None:
-                return True
-            request.instance = instance
-            return False
-
-
-class DataConceptResource(DataConceptBase):
-    "DataConcept Resource"
-
-    template = {
-        'fields': [
-            ':pk', 'name', 'plural_name', 'description', 'keywords',
-            'category', 'order', 'modified', 'published', 'archived',
-            'formatter', 'queryview'
-        ],
-        'key_map': {
-            'plural_name': 'get_plural_name',
-        },
-        'related': {
-            'category': {
-                'fields': [':pk', 'name', 'order', 'parent_id']
-            },
-        },
-    }
-
-    # Template for top-level attributes
-    conceptfield_template = {
-        'fields': ['alt_name', 'alt_plural_name'],
-        'key_map': {
-            'alt_name': 'name',
-            'alt_plural_name': 'get_plural_name',
-        },
-    }
-
     @classmethod
     def prepare(self, instance):
-        obj = utils.serialize(instance, **self.template)
+        obj = serialize(instance, **self.template)
 
         fields = []
         for cfield in instance.concept_fields.select_related('field').iterator():
             field = DataFieldResource.prepare(cfield.field)
             # Add the alternate name specific to the relationship between the
             # concept and the field.
-            field.update(utils.serialize(cfield, **self.conceptfield_template))
+            field.update(serialize(cfield, **templates.DataConceptField))
             fields.append(field)
 
         obj['fields'] = fields
-        obj['url'] = reverse('dataconcept', args=[instance.pk])
+        obj['_links'] = {
+            'self': {
+                'rel': 'self',
+                'href': reverse('serrano:dataconcept', args=[instance.pk]),
+            }
+        }
         return obj
 
+    def is_forbidden(self, request, response, *args, **kwargs):
+        "Ensure non-privileged users cannot make any changes."
+        if request.method not in SAFE_METHODS and not can_change_dataconcept(request.user):
+            return True
+
+    def is_not_found(self, request, response, pk, *args, **kwargs):
+        instance = self.get_object(request, pk=pk)
+        if instance is None:
+            return True
+        request.instance = instance
+        return False
+
+
+class DataConceptResource(DataConceptBase):
+    "DataConcept Resource"
+    def get(self, request, pk):
+        return self.prepare(request.instance)
+
+
+class DataConceptsResource(DataConceptBase):
+    def is_not_found(self, request, response, *args, **kwargs):
+        return False
+
     def get(self, request, pk=None):
-        # Process GET parameters
-        sort = request.GET.get('sort', None)        # default: model ordering
-        direction = request.GET.get('direction', None)  # default: desc
-        published = request.GET.get('published', None)
-        archived = request.GET.get('archived', None)
-        query = request.GET.get('query', '').strip()
+        params = self.get_params(request)
+
+        sort = params.get('sort')               # default: model ordering
+        direction = params.get('direction')     # default: desc
+        published = params.get('published')
+        archived = params.get('archived')
+
+        # This is only application if Haystack is setup
+        if OPTIONAL_DEPS['haystack']:
+            query = params.get('query').strip()
+        else:
+            query = ''
 
         queryset = self.get_queryset(request)
 
@@ -113,27 +113,27 @@ class DataConceptResource(DataConceptBase):
         else:
             queryset = queryset.published()
 
-        # Early exit if dealing with a single object, no need to apply sorting
-        if pk:
-            return self.prepare(request.instance)
-
         # If there is a query parameter, perform the search
         if query:
             results = DataConcept.objects.search(query, queryset)
-            return map(lambda x: self.prepare(x.object), results)
+            objects = map(lambda x: x.object, results)
+        else:
+            # Apply sorting
+            if sort == 'name':
+                if direction == 'asc':
+                    queryset = queryset.order_by('name')
+                else:
+                    queryset = queryset.order_by('-name')
+            objects = queryset.iterator()
 
-        # Apply sorting
-        if sort == 'name':
-            if direction == 'asc':
-                queryset = queryset.order_by('name')
-            else:
-                queryset = queryset.order_by('-name')
+        return map(self.prepare, objects)
 
-        return map(self.prepare, queryset.iterator())
 
+dataconcept_resource = DataConceptResource()
+dataconcepts_resource = DataConceptsResource()
 
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', DataConceptResource(), name='dataconcept'),
-    url(r'^(?P<pk>\d+)/$', DataConceptResource(), name='dataconcept'),
+    url(r'^$', dataconcepts_resource, name='dataconcepts'),
+    url(r'^(?P<pk>\d+)/$', dataconcept_resource, name='dataconcept'),
 )

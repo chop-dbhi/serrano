@@ -7,15 +7,16 @@ from django.db.models import Q
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.encoding import smart_unicode
-from restlib2 import utils
 from restlib2.http import codes
+from preserialize.serialize import serialize
 from modeltree.tree import trees
 from avocado.models import DataField
 from avocado.conf import OPTIONAL_DEPS
 from .base import BaseResource
+from . import templates
 
 SQLITE_AGG_EXT = getattr(settings, 'SQLITE_AGG_EXT', False)
-AGG_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
+AGGREGATION_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
 
 MINIMUM_OBSERVATIONS = 500
 MAXIMUM_OBSERVATIONS = 50000
@@ -27,6 +28,8 @@ can_change_datafield = lambda u: u.has_perm('avocado.change_datafield')
 
 
 class DataFieldBase(BaseResource):
+    template = templates.DataField
+
     param_defaults = {
         'query': '',
     }
@@ -44,84 +47,75 @@ class DataFieldBase(BaseResource):
         except DataField.DoesNotExist:
             pass
 
+    # Augment the pre-serialized object
+    @classmethod
+    def prepare(self, instance):
+        obj = serialize(instance, **self.template)
+
+        # Augment the links
+        obj['_links'] = {
+            'self': {
+                'rel': 'self',
+                'href': reverse('serrano:datafield', args=[instance.pk]),
+            },
+            'values': {
+                'rel': 'data',
+                'href': reverse('serrano:datafield-values', args=[instance.pk]),
+            },
+            'stats': {
+                'rel': 'data',
+                'href': reverse('serrano:datafield-stats', args=[instance.pk]),
+            },
+        }
+
+        # Add distribution link only if the relevent dependencies are
+        # installed.
+        if OPTIONAL_DEPS['scipy']:
+            obj['_links']['distribution'] = {
+                'rel': 'data',
+                'href': reverse('serrano:datafield-distribution', args=[instance.pk]),
+            }
+
+        return obj
+
     def is_forbidden(self, request, response, *args, **kwargs):
         "Ensure non-privileged users cannot make any changes."
         if request.method not in SAFE_METHODS and not can_change_datafield(request.user):
             return True
 
-    def is_not_found(self, request, response, pk=None, *args, **kwargs):
-        if pk:
-            instance = self.get_object(request, pk=pk)
-            if instance is None:
-                return True
-            request.instance = instance
-            return False
+    def is_not_found(self, request, response, pk, *args, **kwargs):
+        instance = self.get_object(request, pk=pk)
+        if instance is None:
+            return True
+        request.instance = instance
+        return False
 
 
 class DataFieldResource(DataFieldBase):
-    "DataField Summary Resource"
+    "DataField Resource"
+    def get(self, request, pk):
+        return self.prepare(request.instance)
 
-    # Template for top-level attributes
-    template = {
-        'fields': [
-            ':pk', 'name', 'plural_name', 'description', 'keywords',
-            'category', 'app_name', 'model_name', 'field_name',
-            'modified', 'published', 'archived', 'operators'
-        ],
-        'key_map': {
-            'plural_name': 'get_plural_name',
-            'operators': 'operator_choices',
-        },
-        'related': {
-            'category': {
-                'fields': [':pk', 'name', 'order', 'parent_id']
-            },
-        },
-    }
 
-    # Template for data-related attributes
-    data_template = {
-        'fields': [
-            'simple_type', 'internal_type', 'modified', 'enumerable',
-            'searchable', 'unit', 'plural_unit'
-        ],
-        'key_map': {
-            'modified': 'data_modified',
-            'plural_unit': 'get_plural_unit',
-        }
-    }
+class DataFieldsResource(DataFieldResource):
 
-    @classmethod
-    def prepare(self, instance):
-        obj = utils.serialize(instance, **self.template)
-        obj['url'] = reverse('datafield', args=[instance.pk])
-        obj['data'] = utils.serialize(instance, **self.data_template)
+    def is_not_found(self, request, response, *args, **kwargs):
+        return False
 
-        obj['links'] = {
-            'values': {
-                'rel': 'data',
-                'href': reverse('datafield-values', args=[instance.pk]),
-            },
-            'stats': {
-                'rel': 'data',
-                'href': reverse('datafield-stats', args=[instance.pk]),
-            },
-            'distribution': {
-                'rel': 'data',
-                'href': reverse('datafield-distribution', args=[instance.pk]),
-            },
-        }
-        return obj
-
-    def get(self, request, pk=None):
+    def get(self, request):
         params = self.get_params(request)
 
         # Process GET parameters
-        sort = params.get('sort')        # default: model ordering
-        direction = params.get('direction')  # default: desc
+        sort = params.get('sort')               # default: model ordering
+        direction = params.get('direction')     # default: desc
         published = params.get('published')
         archived = params.get('archived')
-        query = params.get('query').strip()
+
+        # This is only application if Haystack is setup
+        if OPTIONAL_DEPS['haystack']:
+            query = params.get('query').strip()
+        else:
+            query = ''
 
         queryset = self.get_queryset(request)
 
@@ -141,27 +135,25 @@ class DataFieldResource(DataFieldBase):
 
             if filters:
                 queryset = queryset.filter(**filters)
+
         # For non-privileged users, filter out the non-published and archived
         else:
             queryset = queryset.published()
 
-        # Early exit if dealing with a single object, no need to apply sorting
-        if pk:
-            return self.prepare(request.instance)
-
         # If there is a query parameter, perform the search
         if query:
             results = DataField.objects.search(query, queryset)
-            return map(lambda x: self.prepare(x.object), results)
+            objects = map(lambda x: x.object, results)
+        else:
+            # Apply sorting
+            if sort == 'name':
+                if direction == 'asc':
+                    queryset = queryset.order_by('name')
+                else:
+                    queryset = queryset.order_by('-name')
+            objects = queryset.iterator()
 
-        # Apply sorting
-        if sort == 'name':
-            if direction == 'asc':
-                queryset = queryset.order_by('name')
-            else:
-                queryset = queryset.order_by('-name')
-
-        return map(self.prepare, queryset.iterator())
+        return map(self.prepare, objects)
 
 
 class DataFieldValues(DataFieldBase):
@@ -175,7 +167,11 @@ class DataFieldValues(DataFieldBase):
         instance = request.instance
 
         params = self.get_params(request)
-        query = params.get('query').strip()
+
+        if OPTIONAL_DEPS['haystack']:
+            query = params.get('query').strip()
+        else:
+            query = ''
 
         results = []
 
@@ -212,24 +208,29 @@ class DataFieldStats(DataFieldBase):
         if stats is None:
             resp = {}
         else:
-            resp = iter(stats).next()
+            resp = next(iter(stats))
 
-        resp['links'] = {
+        resp['_links'] = {
             'parent': {
                 'rel': 'parent',
-                'href': reverse('datafield', args=[instance.pk]),
+                'href': reverse('serrano:datafield', args=[instance.pk]),
             },
         }
 
         return resp
 
 
+datafield_resource = DataFieldResource()
+datafields_resource = DataFieldsResource()
+datafield_values = DataFieldValues()
+datafield_stats = DataFieldStats()
+
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', DataFieldResource(), name='datafield'),
-    url(r'^(?P<pk>\d+)/$', DataFieldResource(), name='datafield'),
-    url(r'^(?P<pk>\d+)/values/$', DataFieldValues(), name='datafield-values'),
-    url(r'^(?P<pk>\d+)/stats/$', DataFieldStats(), name='datafield-stats'),
+    url(r'^$', datafields_resource, name='datafields'),
+    url(r'^(?P<pk>\d+)/$', datafield_resource, name='datafield'),
+    url(r'^(?P<pk>\d+)/values/$', datafield_values, name='datafield-values'),
+    url(r'^(?P<pk>\d+)/stats/$', datafield_stats, name='datafield-stats'),
 )
 
 
@@ -251,7 +252,9 @@ if OPTIONAL_DEPS['scipy']:
 
             nulls = params.get('nulls')
             sort = params.get('sort')
+            # Perform clustering
             cluster = params.get('cluster')
+            relative = params.get('relative')
             k = params.get('n')
 
             tree = trees[instance.model]
@@ -276,11 +279,11 @@ if OPTIONAL_DEPS['scipy']:
                 fields = [instance]
                 groupby = [tree.query_string_for_field(instance.field)]
 
-            root_opts = trees.default.root_model._meta
-
             # Always perform a count aggregation for the group since downstream
             # processing requires it to be present.
-            stats = instance.groupby(*groupby).count().filter(**{'{}__{}__isnull'.format(root_opts.module_name, root_opts.pk.name): False})
+            stats = instance.groupby(*groupby).count()#\
+#                .filter(**{'{}__{}__isnull'\
+#                    .format(root_opts.module_name, root_opts.pk.name): False})
 
             # Apply it relative to the queryset
             stats = stats.apply(queryset)
@@ -384,6 +387,9 @@ if OPTIONAL_DEPS['scipy']:
                 'size': length,
             }
 
+    datafield_dist_resource = DataFieldDistribution()
+
     urlpatterns += patterns('',
-        url(r'^(?P<pk>\d+)/dist/$', DataFieldDistribution(), name='datafield-distribution'),
+        url(r'^(?P<pk>\d+)/dist/$', datafield_dist_resource,
+            name='datafield-distribution'),
     )

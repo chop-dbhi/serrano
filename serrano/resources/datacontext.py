@@ -2,25 +2,29 @@ from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
-from restlib2 import resources, utils
+from restlib2 import resources
 from restlib2.http import codes
+from preserialize.serialize import serialize
 from avocado.models import DataContext
 from serrano.forms import DataContextForm
+from . import templates
 
 
 class DataContextBase(resources.Resource):
     cache_max_age = 0
     private_cache = True
 
-    template = {
-        'fields': [':pk', ':local', 'language'],
-        'exclude': ['user', 'session_key'],
-    }
+    template = templates.DataContext
 
     @classmethod
     def prepare(self, instance):
-        obj = utils.serialize(instance, **self.template)
-        obj['url'] = reverse('datacontext', args=[instance.pk])
+        obj = serialize(instance, **self.template)
+        obj['_links'] = {
+            'self': {
+                'rel': 'self',
+                'href': reverse('serrano:datacontext', args=[instance.pk]),
+            }
+        }
         return obj
 
     @classmethod
@@ -116,7 +120,7 @@ datacontext_history_resource = never_cache(DataContextHistoryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', datacontext_resource, name='datacontext'),
+    url(r'^$', datacontext_resource, name='datacontexts'),
     url(r'^session/$', datacontext_resource, {'session': True}, name='datacontext'),
     url(r'^(?P<pk>\d+)/$', datacontext_resource, name='datacontext'),
     url(r'^history/$', datacontext_history_resource, name='datacontext-history'),
