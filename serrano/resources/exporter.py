@@ -47,7 +47,7 @@ class ExporterResource(BaseResource):
         # Special case for browser-based consumption
         if not export_type:
             exporter_class = JSONHTMLExporter
-            exporter = exporter_class(view_node.concepts)
+            exporter = exporter_class(view_node.columns)
 
             page = params.get('page')
             per_page = params.get('per_page')
@@ -78,14 +78,14 @@ class ExporterResource(BaseResource):
 
             # Insert formatter to process the primary key as a raw value
             keys = [queryset.model._meta.pk.name]
-            exporter.params.insert(0, (keys, 1, RawFormatter(keys=keys)))
+            exporter.params.insert(0, (RawFormatter(keys=keys), 1))
 
             # Build up the header values
             header = []
 
             ordering = OrderedDict(view_node.ordering)
 
-            for concept in view_node.concepts:
+            for concept in view_node.columns:
                 obj = {'id': concept.id, 'name': concept.name}
                 if concept.id in ordering:
                     obj['direction'] = ordering[concept.id]
@@ -123,7 +123,6 @@ class ExporterResource(BaseResource):
                 data['_links'] = links
             return HttpResponse(json.dumps(data), content_type='application/json')
 
-
         # Handle an explicit export type to a file
         resp = HttpResponse()
 
@@ -135,7 +134,7 @@ class ExporterResource(BaseResource):
             return resp
 
         exporter_class = exporters[export_type]
-        exporter = exporter_class(view_node.concepts)
+        exporter = exporter_class(view_node.columns)
 
         queryset = view.apply(context.apply(), include_pk=False).distinct()
         iterator = queryset.raw()
