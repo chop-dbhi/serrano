@@ -1,4 +1,14 @@
 # DataField core fields and properties
+
+DataCategory = {
+    'fields': [':pk', 'name', 'order', 'parent'],
+    'related': {
+        'parent': {
+            'fields': [':pk', 'name', 'order'],
+        }
+    }
+}
+
 DataField = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
@@ -13,9 +23,7 @@ DataField = {
         'operators': 'operator_choices',
     },
     'related': {
-        'category': {
-            'fields': [':pk', 'name', 'order', 'parent_id']
-        },
+        'category': DataCategory,
     },
 }
 
@@ -29,9 +37,7 @@ DataConcept = {
         'plural_name': 'get_plural_name',
     },
     'related': {
-        'category': {
-            'fields': [':pk', 'name', 'order', 'parent_id']
-        },
+        'category': DataCategory,
     },
 }
 
