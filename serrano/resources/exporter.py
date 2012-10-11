@@ -50,7 +50,10 @@ class ExporterResource(BaseResource):
             exporter = exporter_class(view_node.columns)
 
             page = params.get('page')
-            per_page = params.get('per_page')
+            try:
+                per_page = int(params.get('per_page'))
+            except (ValueError, TypeError):
+                per_page = self.param_defaults['per_page']
 
             # For new contexts, `count` will be `None`
             if context.count is None:
