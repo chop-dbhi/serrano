@@ -15,7 +15,7 @@ DataField = {
         'category', 'app_name', 'model_name', 'field_name',
         'modified', 'published', 'archived', 'operators',
         'simple_type', 'internal_type', 'data_modified', 'enumerable',
-        'searchable', 'unit', 'plural_unit'
+        'searchable', 'unit', 'plural_unit', 'nullable'
     ],
     'key_map': {
         'plural_name': 'get_plural_name',
