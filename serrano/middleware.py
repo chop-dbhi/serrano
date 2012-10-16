@@ -19,12 +19,11 @@ class SessionReportMiddleware(object):
             return
 
         # fetch this user's session contexts if they exist, otherwise create them
-        if not request.session.has_key('report'):
-            try:
-                report = Report.objects.select_related('scope', 'perspective').get(user=user, session=True)
-            except Report.DoesNotExist:
-                report = self._create_session_objects(user)
+        try:
+            report = Report.objects.select_related('scope', 'perspective').get(user=user, session=True)
+        except Report.DoesNotExist:
+            report = self._create_session_objects(user)
 
-            request.session['report'] = report
-            request.session['scope'] = report.scope
-            request.session['perspective'] = report.perspective
+        request.session['report'] = report
+        request.session['scope'] = report.scope
+        request.session['perspective'] = report.perspective

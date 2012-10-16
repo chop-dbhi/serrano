@@ -181,7 +181,6 @@ class ReportResource(resources.ModelResource):
         # ensure to deference the session
         if instance.references(pk):
             instance.deference(delete=True)
-            request.session['report'] = instance
         else:
             reference = self.queryset(request).filter(pk=pk)
             reference.delete()
@@ -198,7 +197,6 @@ class ReportResource(resources.ModelResource):
                 return http.NOT_FOUND
 
             reference.reset(instance)
-            request.session['report'] = instance
         else:
             reference = instance.reference
 
@@ -230,7 +228,6 @@ class ReportResource(resources.ModelResource):
             # shallow reset since a PUT only updates local attributes
             if referenced:
                 reference.reset(instance)
-                request.session['report'] = instance
             return reference
 
         return form.errors
@@ -269,7 +266,6 @@ class SessionReportResource(ReportResource):
             if not instance.reference:
                 return http.CONFLICT
             instance.reference.reset(instance)
-            request.session['report'] = instance
             return instance
 
         form = SessionReportForm(request.data, instance=instance)
@@ -279,7 +275,6 @@ class SessionReportResource(ReportResource):
             # this may produce a new fork, so make sure we reset if so
             if instance != reference and not instance.references(reference.pk):
                 reference.reset(instance)
-            request.session['report'] = instance
             return instance
         return form.errors
 
@@ -327,7 +322,6 @@ class ReportRedirectResource(ReportResource):
                 return http.NOT_FOUND
 
             reference.reset(instance)
-            request.session['report'] = instance
 
         return http.SEE_OTHER(location=reverse('report'))
 

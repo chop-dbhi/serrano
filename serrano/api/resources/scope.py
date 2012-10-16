@@ -36,7 +36,6 @@ class ScopeResource(resources.ModelResource):
         # ensure to deference the session
         if instance.references(pk):
             instance.deference(delete=True)
-            request.session['scope'] = instance
         else:
             reference = self.queryset(request).filter(pk=pk)
             reference.delete()
@@ -56,7 +55,6 @@ class ScopeResource(resources.ModelResource):
                 return http.NOT_FOUND
 
             reference.reset(instance)
-            request.session['scope'] = instance
         else:
             reference = instance.reference
 
@@ -84,7 +82,6 @@ class ScopeResource(resources.ModelResource):
             # shallow reset since a PUT only updates local attributes
             if referenced:
                 reference.reset(instance)
-                request.session['scope'] = instance
             return reference
 
         return form.errors
@@ -143,7 +140,6 @@ class SessionScopeResource(ScopeResource):
             new_instance = form.save()
             if instance != new_instance and not instance.references(new_instance.pk):
                 new_instance.reset(instance)
-            request.session['scope'] = instance
             return instance
         return form.errors
 
@@ -241,7 +237,6 @@ class SessionScopeResource(ScopeResource):
                     instance.store['children'].append(condition)
 
             instance.save()
-            request.session['scope'] = instance
             resp = self.resolve_fields(instance)
             if operation != 'remove':
                 resp['patch_condition_text'] = self.condition_text(condition)[concept_id]
