@@ -6,7 +6,6 @@ from django.http import HttpResponse
 from django.db.models import Q
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from modeltree.tree import trees
@@ -21,10 +20,15 @@ AGGREGATION_FUNCTIONS = ['count', 'avg', 'min', 'max', 'stddev', 'variance']
 MINIMUM_OBSERVATIONS = 500
 MAXIMUM_OBSERVATIONS = 50000
 
+MAXIMUM_RANDOM = 100
+
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
 # Shortcuts defined ahead of time for transparency
 can_change_datafield = lambda u: u.has_perm('avocado.change_datafield')
+
+
+stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
 
 
 class DataFieldBase(BaseResource):
@@ -62,19 +66,20 @@ class DataFieldBase(BaseResource):
                 'rel': 'data',
                 'href': reverse('serrano:datafield-values', args=[instance.pk]),
             },
-            'stats': {
-                'rel': 'data',
-                'href': reverse('serrano:datafield-stats', args=[instance.pk]),
-            },
         }
 
-        # Add distribution link only if the relevent dependencies are
-        # installed.
-        if OPTIONAL_DEPS['scipy']:
-            obj['_links']['distribution'] = {
+        if stats_capable(instance):
+            obj['_links']['stats'] = {
                 'rel': 'data',
-                'href': reverse('serrano:datafield-distribution', args=[instance.pk]),
+                'href': reverse('serrano:datafield-stats', args=[instance.pk]),
             }
+            # Add distribution link only if the relevent dependencies are
+            # installed.
+            if OPTIONAL_DEPS['scipy']:
+                obj['_links']['distribution'] = {
+                    'rel': 'data',
+                    'href': reverse('serrano:datafield-distribution', args=[instance.pk]),
+                }
 
         return obj
 
@@ -98,6 +103,7 @@ class DataFieldResource(DataFieldBase):
 
 
 class DataFieldsResource(DataFieldResource):
+    "DataField Collection Resource"
 
     def is_not_found(self, request, response, *args, **kwargs):
         return False
@@ -173,13 +179,28 @@ class DataFieldValues(DataFieldBase):
         else:
             query = ''
 
+        try:
+            random = min(int(params.get('random')), MAXIMUM_RANDOM)
+        except (ValueError, TypeError):
+            random = False
+
         results = []
 
         # If a query term is supplied, perform the icontains search
         if query:
             for value in instance.search(query):
                 results.append({
-                    'label': smart_unicode(value),
+                    'label': instance.get_label(value),
+                    'value': value,
+                })
+        # get a random set of values
+        elif random:
+            queryset = instance.model.objects\
+                .only(instance.field_name).order_by('?')[:random]
+            for obj in queryset:
+                value = getattr(obj, instance.field_name)
+                results.append({
+                    'label': instance.get_label(value),
                     'value': value,
                 })
         # ..otherwise use the cached choices
