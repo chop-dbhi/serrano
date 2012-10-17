@@ -23,6 +23,8 @@ class BaseResource(Resource):
             if hasattr(request, 'user') and request.user.is_authenticated():
                 kwargs['user'] = request.user
             else:
+                if request.session.session_key is None:
+                    return DataContext()
                 kwargs['session_key'] = request.session.session_key
 
             # Assume it is a primary key and fallback to the sesssion
@@ -50,6 +52,8 @@ class BaseResource(Resource):
             if hasattr(request, 'user') and request.user.is_authenticated():
                 kwargs['user'] = request.user
             else:
+                if request.session.session_key is None:
+                    return DataView()
                 kwargs['session_key'] = request.session.session_key
 
             # Assume it is a primary key and fallback to the sesssion

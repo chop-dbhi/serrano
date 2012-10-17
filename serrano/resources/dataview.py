@@ -29,12 +29,15 @@ class DataViewBase(resources.Resource):
 
     @classmethod
     def get_queryset(self, request, **kwargs):
-        kwargs.setdefault('archived', False)
+        kwargs = {}
         if hasattr(request, 'user') and request.user.is_authenticated():
             kwargs['user'] = request.user
-        else:
+        elif request.session.session_key:
             kwargs['session_key'] = request.session.session_key
-        return DataView.objects.filter(**kwargs)
+        if kwargs:
+            kwargs.setdefault('archived', False)
+            return DataView.objects.filter(**kwargs)
+        return DataView.objects.none()
 
     @classmethod
     def get_object(self, request, **kwargs):

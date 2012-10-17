@@ -30,6 +30,18 @@ INSTALLED_APPS = (
 
 ```
 
+Add the `serrano.middleware.SessionMiddleware` to the `MIDDLEWARE_CLASSES`
+setting after Django's session and authentication middleware (if installed):
+
+```python
+MIDDLEWARE_CLASSES = (
+    ...
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'serrano.middleware.SessionMiddleware',
+    ...
+)
+
 In this example, `/api/` is the root endpoint for Serrano. Hitting this endpoint will expose the available URLs for the API.
 
 ## Media Types
