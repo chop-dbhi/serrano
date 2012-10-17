@@ -19,6 +19,14 @@ class DataContextBase(resources.Resource):
     @classmethod
     def prepare(self, instance):
         obj = serialize(instance, **self.template)
+
+        # If this context is explicitly tied to a model (via the `count`)
+        # specify the object names.
+        if instance.model:
+            opts = instance.model._meta
+            obj['object_name'] = opts.verbose_name.format()
+            obj['object_name_plural'] = opts.verbose_name_plural.format()
+
         obj['_links'] = {
             'self': {
                 'rel': 'self',

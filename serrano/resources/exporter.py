@@ -80,8 +80,8 @@ class ExporterResource(BaseResource):
             iterator = queryset[offset:offset + per_page].raw()
 
             # Insert formatter to process the primary key as a raw value
-            keys = [queryset.model._meta.pk.name]
-            exporter.params.insert(0, (RawFormatter(keys=keys), 1))
+            pk_name = queryset.model._meta.pk.name
+            exporter.params.insert(0, (RawFormatter(keys=[pk_name]), 1))
 
             # Build up the header values
             header = []
@@ -94,22 +94,44 @@ class ExporterResource(BaseResource):
                     obj['direction'] = ordering[concept.id]
                 header.append(obj)
 
-            rows = []
+            objects = []
             for row in exporter.read(iterator):
-                _row = []
-                for output in row:
-                    _row.extend(output.values())
-                rows.append(_row)
+                pk = None
+                values = []
+                for i, output in enumerate(row):
+                    if i == 0:
+                        pk = output[pk_name]
+                    else:
+                        values.extend(output.values())
+                objects.append({'pk': pk, 'values': values})
+
+            # Various other attributes about the model
+            model_meta = queryset.model._meta
+            model_name = model_meta.verbose_name.format()
+            model_name_plural = model_meta.verbose_name_plural.format()
 
             data = {
-                'rows': rows,
-                'header': header,
+                'keys': header,
+                'objects': objects,
+                'object_name': model_name,
+                'object_name_plural': model_name_plural,
                 'num_pages': paginator.num_pages,
                 'page_num': page.number,
             }
 
             # Augment previous and next page links if other pages exist
-            links = {}
+            links = {
+                'self': {
+                    'rel': 'self',
+                    'href': reverse('serrano:exporter') + '?page=' + \
+                        str(page.number),
+                },
+                'base': {
+                    'rel': 'base',
+                    'href': reverse('serrano:exporter'),
+                }
+            }
+
             if page.number != 1:
                 links['prev'] = {
                     'rel': 'prev',
@@ -122,8 +144,7 @@ class ExporterResource(BaseResource):
                     'href': reverse('serrano:exporter') + '?page=' + \
                         str(page.number + 1),
                 }
-            if links:
-                data['_links'] = links
+            data['_links'] = links
             return HttpResponse(json.dumps(data), content_type='application/json')
 
         # Handle an explicit export type to a file
