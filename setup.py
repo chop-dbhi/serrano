@@ -2,18 +2,18 @@ from setuptools import setup, find_packages
 
 kwargs = {
     # Packages
-    'packages': find_packages(exclude=['tests']),
+    'packages': find_packages(exclude=['tests', '*.tests', '*.tests.*', 'tests.*']),
     'include_package_data': True,
 
     # Dependencies
     'install_requires': [
-        'avocado>=2.0a', # Hack, to work with the dependency link
-        'restlib2>=0.2a', # Hack, to work with the dependency link
+        'avocado>=2.0,<2.1',
+        'restlib2>=0.3,<0.4',
     ],
 
     # Test dependencies
     'tests_require': [
-        'avocado[permissions,search,clustering,extras]>=2.0a'
+        'avocado[permissions,search,clustering,extras]>=2.0,<2.1'
         'coverage',
         'whoosh',
     ],
@@ -23,12 +23,6 @@ kwargs = {
     # Optional dependencies
     'extras_require': {},
 
-    # Resources unavailable on PyPi
-    'dependency_links': [
-        'https://github.com/cbmi/avocado/tarball/2.x#egg=avocado-2.0',
-        'https://github.com/bruth/restlib2/tarball/master#egg=restlib2-0.2',
-    ],
-
     # Metadata
     'name': 'serrano',
     'version': __import__('serrano').get_version(),
@@ -37,11 +31,11 @@ kwargs = {
     'description': 'Hypermedia implementation for Avocado',
     'license': 'BSD',
     'keywords': 'hypermedia rest api avocado serrano cilantro harvest',
-    'url': 'https://github.com/cbmi/serrano',
+    'url': 'http://cbmi.github.com/serrano/',
     'classifiers': [
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 2.7',
         'Framework :: Django',
         'Topic :: Internet :: WWW/HTTP',
         'Intended Audience :: Developers',
