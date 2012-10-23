@@ -29,7 +29,6 @@ class DataViewBase(resources.Resource):
 
     @classmethod
     def get_queryset(self, request, **kwargs):
-        kwargs = {}
         if hasattr(request, 'user') and request.user.is_authenticated():
             kwargs['user'] = request.user
         elif request.session.session_key:
