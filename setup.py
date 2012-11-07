@@ -6,7 +6,7 @@ install_requires = [
     'restlib2>=0.3,<0.4',
 ]
 
-if sys.version < (2, 7):
+if sys.version_info < (2, 7):
     install_requires.append('ordereddict>=1.1')
 
 kwargs = {
