@@ -152,8 +152,8 @@ class ExporterResource(BaseResource):
 
         if export_type not in EXPORT_TYPES:
             types = ', '.join(EXPORT_TYPES)
-            resp.content = "Export type '{}' is not supported. Choose one " \
-                "of the following: {}".format(export_type, types)
+            resp.content = "Export type '{0}' is not supported. Choose one " \
+                "of the following: {1}".format(export_type, types)
             resp.status_code = codes.unprocessable_entity
             return resp
 
@@ -164,7 +164,7 @@ class ExporterResource(BaseResource):
         iterator = queryset.raw()
 
         file_extension = exporter_class.file_extension
-        filename = '{}-data.{}'.format(datetime.now(),
+        filename = '{0}-data.{1}'.format(datetime.now(),
             exporter_class.file_extension)
 
         if file_extension == 'zip':
@@ -184,7 +184,7 @@ class ExporterResource(BaseResource):
         else:
             content_type = 'text/plain'
 
-        resp['Content-Disposition'] = 'attachment; filename={}'.format(filename)
+        resp['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
         resp['Content-Type'] = content_type
 
         return resp

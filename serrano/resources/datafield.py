@@ -303,7 +303,7 @@ if OPTIONAL_DEPS['scipy']:
             # Always perform a count aggregation for the group since downstream
             # processing requires it to be present.
             stats = instance.groupby(*groupby).count()#\
-#                .filter(**{'{}__{}__isnull'\
+#                .filter(**{'{0}__{1}__isnull'\
 #                    .format(root_opts.module_name, root_opts.pk.name): False})
 
             # Apply it relative to the queryset

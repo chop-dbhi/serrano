@@ -1,4 +1,13 @@
+import sys
 from setuptools import setup, find_packages
+
+install_requires = [
+    'avocado>=2.0,<2.1',
+    'restlib2>=0.3,<0.4',
+]
+
+if sys.version < (2, 7):
+    install_requires.append('ordereddict>=1.1')
 
 kwargs = {
     # Packages
@@ -6,10 +15,7 @@ kwargs = {
     'include_package_data': True,
 
     # Dependencies
-    'install_requires': [
-        'avocado>=2.0,<2.1',
-        'restlib2>=0.3,<0.4',
-    ],
+    'install_requires': install_requires,
 
     # Test dependencies
     'tests_require': [
@@ -35,6 +41,7 @@ kwargs = {
     'classifiers': [
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Framework :: Django',
         'Topic :: Internet :: WWW/HTTP',
