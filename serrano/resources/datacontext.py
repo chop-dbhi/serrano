@@ -101,7 +101,14 @@ class DataContextResource(DataContextBase):
         if form.is_valid():
             instance = form.save(commit=False)
             if form.count_needs_update:
-                instance.count = instance.apply().distinct().count()
+                # Only recalculated count if conditions exist. This is to
+                # prevent re-counting the entire dataset. An alternative
+                # solution may be desirable such as pre-computing and
+                # caching the count ahead of time.
+                if instance.json:
+                    instance.count = instance.apply().distinct().count()
+                else:
+                    instance.count = None
             form.save()
             response = HttpResponse(status=codes.ok)
             self.write(request, response, self.prepare(instance))
