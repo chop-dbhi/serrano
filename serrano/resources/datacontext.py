@@ -6,8 +6,12 @@ from restlib2 import resources
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataContext
+from avocado.conf import settings
 from serrano.forms import DataContextForm
 from . import templates
+
+
+HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
 class DataContextBase(resources.Resource):
@@ -86,7 +90,7 @@ class DataContextResource(DataContextBase):
 
         if form.is_valid():
             instance = form.save(commit=False)
-            form.save()
+            form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.created)
             self.write(request, response, self.prepare(instance))
         else:
@@ -109,7 +113,7 @@ class DataContextResource(DataContextBase):
                     instance.count = instance.apply().distinct().count()
                 else:
                     instance.count = None
-            form.save()
+            form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.ok)
             self.write(request, response, self.prepare(instance))
         else:
