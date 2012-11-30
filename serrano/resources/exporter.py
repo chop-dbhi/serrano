@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.paginator import EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
+from django.core.serializers.json import DjangoJSONEncoder
 from restlib2.http import codes
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
@@ -145,7 +146,7 @@ class ExporterResource(BaseResource):
                         str(page.number + 1),
                 }
             data['_links'] = links
-            return HttpResponse(json.dumps(data), content_type='application/json')
+            return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder), content_type='application/json')
 
         # Handle an explicit export type to a file
         resp = HttpResponse()
