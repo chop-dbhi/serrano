@@ -6,7 +6,8 @@ DataCategory = {
         'parent': {
             'fields': [':pk', 'name', 'order'],
         }
-    }
+    },
+    'allow_missing': True,
 }
 
 DataField = {
@@ -25,6 +26,7 @@ DataField = {
     'related': {
         'category': DataCategory,
     },
+    'allow_missing': True,
 }
 
 DataConcept = {
@@ -39,6 +41,7 @@ DataConcept = {
     'related': {
         'category': DataCategory,
     },
+    'allow_missing': True,
 }
 
 DataConceptField = {
@@ -47,15 +50,18 @@ DataConceptField = {
         'alt_name': 'name',
         'alt_plural_name': 'get_plural_name',
     },
+    'allow_missing': True,
 }
 
 
 DataContext = {
     'fields': [':pk', ':local', 'language'],
     'exclude': ['user', 'session_key'],
+    'allow_missing': True,
 }
 
 
 DataView = {
     'exclude': ['user', 'session_key'],
+    'allow_missing': True,
 }
