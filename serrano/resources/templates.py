@@ -33,7 +33,7 @@ DataConcept = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
         'category', 'order', 'modified', 'published', 'archived',
-        'formatter_name', 'queryview'
+        'formatter_name', 'queryview', 'sortable'
     ],
     'key_map': {
         'plural_name': 'get_plural_name',
