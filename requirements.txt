@@ -1,0 +1,4 @@
+avocado>=2.0,<2.1
+django-preserialize
+restlib2>=0.3,<0.4
+coverage
