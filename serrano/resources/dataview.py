@@ -6,8 +6,12 @@ from restlib2 import resources
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataView
+from avocado.conf import settings
 from serrano.forms import DataViewForm
 from . import templates
+
+
+HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
 class DataViewBase(resources.Resource):
@@ -77,7 +81,7 @@ class DataViewResource(DataViewBase):
         form = DataViewForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save()
+            instance = form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.created)
             self.write(request, response, self.prepare(instance))
         else:
@@ -90,7 +94,7 @@ class DataViewResource(DataViewBase):
         form = DataViewForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save()
+            instance = form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.ok)
             self.write(request, response, self.prepare(instance))
         else:

@@ -6,8 +6,12 @@ from restlib2 import resources
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataContext
+from avocado.conf import settings
 from serrano.forms import DataContextForm
 from . import templates
+
+
+HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
 class DataContextBase(resources.Resource):
@@ -86,7 +90,7 @@ class DataContextResource(DataContextBase):
 
         if form.is_valid():
             instance = form.save(commit=False)
-            form.save()
+            form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.created)
             self.write(request, response, self.prepare(instance))
         else:
@@ -101,8 +105,15 @@ class DataContextResource(DataContextBase):
         if form.is_valid():
             instance = form.save(commit=False)
             if form.count_needs_update:
-                instance.count = instance.apply().distinct().count()
-            form.save()
+                # Only recalculated count if conditions exist. This is to
+                # prevent re-counting the entire dataset. An alternative
+                # solution may be desirable such as pre-computing and
+                # caching the count ahead of time.
+                if instance.json:
+                    instance.count = instance.apply().distinct().count()
+                else:
+                    instance.count = None
+            form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.ok)
             self.write(request, response, self.prepare(instance))
         else:
