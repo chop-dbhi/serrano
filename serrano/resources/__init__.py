@@ -1,6 +1,5 @@
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
-from django.views.decorators.cache import never_cache
 from restlib2 import resources
 
 
@@ -11,7 +10,7 @@ class Root(resources.Resource):
             '_links': {
                 'self': {
                     'rel': 'self',
-                    'hrf': reverse('serrano:root'),
+                    'href': reverse('serrano:root'),
                 },
                 'fields': {
                     'rel': 'datafields',
@@ -23,21 +22,25 @@ class Root(resources.Resource):
                 },
                 'contexts': {
                     'rel': 'datacontexts',
-                    'href': reverse('serrano:datacontexts'),
+                    'href': reverse('serrano:contexts:active'),
                 },
                 'views': {
                     'rel': 'dataviews',
-                    'href': reverse('serrano:dataviews'),
+                    'href': reverse('serrano:views:active'),
                 },
-                'data': {
+                'preview': {
                     'rel': 'data',
-                    'href': reverse('serrano:exporter'),
+                    'href': reverse('serrano:data:preview'),
+                },
+                'exporter': {
+                    'rel': 'data',
+                    'href': reverse('serrano:data:exporter'),
                 }
             }
         }
 
 
-root_resource = never_cache(Root())
+root_resource = Root()
 
 urlpatterns = patterns('',
     url(r'^$', root_resource, name='root')

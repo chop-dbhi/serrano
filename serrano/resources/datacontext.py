@@ -34,56 +34,32 @@ class DataContextBase(resources.Resource):
         obj['_links'] = {
             'self': {
                 'rel': 'self',
-                'href': reverse('serrano:datacontext', args=[instance.pk]),
+                'href': reverse('serrano:contexts:single', args=[instance.pk]),
             }
         }
         return obj
 
     @classmethod
     def get_queryset(self, request, **kwargs):
+        "Constructs a QuerySet for this user or session."
+
         if hasattr(request, 'user') and request.user.is_authenticated():
             kwargs['user'] = request.user
         elif request.session.session_key:
             kwargs['session_key'] = request.session.session_key
-        if kwargs:
-            kwargs.setdefault('archived', False)
-            return DataContext.objects.filter(**kwargs)
-        return DataContext.objects.none()
 
-    @classmethod
-    def get_object(self, request, **kwargs):
-        # Always assume the user for the lookup if one is present, otherwise
-        # fallback to a session key
-        if hasattr(request, 'user') and request.user.is_authenticated():
-            kwargs['user'] = request.user
-        else:
-            kwargs['session_key'] = request.session.session_key
-
-        try:
-            return self.get_queryset(request).get(**kwargs)
-        except DataContext.DoesNotExist:
-            pass
-
-    def is_not_found(self, request, response, **kwargs):
-        if 'session' in kwargs or 'pk' in kwargs:
-            instance = self.get_object(request, **kwargs)
-            if instance is None:
-                return True
-            request.instance = instance
-        return False
-
-    def is_gone(self, request, response, **kwargs):
-        if hasattr(request, 'instance'):
-            return request.instance.archived
+        # The only case where kwargs is empty is for non-authenticated
+        # cookieless agents.. e.g. bots, most non-browser clients since
+        # no session exists yet for the agent.
+        if not kwargs:
+            return DataContext.objects.none()
+        return DataContext.objects.filter(**kwargs)
 
 
-class DataContextResource(DataContextBase):
-    "DataContext Summary Resource"
-
-    def get(self, request, **kwargs):
-        if 'session' in kwargs or 'pk' in kwargs:
-            return self.prepare(request.instance)
-        return map(self.prepare, self.get_queryset(request))
+class DataContextsResource(DataContextBase):
+    "Resource of active (non-archived) contexts"
+    def get(self, request):
+        return map(self.prepare, self.get_queryset(request, archived=False))
 
     def post(self, request):
         form = DataContextForm(request, request.data)
@@ -97,6 +73,39 @@ class DataContextResource(DataContextBase):
             response = HttpResponse(status=codes.unprocessable_entity)
             self.write(request, response, dict(form.errors))
         return response
+
+
+class DataContextsHistoryResource(DataContextBase):
+    "Resource of archived (non-active) contexts"
+    def get(self, request):
+        return map(self.prepare, self.get_queryset(request, archived=True))
+
+
+class DataContextResource(DataContextBase):
+    "Resource for accessing a single context"
+    @classmethod
+    def get_object(self, request, pk=None, session=None, **kwargs):
+        if not pk and not session:
+            raise ValueError('A pk or session must used for the lookup')
+
+        queryset = self.get_queryset(request, **kwargs)
+
+        try:
+            if pk:
+                return queryset.get(pk=pk)
+            else:
+                return queryset.get(session=True)
+        except DataContext.DoesNotExist:
+            pass
+
+    def is_not_found(self, request, response, **kwargs):
+        instance = self.get_object(request, **kwargs)
+        if instance is None:
+            return True
+        request.instance = instance
+
+    def get(self, request, **kwargs):
+        return self.prepare(request.instance)
 
     def put(self, request, **kwargs):
         instance = request.instance
@@ -121,28 +130,23 @@ class DataContextResource(DataContextBase):
             self.write(request, response, dict(form.errors))
         return response
 
-    def delete(self, request, pk):
+    def delete(self, request, **kwargs):
         if request.instance.session:
             return HttpResponse(status=codes.bad_request)
         request.instance.delete()
         return HttpResponse(status=codes.no_content)
 
 
-class DataContextHistoryResource(DataContextBase):
-    "DataContext History Resource"
-
-    def get(self, request):
-        queryset = self.get_queryset(request, archived=True).iterator()
-        return map(self.prepare, queryset)
-
-
-datacontext_resource = never_cache(DataContextResource())
-datacontext_history_resource = never_cache(DataContextHistoryResource())
+single_resource = never_cache(DataContextResource())
+active_resource = never_cache(DataContextsResource())
+history_resource = never_cache(DataContextsHistoryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
-    url(r'^$', datacontext_resource, name='datacontexts'),
-    url(r'^session/$', datacontext_resource, {'session': True}, name='datacontext'),
-    url(r'^(?P<pk>\d+)/$', datacontext_resource, name='datacontext'),
-    url(r'^history/$', datacontext_history_resource, name='datacontext-history'),
+    url(r'^$', active_resource, name='active'),
+    url(r'^history/$', history_resource, name='history'),
+
+    # Endpoints for specific contexts
+    url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
+    url(r'^session/$', single_resource, {'session': True}, name='session'),
 )
