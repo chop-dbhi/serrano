@@ -394,6 +394,11 @@ Having a hypermedia API is great, but without a client to consume it, it is some
 
 ## CHANGELOG
 
+2.0.8 [diff](https://github.com/cbmi/serrano/compare/2.0.7...2.0.8)
+
+- Remove map of `operator_choices` to `operators`
+    - Change made in Avocado 2.0.10
+
 2.0.7 [diff](https://github.com/cbmi/serrano/compare/2.0.6...2.0.7)
 
 - Add support for defining the `context` and `view` objects via a POST request
