@@ -155,6 +155,8 @@ class PreviewResource(BaseResource):
         return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder),
             content_type='application/json')
 
+    post = get
+
 
 preview_resource = PreviewResource()
 

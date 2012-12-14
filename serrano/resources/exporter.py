@@ -68,11 +68,7 @@ class ExporterResource(BaseResource):
         context = self.get_context(request)
         return self._export(request, export_type, view, context)
 
-    def post(self, request, export_type):
-        # Get the view and context params/objects via the parsed request body
-        view = self.get_view(request)
-        context = self.get_context(request)
-        return self._export(request, export_type, view, context)
+    post = get
 
 
 exporter_resource = ExporterResource()
