@@ -21,7 +21,6 @@ DataField = {
     'key_map': {
         'plural_name': 'get_plural_name',
         'plural_unit': 'get_plural_unit',
-        'operators': 'operator_choices',
     },
     'related': {
         'category': DataCategory,
