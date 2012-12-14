@@ -213,6 +213,7 @@ Descriptive and other various metadata about `DataField` objects.
     "simple_type": "string",
     "internal_type": "char",
     "enumerable": true,
+    "searchable": false,
     "data_modified": "2011-10-01T11:05:10Z",
     "links": {
         "self": {
@@ -365,13 +366,13 @@ Dynamic resource for generating distribution data between one or more `DataField
 
 #### Endpoints
 
-- `/api/fields/<pk>/dist/` - Defines a distribution between one or more `DataField`s
+- `/api/fields/:id/dist/` - Defines a distribution between one or more `DataField`s
 
 #### Parameters
 
 _dimension_
 
-- `<pk>` - Add a dimension to the distribution. Multiple dimensions can be provided using multiple GET parameters, e.g. `/api/fields/3/distribution/?dimension=4&dimension=6`
+- `:id` - Add a dimension to the distribution. Multiple dimensions can be provided using multiple GET parameters, e.g. `/api/fields/3/distribution/?dimension=4&dimension=6`
 
 _nulls_
 
@@ -386,6 +387,47 @@ _cluster_
 
 
 
-# Client Tools & Interfaces
+## Client Tools & Interfaces
 
 Having a hypermedia API is great, but without a client to consume it, it is somewhat useless. [Cilantro](http://cbmi.github.com/cilantro/) is Web browser-based client that provides a clean browsable interface for viewing and interacting with the APIs Serrano provides.
+
+
+## CHANGELOG
+
+2.0.7 [diff](https://github.com/cbmi/serrano/compare/2.0.6...2.0.7)
+
+- Add support for defining the `context` and `view` objects via a POST request
+    - This enables performing one-off (non-persisted) queries
+- Abstract out the browser-based *data preview* resource from the format export mechanism
+- Change export endpoint `/api/data/export/` to return an object of possible export formats
+    - Each export target has it's own endpoint, e.g. `/api/data/export/sas/` for SAS export
+
+2.0.6 [diff](https://github.com/cbmi/serrano/compare/2.0.5...2.0.6)
+
+- Update django-preserialize 1.0 to make use of the `allow_missing` option
+    - This prevents missing keys or attributes from throwing an exception
+- Add `DataConcept.sortable` field from Avocado 2.0.8+
+
+2.0.5 [diff](https://github.com/cbmi/serrano/compare/2.0.4...2.0.5)
+
+- #21 - Fix the `ExporterResource` to use the `DjangoJSONEncoder` to correctly handle datetimes and `Decimal`s
+
+2.0.4 [diff](https://github.com/cbmi/serrano/compare/2.0.3...2.0.4)
+
+- Change behavior of `DataContextResource` to recalculate count only [if at least one condition is present](https://github.com/cbmi/serrano/commit/a774621a2788f8b2736e6a5675d5ba6bdeb4163e)
+- Integrate history API settings from Avocado 2.0.7+
+    - Instances are no longer auto-archived, but [are conditional](https://github.com/cbmi/serrano/commit/73d5ba5a44a5f06ea7342a5f627dc71b621aa09b) based the `HISTORY_ENABLED` setting
+
+2.0.3 [diff](https://github.com/cbmi/serrano/compare/2.0.2...2.0.3)
+
+- Fix incorrect use of `sys.version_info`
+
+2.0.2 [diff](https://github.com/cbmi/serrano/compare/2.0.1...2.0.2)
+
+- Add Python 2.6 support
+
+2.0.1 [diff](https://github.com/cbmi/serrano/compare/2.0.0...2.0.1)
+
+- Fix erroneous reset of kwargs in `DataContextResource` and `DataViewResource`
+
+2.0.0 - Initial release
