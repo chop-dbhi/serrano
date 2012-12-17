@@ -394,6 +394,11 @@ Having a hypermedia API is great, but without a client to consume it, it is some
 
 ## CHANGELOG
 
+2.0.10 [diff](https://github.com/cbmi/serrano/compare/2.0.9...2.0.10)
+
+- Fix missing increment of `exporter.row_length` for dealing with reundant
+rows in Avocado 2.0.9+
+
 2.0.9 [diff](https://github.com/cbmi/serrano/compare/2.0.8...2.0.9)
 
 - Add missing `post` method on data preview resource (from 2.0.7)
