@@ -83,6 +83,7 @@ class PreviewResource(BaseResource):
         # TODO: this is not terribly elegant
         pk_name = queryset.model._meta.pk.name
         exporter.params.insert(0, (RawFormatter(keys=[pk_name]), 1))
+        exporter.row_length += 1
 
         # Build up the header keys.
         # TODO: This is flawed since it assumes the output columns
