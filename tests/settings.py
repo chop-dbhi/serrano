@@ -14,6 +14,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'avocado',
     'serrano',
+    'tests',
     'tests.cases.resources',
     'tests.cases.forms',
 )
