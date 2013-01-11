@@ -9,7 +9,7 @@ class BaseTestCase(TestCase):
     fixtures = ['resources.json']
 
     def setUp(self):
-        management.call_command('avocado', 'sync', 'resources', quiet=True)
+        management.call_command('avocado', 'init', 'resources', quiet=True)
         # Only publish some of them..
         DataField.objects.filter(model_name='title').update(published=True)
         self.user = User.objects.create_user(username='root',
