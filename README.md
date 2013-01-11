@@ -394,6 +394,11 @@ Having a hypermedia API is great, but without a client to consume it, it is some
 
 ## CHANGELOG
 
+2.0.11 [diff](https://github.com/cbmi/serrano/compare/2.0.10...2.0.11)
+
+- Abstract out logic for resolving `DataView` and `DataContext` objects
+- Update tests to require Avocado 2.0.13+
+
 2.0.10 [diff](https://github.com/cbmi/serrano/compare/2.0.9...2.0.10)
 
 - Fix missing increment of `exporter.row_length` for dealing with reundant
