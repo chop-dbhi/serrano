@@ -17,6 +17,7 @@ INSTALLED_APPS = (
     'tests',
     'tests.cases.resources',
     'tests.cases.forms',
+    'tests.cases.tokens',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -25,6 +26,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'serrano.middleware.SessionMiddleware',
+)
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'serrano.backends.TokenBackend',
 )
 
 SITE_ID = 1

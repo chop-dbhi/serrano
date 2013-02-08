@@ -2,6 +2,7 @@ import json
 from django.test import TestCase
 from django.core import management
 from django.contrib.auth.models import User
+from django.test.utils import override_settings
 from avocado.models import DataField
 
 
@@ -19,7 +20,7 @@ class BaseTestCase(TestCase):
 
 
 class RootResourceTestCase(TestCase):
-    def test(self):
+    def test_get(self):
         response = self.client.get('/api/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
@@ -36,6 +37,23 @@ class RootResourceTestCase(TestCase):
                 'preview': {'href': '/api/data/preview/', 'rel': 'data'},
             },
         })
+
+    @override_settings(SERRANO_AUTH_REQUIRED=True)
+    def test_post(self):
+        User.objects.create_user(username='root', password='password')
+        response = self.client.post('/api/',
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.content, 'Invalid credentials')
+
+        response = self.client.post('/api/',
+            json.dumps({'username': 'root', 'password': 'password'}),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue('token' in json.loads(response.content))
 
 
 class DataFieldResourceTestCase(BaseTestCase):

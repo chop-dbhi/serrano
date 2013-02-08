@@ -1,5 +1,6 @@
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
+from ..decorators import check_auth
 
 
 def _resolve_object(klass, key, request, attrs=None):
@@ -52,6 +53,10 @@ def _resolve_object(klass, key, request, attrs=None):
 
 class BaseResource(Resource):
     param_defaults = {}
+
+    @check_auth
+    def __call__(self, *args, **kwargs):
+        return super(BaseResource, self).__call__(*args, **kwargs)
 
     def get_params(self, request):
         params = request.GET.copy()
