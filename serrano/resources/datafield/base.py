@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from avocado.models import DataField
 from avocado.conf import OPTIONAL_DEPS
-from ..base import BaseResource
+from ..base import ContextViewBaseResource
 from .. import templates
 
 # Shortcuts defined ahead of time for transparency
@@ -11,7 +11,7 @@ can_change_datafield = lambda u: u.has_perm('avocado.change_datafield')
 stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
 
 
-class DataFieldBase(BaseResource):
+class DataFieldBase(ContextViewBaseResource):
     template = templates.DataField
 
     param_defaults = {

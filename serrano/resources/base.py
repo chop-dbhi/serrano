@@ -59,6 +59,8 @@ class BaseResource(Resource):
             params.setdefault(param, default)
         return params
 
+
+class ContextViewBaseResource(BaseResource):
     def get_context(self, request, attrs=None):
         "Returns a DataContext object based on `attrs` or the request."
         return _resolve_object(DataContext, 'context', request, attrs)

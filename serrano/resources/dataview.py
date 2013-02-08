@@ -2,19 +2,19 @@ from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
-from restlib2 import resources
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataView
 from avocado.conf import settings
 from serrano.forms import DataViewForm
+from .base import ContextViewBaseResource
 from . import templates
 
 
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
-class DataViewBase(resources.Resource):
+class DataViewBase(ContextViewBaseResource):
     cache_max_age = 0
     private_cache = True
 

@@ -1,9 +1,9 @@
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
-from restlib2 import resources
+from .base import BaseResource
 
 
-class Root(resources.Resource):
+class Root(BaseResource):
     def get(self, request):
         return {
             'title': 'Serrano Hypermedia API',
