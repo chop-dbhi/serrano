@@ -4,6 +4,7 @@ from django.core import management
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
 from avocado.models import DataField
+from serrano.resources import API_VERSION
 
 
 class BaseTestCase(TestCase):
@@ -27,6 +28,7 @@ class RootResourceTestCase(TestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
             'title': 'Serrano Hypermedia API',
+            'version': API_VERSION,
             '_links': {
                 'exporter': {'href': '/api/data/export/', 'rel': 'data'},
                 'views': {'href': '/api/views/', 'rel': 'dataviews'},

@@ -2,9 +2,11 @@ from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate, login
+import serrano
 from serrano.tokens import token_generator
 from .base import BaseResource
 
+API_VERSION = int('{major}{minor}'.format(**serrano.__version_info__))
 
 class Root(BaseResource):
     # Override to allow a POST to not be checked for authorization since
@@ -17,6 +19,7 @@ class Root(BaseResource):
     def get(self, request):
         return {
             'title': 'Serrano Hypermedia API',
+            'version': API_VERSION,
             '_links': {
                 'self': {
                     'rel': 'self',
