@@ -1,6 +1,10 @@
+from django.conf import settings
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
+
+CORS_ENABLED = getattr(settings, 'SERRANO_CORS_ENABLED', True)
+CORS_ORIGIN = getattr(settings, 'SERRANO_CORS_ORIGIN', '*')
 
 
 def _resolve_object(klass, key, request, attrs=None):
@@ -63,6 +67,13 @@ class BaseResource(Resource):
         for param, default in self.param_defaults.items():
             params.setdefault(param, default)
         return params
+
+    def process_response(self, request, response):
+        response = super(BaseResource, self).process_response(request, response)
+        if CORS_ENABLED:
+            response['Access-Control-Allow-Origin'] = CORS_ORIGIN
+            response['Access-Control-Allow-Methods'] = ', '.join(self.allowed_methods)
+        return response
 
 
 class ContextViewBaseResource(BaseResource):
