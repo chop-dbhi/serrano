@@ -394,6 +394,17 @@ Having a hypermedia API is great, but without a client to consume it, it is some
 
 ## CHANGELOG
 
+2.0.12 [diff](https://github.com/cbmi/serrano/compare/2.0.11...2.0.12)
+
+- Add support for user-derived API tokens
+    - Upon successful authentication against the root endpoint, a token will
+    be returned that can be used for subsequent requests.
+- Add support for Cross-Origin Resource Sharing (CORS)
+    - This includes two new settings `SERRANO_CORS_ENABLED` and
+    `SERRANO_CORS_ORIGIN`.
+- Add API version to root endpoint for reference. This is derived from the
+major and minor version of Serrano, e.g. 2.0.12 -> 20
+
 2.0.11 [diff](https://github.com/cbmi/serrano/compare/2.0.10...2.0.11)
 
 - Abstract out logic for resolving `DataView` and `DataContext` objects
