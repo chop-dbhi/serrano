@@ -3,7 +3,7 @@ from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
 
-CORS_ENABLED = getattr(settings, 'SERRANO_CORS_ENABLED', True)
+CORS_ENABLED = getattr(settings, 'SERRANO_CORS_ENABLED', False)
 CORS_ORIGIN = getattr(settings, 'SERRANO_CORS_ORIGIN', '*')
 
 
