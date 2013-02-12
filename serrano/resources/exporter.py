@@ -4,7 +4,7 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from restlib2 import resources
 from avocado.export import registry as exporters
-from .base import BaseResource
+from .base import ContextViewBaseResource
 
 # Single list of all registered exporters
 EXPORT_TYPES = zip(*exporters.choices)[0]
@@ -31,7 +31,7 @@ class ExporterRootResource(resources.Resource):
         return resp
 
 
-class ExporterResource(BaseResource):
+class ExporterResource(ContextViewBaseResource):
     cache_max_age = 0
     private_cache = True
 
