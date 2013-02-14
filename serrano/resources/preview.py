@@ -27,6 +27,8 @@ class PreviewResource(ContextViewBaseResource):
     }
 
     def get(self, request):
+        uri = request.build_absolute_uri
+
         params = self.get_params(request)
 
         page = params.get('page')
@@ -128,27 +130,27 @@ class PreviewResource(ContextViewBaseResource):
         links = {
             'self': {
                 'rel': 'self',
-                'href': reverse('serrano:data:preview') + '?page=' + \
-                    str(page.number),
+                'href': uri(reverse('serrano:data:preview') + '?page=' + \
+                    str(page.number)),
             },
             'base': {
                 'rel': 'base',
-                'href': reverse('serrano:data:preview'),
+                'href': uri(reverse('serrano:data:preview')),
             }
         }
 
         if page.number != 1:
             links['prev'] = {
                 'rel': 'prev',
-                'href': reverse('serrano:data:preview') + '?page=' + \
-                    str(page.number - 1),
+                'href': uri(reverse('serrano:data:preview') + '?page=' + \
+                    str(page.number - 1)),
             }
 
         if page.number < paginator.num_pages - 1:
             links['next'] = {
                 'rel': 'next',
-                'href': reverse('serrano:data:preview') + '?page=' + \
-                    str(page.number + 1),
+                'href': uri(reverse('serrano:data:preview') + '?page=' + \
+                    str(page.number + 1)),
             }
 
         data['_links'] = links

@@ -6,6 +6,7 @@ class DataFieldStats(DataFieldBase):
     "DataField Stats Resource"
 
     def get(self, request, pk):
+        uri = request.build_absolute_uri
         instance = request.instance
 
         stats = None
@@ -23,7 +24,7 @@ class DataFieldStats(DataFieldBase):
         resp['_links'] = {
             'parent': {
                 'rel': 'parent',
-                'href': reverse('serrano:datafield', args=[instance.pk]),
+                'href': uri(reverse('serrano:datafield', args=[instance.pk])),
             },
         }
 

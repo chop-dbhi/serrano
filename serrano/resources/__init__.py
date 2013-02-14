@@ -17,37 +17,39 @@ class Root(BaseResource):
         return super(Root, self).__call__(request, *args, **kwargs)
 
     def get(self, request):
+        uri = request.build_absolute_uri
+
         return {
             'title': 'Serrano Hypermedia API',
             'version': API_VERSION,
             '_links': {
                 'self': {
                     'rel': 'self',
-                    'href': reverse('serrano:root'),
+                    'href': uri(reverse('serrano:root')),
                 },
                 'fields': {
                     'rel': 'datafields',
-                    'href': reverse('serrano:datafields'),
+                    'href': uri(reverse('serrano:datafields')),
                 },
                 'concepts': {
                     'rel': 'dataconcepts',
-                    'href': reverse('serrano:dataconcepts'),
+                    'href': uri(reverse('serrano:dataconcepts')),
                 },
                 'contexts': {
                     'rel': 'datacontexts',
-                    'href': reverse('serrano:contexts:active'),
+                    'href': uri(reverse('serrano:contexts:active')),
                 },
                 'views': {
                     'rel': 'dataviews',
-                    'href': reverse('serrano:views:active'),
+                    'href': uri(reverse('serrano:views:active')),
                 },
                 'preview': {
                     'rel': 'data',
-                    'href': reverse('serrano:data:preview'),
+                    'href': uri(reverse('serrano:data:preview')),
                 },
                 'exporter': {
                     'rel': 'data',
-                    'href': reverse('serrano:data:exporter'),
+                    'href': uri(reverse('serrano:data:exporter')),
                 }
             }
         }

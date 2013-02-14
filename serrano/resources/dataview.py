@@ -21,12 +21,14 @@ class DataViewBase(ContextViewBaseResource):
     template = templates.DataView
 
     @classmethod
-    def prepare(self, instance):
+    def prepare(self, request, instance):
+        uri = request.build_absolute_uri
         obj = serialize(instance, **self.template)
+
         obj['_links'] = {
             'self': {
                 'rel': 'self',
-                'href': reverse('serrano:views:single', args=[instance.pk]),
+                'href': uri(reverse('serrano:views:single', args=[instance.pk])),
             }
         }
         return obj
@@ -51,7 +53,7 @@ class DataViewBase(ContextViewBaseResource):
 class DataViewsResource(DataViewBase):
     "Resource of active (non-archived) views"
     def get(self, request):
-        return map(self.prepare, self.get_queryset(request, archived=False))
+        return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=False))
 
     def post(self, request):
         form = DataViewForm(request, request.data)
@@ -59,7 +61,7 @@ class DataViewsResource(DataViewBase):
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.created)
-            self.write(request, response, self.prepare(instance))
+            self.write(request, response, self.prepare(request, instance))
         else:
             response = HttpResponse(status=codes.unprocessable_entity)
             self.write(request, response, dict(form.errors))
@@ -69,7 +71,7 @@ class DataViewsResource(DataViewBase):
 class DataViewsHistoryResource(DataViewBase):
     "Resource of archived (non-active) views"
     def get(self, request):
-        return map(self.prepare, self.get_queryset(request, archived=True))
+        return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=True))
 
 
 class DataViewResource(DataViewBase):
@@ -96,7 +98,7 @@ class DataViewResource(DataViewBase):
         request.instance = instance
 
     def get(self, request, **kwargs):
-        return self.prepare(request.instance)
+        return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
         instance = request.instance
@@ -105,7 +107,7 @@ class DataViewResource(DataViewBase):
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.ok)
-            self.write(request, response, self.prepare(instance))
+            self.write(request, response, self.prepare(request, instance))
         else:
             response = HttpResponse(status=codes.unprocessable_entity)
             self.write(request, response, dict(form.errors))

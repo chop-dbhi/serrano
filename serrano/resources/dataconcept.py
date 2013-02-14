@@ -34,12 +34,13 @@ class DataConceptBase(ContextViewBaseResource):
             pass
 
     @classmethod
-    def prepare(self, instance):
+    def prepare(self, request, instance):
+        uri = request.build_absolute_uri
         obj = serialize(instance, **self.template)
 
         fields = []
         for cfield in instance.concept_fields.select_related('field').iterator():
-            field = DataFieldResource.prepare(cfield.field)
+            field = DataFieldResource.prepare(request, cfield.field)
             # Add the alternate name specific to the relationship between the
             # concept and the field.
             field.update(serialize(cfield, **templates.DataConceptField))
@@ -49,7 +50,7 @@ class DataConceptBase(ContextViewBaseResource):
         obj['_links'] = {
             'self': {
                 'rel': 'self',
-                'href': reverse('serrano:dataconcept', args=[instance.pk]),
+                'href': uri(reverse('serrano:dataconcept', args=[instance.pk])),
             }
         }
         return obj
@@ -70,7 +71,7 @@ class DataConceptBase(ContextViewBaseResource):
 class DataConceptResource(DataConceptBase):
     "DataConcept Resource"
     def get(self, request, pk):
-        return self.prepare(request.instance)
+        return self.prepare(request, request.instance)
 
 
 class DataConceptsResource(DataConceptBase):
@@ -126,7 +127,7 @@ class DataConceptsResource(DataConceptBase):
                     queryset = queryset.order_by('-name')
             objects = queryset.iterator()
 
-        return map(self.prepare, objects)
+        return map(lambda x: self.prepare(request, x), objects)
 
 
 dataconcept_resource = DataConceptResource()

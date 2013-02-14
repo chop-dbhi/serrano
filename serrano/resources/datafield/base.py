@@ -33,32 +33,33 @@ class DataFieldBase(ContextViewBaseResource):
 
     # Augment the pre-serialized object
     @classmethod
-    def prepare(self, instance):
+    def prepare(self, request, instance):
+        uri = request.build_absolute_uri
         obj = serialize(instance, **self.template)
 
         # Augment the links
         obj['_links'] = {
             'self': {
                 'rel': 'self',
-                'href': reverse('serrano:datafield', args=[instance.pk]),
+                'href': uri(reverse('serrano:datafield', args=[instance.pk])),
             },
             'values': {
                 'rel': 'data',
-                'href': reverse('serrano:datafield-values', args=[instance.pk]),
+                'href': uri(reverse('serrano:datafield-values', args=[instance.pk])),
             },
         }
 
         if stats_capable(instance):
             obj['_links']['stats'] = {
                 'rel': 'data',
-                'href': reverse('serrano:datafield-stats', args=[instance.pk]),
+                'href': uri(reverse('serrano:datafield-stats', args=[instance.pk])),
             }
             # Add distribution link only if the relevent dependencies are
             # installed.
             if OPTIONAL_DEPS['scipy']:
                 obj['_links']['distribution'] = {
                     'rel': 'data',
-                    'href': reverse('serrano:datafield-distribution', args=[instance.pk]),
+                    'href': uri(reverse('serrano:datafield-distribution', args=[instance.pk])),
                 }
 
         return obj
@@ -75,7 +76,7 @@ class DataFieldBase(ContextViewBaseResource):
 class DataFieldResource(DataFieldBase):
     "DataField Resource"
     def get(self, request, pk):
-        return self.prepare(request.instance)
+        return self.prepare(request, request.instance)
 
 
 class DataFieldsResource(DataFieldResource):
@@ -135,4 +136,4 @@ class DataFieldsResource(DataFieldResource):
                     queryset = queryset.order_by('-name')
             objects = queryset.iterator()
 
-        return map(self.prepare, objects)
+        return map(lambda x: self.prepare(request, x), objects)

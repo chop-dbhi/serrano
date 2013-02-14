@@ -21,7 +21,8 @@ class DataContextBase(ContextViewBaseResource):
     template = templates.DataContext
 
     @classmethod
-    def prepare(self, instance):
+    def prepare(self, request, instance):
+        uri = request.build_absolute_uri
         obj = serialize(instance, **self.template)
 
         # If this context is explicitly tied to a model (via the `count`)
@@ -34,7 +35,7 @@ class DataContextBase(ContextViewBaseResource):
         obj['_links'] = {
             'self': {
                 'rel': 'self',
-                'href': reverse('serrano:contexts:single', args=[instance.pk]),
+                'href': uri(reverse('serrano:contexts:single', args=[instance.pk])),
             }
         }
         return obj
@@ -59,7 +60,7 @@ class DataContextBase(ContextViewBaseResource):
 class DataContextsResource(DataContextBase):
     "Resource of active (non-archived) contexts"
     def get(self, request):
-        return map(self.prepare, self.get_queryset(request, archived=False))
+        return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=False))
 
     def post(self, request):
         form = DataContextForm(request, request.data)
@@ -68,7 +69,7 @@ class DataContextsResource(DataContextBase):
             instance = form.save(commit=False)
             form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.created)
-            self.write(request, response, self.prepare(instance))
+            self.write(request, response, self.prepare(request, instance))
         else:
             response = HttpResponse(status=codes.unprocessable_entity)
             self.write(request, response, dict(form.errors))
@@ -78,7 +79,7 @@ class DataContextsResource(DataContextBase):
 class DataContextsHistoryResource(DataContextBase):
     "Resource of archived (non-active) contexts"
     def get(self, request):
-        return map(self.prepare, self.get_queryset(request, archived=True))
+        return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=True))
 
 
 class DataContextResource(DataContextBase):
@@ -105,7 +106,7 @@ class DataContextResource(DataContextBase):
         request.instance = instance
 
     def get(self, request, **kwargs):
-        return self.prepare(request.instance)
+        return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
         instance = request.instance
@@ -124,7 +125,7 @@ class DataContextResource(DataContextBase):
                     instance.count = None
             form.save(archive=HISTORY_ENABLED)
             response = HttpResponse(status=codes.ok)
-            self.write(request, response, self.prepare(instance))
+            self.write(request, response, self.prepare(request, instance))
         else:
             response = HttpResponse(status=codes.unprocessable_entity)
             self.write(request, response, dict(form.errors))
