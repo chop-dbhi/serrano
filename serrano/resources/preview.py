@@ -21,7 +21,7 @@ class PreviewResource(ContextViewBaseResource):
     or plain strings. Browser-based clients can consume the JSON and render
     the HTML for previewing.
     """
-    param_detaults = {
+    param_defaults = {
         'page': 1,
         'per_page': 50,
     }
