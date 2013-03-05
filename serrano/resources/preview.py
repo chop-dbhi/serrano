@@ -78,8 +78,7 @@ class PreviewResource(ContextViewBaseResource):
         iterator = queryset[offset:offset + per_page].raw()
 
         # Apply the view to the exporter class to get the formatted output
-        view_node = view.parse()
-        exporter = HTMLExporter(view_node.columns)
+        exporter = HTMLExporter(view)
 
         # Insert formatter to process the primary key as a raw value
         # TODO: this is not terribly elegant
@@ -93,6 +92,7 @@ class PreviewResource(ContextViewBaseResource):
         # be built during the first iteration of the read, but would also
         # depend on data to exist!
         header = []
+        view_node = view.parse()
         ordering = OrderedDict(view_node.ordering)
 
         for concept in view_node.columns:

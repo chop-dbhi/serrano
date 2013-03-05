@@ -41,10 +41,8 @@ class ExporterResource(ContextViewBaseResource):
         # Handle an explicit export type to a file
         resp = HttpResponse()
 
-        view_node = view.parse()
-
         exporter_class = exporters[export_type]
-        exporter = exporter_class(view_node.columns)
+        exporter = exporter_class(view)
 
         queryset = view.apply(context.apply(), include_pk=False)
         iterator = queryset.raw()
