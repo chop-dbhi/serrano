@@ -56,7 +56,7 @@ class ExporterResource(ContextViewBaseResource):
 
         exporter.write(iterator, resp)
 
-        resp['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
+        resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
         resp['Content-Type'] = content_type
 
         return resp
