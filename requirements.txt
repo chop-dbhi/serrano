@@ -1,4 +1,4 @@
-avocado>=2.0.13,<2.1
+avocado>=2.0.22,<2.1
 django-preserialize
 restlib2==0.3
 coverage

@@ -41,3 +41,5 @@ ANONYMOUS_USER_ID = -1
 
 TEST_RUNNER = 'tests.runner.ProfilingTestRunner'
 TEST_PROFILE = 'unittest.profile'
+
+SECRET_KEY = 'abc123'
