@@ -3,10 +3,10 @@ from django.http import HttpRequest
 from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
 from django.core import management
-from serrano.forms import DataContextForm, DataViewForm
+from serrano.forms import ContextForm, ViewForm
 
 
-class DataContextFormTestCase(TestCase):
+class ContextFormTestCase(TestCase):
     def setUp(self):
         # Mock request object
         self.request = HttpRequest()
@@ -14,17 +14,14 @@ class DataContextFormTestCase(TestCase):
         self.request.session.save()
 
     def test(self):
-        form = DataContextForm(self.request)
-        is_valid = form.is_valid()
-        print form.errors
-        print form.non_field_errors()
-        self.assertTrue(is_valid)
-        cleaned_data = form.cleaned_data
-        self.assertEqual(cleaned_data['user'], None)
-        self.assertEqual(cleaned_data['session_key'], self.request.session.session_key)
+        form = ContextForm(self.request, {})
+        self.assertTrue(form.is_valid())
+        form.save()
+        self.assertEqual(form.cleaned_data.get('user'), None)
+        self.assertEqual(form.instance.session_key, self.request.session.session_key)
 
 
 
-class DataViewFormTestCase(TestCase):
+class ViewFormTestCase(TestCase):
     def test(self):
         pass

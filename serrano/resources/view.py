@@ -6,7 +6,7 @@ from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataView
 from avocado.conf import settings
-from serrano.forms import DataViewForm
+from serrano.forms import ViewForm
 from .base import ContextViewBaseResource
 from . import templates
 
@@ -14,11 +14,11 @@ from . import templates
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
-class DataViewBase(ContextViewBaseResource):
+class ViewBase(ContextViewBaseResource):
     cache_max_age = 0
     private_cache = True
 
-    template = templates.DataView
+    template = templates.View
 
     @classmethod
     def prepare(self, request, instance):
@@ -50,13 +50,13 @@ class DataViewBase(ContextViewBaseResource):
         return DataView.objects.filter(**kwargs)
 
 
-class DataViewsResource(DataViewBase):
+class ViewsResource(ViewBase):
     "Resource of active (non-archived) views"
     def get(self, request):
         return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=False))
 
     def post(self, request):
-        form = DataViewForm(request, request.data)
+        form = ViewForm(request, request.data)
 
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
@@ -68,13 +68,13 @@ class DataViewsResource(DataViewBase):
         return response
 
 
-class DataViewsHistoryResource(DataViewBase):
+class ViewsHistoryResource(ViewBase):
     "Resource of archived (non-active) views"
     def get(self, request):
         return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=True))
 
 
-class DataViewResource(DataViewBase):
+class ViewResource(ViewBase):
     "Resource for accessing a single view"
     @classmethod
     def get_object(self, request, pk=None, session=None, **kwargs):
@@ -102,7 +102,7 @@ class DataViewResource(DataViewBase):
 
     def put(self, request, **kwargs):
         instance = request.instance
-        form = DataViewForm(request, request.data, instance=instance)
+        form = ViewForm(request, request.data, instance=instance)
 
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
@@ -120,9 +120,9 @@ class DataViewResource(DataViewBase):
         return HttpResponse(status=codes.no_content)
 
 
-single_resource = never_cache(DataViewResource())
-active_resource = never_cache(DataViewsResource())
-history_resource = never_cache(DataViewsHistoryResource())
+single_resource = never_cache(ViewResource())
+active_resource = never_cache(ViewsResource())
+history_resource = never_cache(ViewsHistoryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',

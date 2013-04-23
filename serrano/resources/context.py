@@ -6,7 +6,7 @@ from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataContext
 from avocado.conf import settings
-from serrano.forms import DataContextForm
+from serrano.forms import ContextForm
 from .base import ContextViewBaseResource
 from . import templates
 
@@ -14,11 +14,11 @@ from . import templates
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
-class DataContextBase(ContextViewBaseResource):
+class ContextBase(ContextViewBaseResource):
     cache_max_age = 0
     private_cache = True
 
-    template = templates.DataContext
+    template = templates.Context
 
     @classmethod
     def prepare(self, request, instance):
@@ -57,13 +57,13 @@ class DataContextBase(ContextViewBaseResource):
         return DataContext.objects.filter(**kwargs)
 
 
-class DataContextsResource(DataContextBase):
+class ContextsResource(ContextBase):
     "Resource of active (non-archived) contexts"
     def get(self, request):
         return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=False))
 
     def post(self, request):
-        form = DataContextForm(request, request.data)
+        form = ContextForm(request, request.data)
 
         if form.is_valid():
             instance = form.save(commit=False)
@@ -76,13 +76,13 @@ class DataContextsResource(DataContextBase):
         return response
 
 
-class DataContextsHistoryResource(DataContextBase):
+class ContextsHistoryResource(ContextBase):
     "Resource of archived (non-active) contexts"
     def get(self, request):
         return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=True))
 
 
-class DataContextResource(DataContextBase):
+class ContextResource(ContextBase):
     "Resource for accessing a single context"
     @classmethod
     def get_object(self, request, pk=None, session=None, **kwargs):
@@ -110,7 +110,7 @@ class DataContextResource(DataContextBase):
 
     def put(self, request, **kwargs):
         instance = request.instance
-        form = DataContextForm(request, request.data, instance=instance)
+        form = ContextForm(request, request.data, instance=instance)
 
         if form.is_valid():
             instance = form.save(commit=False)
@@ -138,9 +138,9 @@ class DataContextResource(DataContextBase):
         return HttpResponse(status=codes.no_content)
 
 
-single_resource = never_cache(DataContextResource())
-active_resource = never_cache(DataContextsResource())
-history_resource = never_cache(DataContextsHistoryResource())
+single_resource = never_cache(ContextResource())
+active_resource = never_cache(ContextsResource())
+history_resource = never_cache(ContextsHistoryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',

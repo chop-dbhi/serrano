@@ -28,19 +28,19 @@ class Root(BaseResource):
                     'href': uri(reverse('serrano:root')),
                 },
                 'fields': {
-                    'rel': 'datafields',
-                    'href': uri(reverse('serrano:datafields')),
+                    'rel': 'fields',
+                    'href': uri(reverse('serrano:fields')),
                 },
                 'concepts': {
-                    'rel': 'dataconcepts',
-                    'href': uri(reverse('serrano:dataconcepts')),
+                    'rel': 'concepts',
+                    'href': uri(reverse('serrano:concepts')),
                 },
                 'contexts': {
-                    'rel': 'datacontexts',
+                    'rel': 'contexts',
                     'href': uri(reverse('serrano:contexts:active')),
                 },
                 'views': {
-                    'rel': 'dataviews',
+                    'rel': 'views',
                     'href': uri(reverse('serrano:views:active')),
                 },
                 'preview': {

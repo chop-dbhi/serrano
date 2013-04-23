@@ -1,19 +1,19 @@
 from avocado.conf import OPTIONAL_DEPS
-from .base import DataFieldBase
+from .base import FieldBase
 
 
 MAXIMUM_RANDOM = 100
 
 
-class DataFieldValues(DataFieldBase):
-    """DataField Values Resource
+class FieldValues(FieldBase):
+    """Field Values Resource
 
-    This resource can be overriden for any datafield to use a more
+    This resource can be overriden for any field to use a more
     performant search implementation.
     """
 
     def get_all_values(self, request, instance):
-        "Returns all distinct values for this datafield."
+        "Returns all distinct values for this field."
         results = []
         for value, label in instance.choices:
             results.append({
@@ -23,7 +23,7 @@ class DataFieldValues(DataFieldBase):
         return results
 
     def get_search_values(self, request, instance, query):
-        """Performs a search on the underlying data for a datafield.
+        """Performs a search on the underlying data for a field.
         This method can be overridden to use an alternate search implementation.
         """
         results = []

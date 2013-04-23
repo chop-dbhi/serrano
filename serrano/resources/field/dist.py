@@ -6,15 +6,15 @@ from django.http import HttpResponse
 from restlib2.http import codes
 from modeltree.tree import trees
 from avocado.stats import cluster as stats_cluster
-from .base import DataFieldBase
+from .base import FieldBase
 
 
 MINIMUM_OBSERVATIONS = 500
 MAXIMUM_OBSERVATIONS = 50000
 
 
-class DataFieldDistribution(DataFieldBase):
-    "DataField Counts Resource"
+class FieldDistribution(FieldBase):
+    "Field Counts Resource"
 
     def get(self, request, pk):
         instance = request.instance

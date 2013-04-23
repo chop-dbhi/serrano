@@ -50,7 +50,7 @@ Serrano is a Hypermedia API implementation for Avocado. Defined here are the med
 
 _Note that currently Serrano exposed plain `application/json` representations of the below mediatypes._
 
-### application/vnd.serrano.datacontext+json
+### application/vnd.serrano.context+json
 
 #### Definition
 
@@ -160,7 +160,7 @@ An `array` of _two_ or more nodes.
 }
 ```
 
-### application/vnd.serrano.dataview+json
+### application/vnd.serrano.view+json
 
 #### Definition
 
@@ -182,7 +182,7 @@ Contains two properties `columns` and `ordering` which represent the selected ou
 
 ## Resources
 
-### DataField
+### Field
 
 Descriptive and other various metadata about `DataField` objects.
 
@@ -278,7 +278,7 @@ _query_
 - `distribution` - link to distribution data for the `DataField`
 - `concepts` - link to `DataConcept` objects in which this `DataField` is related to
 
-### DataField Values
+### Field Values
 
 Returns an array of distinct values for this `DataField`.
 
@@ -298,7 +298,7 @@ Returns an array of distinct values for this `DataField`.
 
 - `/api/fields/:id/values/` - Unique values for a `DataField`.
 
-**Note:** This endpoint may be used when a datafield is flagged as `searchable` and can same a query parameter `q` for performing searches on the values themselves.
+**Note:** This endpoint may be used when a field is flagged as `searchable` and can same a query parameter `q` for performing searches on the values themselves.
 
 A convention for better search implementations is to override the URL to point to a different resource which supports the same media types.
 
@@ -308,7 +308,7 @@ _query_
 
 - `<query term>` - Performs a `LIKE` search on the values themselves
 
-### DataField Stats
+### Field Stats
 
 Various statistics about a particular `DataField`. The output of this is dependent on the data type.
 
@@ -342,7 +342,7 @@ Various statistics about a particular `DataField`. The output of this is depende
 - `parent` - link to the corresponding `DataField` resource
 
 
-### DataField Distribution
+### Field Distribution
 
 Dynamic resource for generating distribution data between one or more `DataField`s. This resource is only available if Numpy and SciPy has been installed as an optional dependency for Avocado.
 
@@ -393,6 +393,12 @@ Having a hypermedia API is great, but without a client to consume it, it is some
 
 
 ## CHANGELOG
+
+2.0.13 [diff](https://github.com/cbmi/serrano/compare/2.0.12...2.0.13)
+
+- Minor breaking changes
+    - The `data` prefix from URL reverse names have been removed
+    - Internal resource classes and modules have been renamed
 
 2.0.12 [diff](https://github.com/cbmi/serrano/compare/2.0.11...2.0.12)
 

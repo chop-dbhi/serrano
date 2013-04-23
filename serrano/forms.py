@@ -2,10 +2,10 @@ from django import forms
 from avocado.models import DataContext, DataView
 
 
-class DataContextForm(forms.ModelForm):
+class ContextForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
-        super(DataContextForm, self).__init__(*args, **kwargs)
+        super(ContextForm, self).__init__(*args, **kwargs)
 
     def clean_json(self):
         json = self.cleaned_data.get('json')
@@ -16,7 +16,7 @@ class DataContextForm(forms.ModelForm):
         return json
 
     def save(self, commit=True, archive=True):
-        instance = super(DataContextForm, self).save(commit=False)
+        instance = super(ContextForm, self).save(commit=False)
         request = self.request
         if hasattr(request, 'user') and request.user.is_authenticated():
             instance.user = request.user
@@ -35,10 +35,10 @@ class DataContextForm(forms.ModelForm):
         fields = ('name', 'description', 'keywords', 'json', 'session')
 
 
-class DataViewForm(forms.ModelForm):
+class ViewForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
-        super(DataViewForm, self).__init__(*args, **kwargs)
+        super(ViewForm, self).__init__(*args, **kwargs)
 
     def clean_json(self):
         json = self.cleaned_data.get('json')
@@ -49,7 +49,7 @@ class DataViewForm(forms.ModelForm):
         return json
 
     def save(self, commit=True, archive=True):
-        instance = super(DataViewForm, self).save(commit=False)
+        instance = super(ViewForm, self).save(commit=False)
         request = self.request
         if hasattr(request, 'user') and request.user.is_authenticated():
             instance.user = request.user

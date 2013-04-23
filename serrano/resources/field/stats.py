@@ -1,9 +1,9 @@
 from django.core.urlresolvers import reverse
-from .base import DataFieldBase
+from .base import FieldBase
 
 
-class DataFieldStats(DataFieldBase):
-    "DataField Stats Resource"
+class FieldStats(FieldBase):
+    "Field Stats Resource"
 
     def get(self, request, pk):
         uri = request.build_absolute_uri
@@ -24,7 +24,7 @@ class DataFieldStats(DataFieldBase):
         resp['_links'] = {
             'parent': {
                 'rel': 'parent',
-                'href': uri(reverse('serrano:datafield', args=[instance.pk])),
+                'href': uri(reverse('serrano:field', args=[instance.pk])),
             },
         }
 

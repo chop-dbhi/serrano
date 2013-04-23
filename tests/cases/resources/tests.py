@@ -31,11 +31,11 @@ class RootResourceTestCase(TestCase):
             'version': API_VERSION,
             '_links': {
                 'exporter': {'href': 'http://testserver/api/data/export/', 'rel': 'data'},
-                'views': {'href': 'http://testserver/api/views/', 'rel': 'dataviews'},
-                'contexts': {'href': 'http://testserver/api/contexts/', 'rel': 'datacontexts'},
-                'fields': {'href': 'http://testserver/api/fields/', 'rel': 'datafields'},
+                'views': {'href': 'http://testserver/api/views/', 'rel': 'views'},
+                'contexts': {'href': 'http://testserver/api/contexts/', 'rel': 'contexts'},
+                'fields': {'href': 'http://testserver/api/fields/', 'rel': 'fields'},
                 'self': {'href': 'http://testserver/api/', 'rel': 'self'},
-                'concepts': {'href': 'http://testserver/api/concepts/', 'rel': 'dataconcepts'},
+                'concepts': {'href': 'http://testserver/api/concepts/', 'rel': 'concepts'},
                 'preview': {'href': 'http://testserver/api/data/preview/', 'rel': 'data'},
             },
         })
@@ -58,7 +58,7 @@ class RootResourceTestCase(TestCase):
         self.assertTrue('token' in json.loads(response.content))
 
 
-class DataFieldResourceTestCase(BaseTestCase):
+class FieldResourceTestCase(BaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/fields/',
             HTTP_ACCEPT='application/json')
@@ -149,7 +149,7 @@ class DataFieldResourceTestCase(BaseTestCase):
         })
 
 
-class DataContextResource(BaseTestCase):
+class ContextResource(BaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/contexts/',
             HTTP_ACCEPT='application/json')

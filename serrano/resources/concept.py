@@ -1,26 +1,28 @@
+from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
-from avocado.models import DataField
+from avocado.models import DataConcept
 from avocado.conf import OPTIONAL_DEPS
-from ..base import ContextViewBaseResource
-from .. import templates
+from serrano.resources.field import FieldResource
+from .base import ContextViewBaseResource
+from . import templates
+
+SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
 # Shortcuts defined ahead of time for transparency
-can_change_datafield = lambda u: u.has_perm('avocado.change_datafield')
-
-stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
+can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 
 
-class DataFieldBase(ContextViewBaseResource):
-    template = templates.DataField
-
+class ConceptBase(ContextViewBaseResource):
     param_defaults = {
         'query': '',
     }
 
+    template = templates.Concept
+
     def get_queryset(self, request):
-        queryset = DataField.objects.all()
-        if not can_change_datafield(request.user):
+        queryset = DataConcept.objects.all()
+        if not can_change_concept(request.user):
             queryset = queryset.published()
         return queryset
 
@@ -28,41 +30,35 @@ class DataFieldBase(ContextViewBaseResource):
         queryset = self.get_queryset(request)
         try:
             return queryset.get(**kwargs)
-        except DataField.DoesNotExist:
+        except DataConcept.DoesNotExist:
             pass
 
-    # Augment the pre-serialized object
     @classmethod
     def prepare(self, request, instance):
         uri = request.build_absolute_uri
         obj = serialize(instance, **self.template)
 
-        # Augment the links
+        fields = []
+        for cfield in instance.concept_fields.select_related('field').iterator():
+            field = FieldResource.prepare(request, cfield.field)
+            # Add the alternate name specific to the relationship between the
+            # concept and the field.
+            field.update(serialize(cfield, **templates.ConceptField))
+            fields.append(field)
+
+        obj['fields'] = fields
         obj['_links'] = {
             'self': {
                 'rel': 'self',
-                'href': uri(reverse('serrano:datafield', args=[instance.pk])),
-            },
-            'values': {
-                'rel': 'data',
-                'href': uri(reverse('serrano:datafield-values', args=[instance.pk])),
-            },
-        }
-
-        if stats_capable(instance):
-            obj['_links']['stats'] = {
-                'rel': 'data',
-                'href': uri(reverse('serrano:datafield-stats', args=[instance.pk])),
+                'href': uri(reverse('serrano:concept', args=[instance.pk])),
             }
-            # Add distribution link only if the relevent dependencies are
-            # installed.
-            if OPTIONAL_DEPS['scipy']:
-                obj['_links']['distribution'] = {
-                    'rel': 'data',
-                    'href': uri(reverse('serrano:datafield-distribution', args=[instance.pk])),
-                }
-
+        }
         return obj
+
+    def is_forbidden(self, request, response, *args, **kwargs):
+        "Ensure non-privileged users cannot make any changes."
+        if request.method not in SAFE_METHODS and not can_change_concept(request.user):
+            return True
 
     def is_not_found(self, request, response, pk, *args, **kwargs):
         instance = self.get_object(request, pk=pk)
@@ -72,23 +68,19 @@ class DataFieldBase(ContextViewBaseResource):
         return False
 
 
-
-class DataFieldResource(DataFieldBase):
-    "DataField Resource"
+class ConceptResource(ConceptBase):
+    "Concept Resource"
     def get(self, request, pk):
         return self.prepare(request, request.instance)
 
 
-class DataFieldsResource(DataFieldResource):
-    "DataField Collection Resource"
-
+class ConceptsResource(ConceptBase):
     def is_not_found(self, request, response, *args, **kwargs):
         return False
 
-    def get(self, request):
+    def get(self, request, pk=None):
         params = self.get_params(request)
 
-        # Process GET parameters
         sort = params.get('sort')               # default: model ordering
         direction = params.get('direction')     # default: desc
         published = params.get('published')
@@ -103,7 +95,7 @@ class DataFieldsResource(DataFieldResource):
         queryset = self.get_queryset(request)
 
         # For privileged users, check if any filters are applied
-        if can_change_datafield(request.user):
+        if can_change_concept(request.user):
             filters = {}
 
             if published == 'true':
@@ -118,14 +110,13 @@ class DataFieldsResource(DataFieldResource):
 
             if filters:
                 queryset = queryset.filter(**filters)
-
         # For non-privileged users, filter out the non-published and archived
         else:
             queryset = queryset.published()
 
         # If there is a query parameter, perform the search
         if query:
-            results = DataField.objects.search(query, queryset)
+            results = DataConcept.objects.search(query, queryset)
             objects = map(lambda x: x.object, results)
         else:
             # Apply sorting
@@ -137,3 +128,13 @@ class DataFieldsResource(DataFieldResource):
             objects = queryset.iterator()
 
         return map(lambda x: self.prepare(request, x), objects)
+
+
+concept_resource = ConceptResource()
+concepts_resource = ConceptsResource()
+
+# Resource endpoints
+urlpatterns = patterns('',
+    url(r'^$', concepts_resource, name='concepts'),
+    url(r'^(?P<pk>\d+)/$', concept_resource, name='concept'),
+)

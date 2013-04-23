@@ -1,4 +1,4 @@
-# DataField core fields and properties
+# Field core fields and properties
 
 DataCategory = {
     'fields': [':pk', 'name', 'order', 'parent'],
@@ -10,7 +10,7 @@ DataCategory = {
     'allow_missing': True,
 }
 
-DataField = {
+Field = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
         'category', 'app_name', 'model_name', 'field_name',
@@ -28,7 +28,7 @@ DataField = {
     'allow_missing': True,
 }
 
-DataConcept = {
+Concept = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
         'category', 'order', 'modified', 'published', 'archived',
@@ -43,7 +43,7 @@ DataConcept = {
     'allow_missing': True,
 }
 
-DataConceptField = {
+ConceptField = {
     'fields': ['alt_name', 'alt_plural_name'],
     'key_map': {
         'alt_name': 'name',
@@ -53,14 +53,14 @@ DataConceptField = {
 }
 
 
-DataContext = {
+Context = {
     'fields': [':pk', ':local', 'language'],
     'exclude': ['user', 'session_key'],
     'allow_missing': True,
 }
 
 
-DataView = {
+View = {
     'exclude': ['user', 'session_key'],
     'allow_missing': True,
 }
