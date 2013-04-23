@@ -19,6 +19,7 @@ urlpatterns = patterns('',
     ...
 )
 ```
+In this example, `/api/` is the root endpoint for Serrano. Hitting this endpoint will expose the available URLs for the API.
 
 Add `django.contrib.sessions` to your project's `INSTALLED_APPS`:
 
@@ -41,8 +42,32 @@ MIDDLEWARE_CLASSES = (
     'serrano.middleware.SessionMiddleware',
     ...
 )
+```
 
-In this example, `/api/` is the root endpoint for Serrano. Hitting this endpoint will expose the available URLs for the API.
+### Settings
+
+- `SERRANO_AUTH_REQUIRED` - boolean denoting whether authentication is required to access the API. Default `False`
+- `SERRANO_CORS_ENABLED` - boolean denoting whether [Cross-Origin Resource Sharing](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing) is enabled. Default `False`
+- `SERRANO_CORS_ORIGIN` - string of comma-separated hosts for `Access-Control-Allow-Origin` response header. This restricts access to which clients can access this resource. Default `*` (all hosts)
+
+### Token-based Authentication
+
+Serrano supports token-based access using a temporary session-based API token. Users must send an initial POST request to Serrano's root endpoint with their credentials. Upon successful authentication, a temporary API token will be created and returned in the response. This token can be supplied with subsequent requests for the remainder of the session (rather than constantly supplying credentials).
+
+To install, simply add the `TokenBackend` to the `AUTHENTICATION_BACKENDS` setting:
+
+```python
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'serrano.backends.TokenBackend',
+    ...
+)
+```
+
+#### Token Settings
+
+- `SERRANO_TOKEN_TIMEOUT` - Integer of seconds until a token expires. Note, the token timeout is fixed and does not reset upon each request. Default timeout is `SESSION_COOKIE_AGE`
+
 
 ## Media Types
 

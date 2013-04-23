@@ -7,10 +7,10 @@ def get_token(request):
     return request.REQUEST.get('token', '')
 
 def check_auth(func):
-    auth_required = getattr(settings, 'SERRANO_AUTH_REQUIRED', False)
-
     @wraps(func)
     def inner(self, request, *args, **kwargs):
+        auth_required = getattr(settings, 'SERRANO_AUTH_REQUIRED', False)
+
         user = getattr(request, 'user', None)
 
         # Attempt to authenticate if a token is present

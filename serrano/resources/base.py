@@ -3,9 +3,6 @@ from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
 
-CORS_ENABLED = getattr(settings, 'SERRANO_CORS_ENABLED', False)
-CORS_ORIGIN = getattr(settings, 'SERRANO_CORS_ORIGIN', '*')
-
 
 def _resolve_object(klass, key, request, attrs=None):
     """Resolves the appropriate object for use from the request. This is for
@@ -70,8 +67,9 @@ class BaseResource(Resource):
 
     def process_response(self, request, response):
         response = super(BaseResource, self).process_response(request, response)
-        if CORS_ENABLED:
-            response['Access-Control-Allow-Origin'] = CORS_ORIGIN
+
+        if getattr(settings, 'SERRANO_CORS_ENABLED', False):
+            response['Access-Control-Allow-Origin'] = getattr(settings, 'SERRANO_CORS_ORIGIN', '*')
             response['Access-Control-Allow-Methods'] = ', '.join(self.allowed_methods)
         return response
 
