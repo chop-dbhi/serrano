@@ -18,7 +18,7 @@ Field = {
         'simple_type', 'internal_type', 'data_modified', 'enumerable',
         'searchable', 'unit', 'plural_unit', 'nullable'
     ],
-    'key_map': {
+    'aliases': {
         'plural_name': 'get_plural_name',
         'plural_unit': 'get_plural_unit',
     },
@@ -34,7 +34,7 @@ Concept = {
         'category', 'order', 'modified', 'published', 'archived',
         'formatter_name', 'queryview', 'sortable'
     ],
-    'key_map': {
+    'aliases': {
         'plural_name': 'get_plural_name',
     },
     'related': {
@@ -45,7 +45,7 @@ Concept = {
 
 ConceptField = {
     'fields': ['alt_name', 'alt_plural_name'],
-    'key_map': {
+    'aliases': {
         'alt_name': 'name',
         'alt_plural_name': 'get_plural_name',
     },

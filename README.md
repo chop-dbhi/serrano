@@ -419,11 +419,31 @@ Having a hypermedia API is great, but without a client to consume it, it is some
 
 ## CHANGELOG
 
-2.0.13 [diff](https://github.com/cbmi/serrano/compare/2.0.12...2.0.13)
+2.0.16 [diff](https://github.com/cbmi/serrano/compare/2.0.15...2.0.16)
 
+- Update minimum Avocado version to 2.0.22
+- Update minimum django-preserialize version to 1.0.4
+- Add support for Django 1.5
+- Moved references of settings inside function calls
+    - This is primarily for testing purposes
 - Minor breaking changes
     - The `data` prefix from URL reverse names have been removed
     - Internal resource classes and modules have been renamed
+
+2.0.15 [diff](https://github.com/cbmi/serrano/compare/2.0.14...2.0.15)
+
+- Update minimum Avocado version to 2.0.19
+- Add quotes around Content-Disposition filename
+    - See http://kb.mozillazine.org/Filenames_with_spaces_are_truncated_upon_download
+
+2.0.14 [diff](https://github.com/cbmi/serrano/compare/2.0.13...2.0.14)
+
+- Change URLs to be absolute URIs rather than relative to host
+    - For cross-origin sharing, absolute URIs are needed
+
+2.0.13 [diff](https://github.com/cbmi/serrano/compare/2.0.12...2.0.13)
+
+- Fix incorrect base class name for Export- and Preview- resources
 
 2.0.12 [diff](https://github.com/cbmi/serrano/compare/2.0.11...2.0.12)
 
