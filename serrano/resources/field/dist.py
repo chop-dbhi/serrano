@@ -4,6 +4,7 @@ from collections import defaultdict
 from django.db.models import Q
 from django.http import HttpResponse
 from restlib2.http import codes
+from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import trees
 from avocado.stats import cluster as stats_cluster
 from .base import FieldBase
@@ -13,24 +14,41 @@ MINIMUM_OBSERVATIONS = 500
 MAXIMUM_OBSERVATIONS = 50000
 
 
+class FieldDistParametizer(Parametizer):
+    nulls = False
+    sort = None
+    cluster = True
+    n = None
+
+    # Not implemented
+    aggregates = None
+    relative = None
+
+    def clean_nulls(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_sort(self, value):
+        return param_cleaners.clean_string(value)
+
+    def clean_cluster(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_n(self, value):
+        return param_cleaners.clean_int(value)
+
+
 class FieldDistribution(FieldBase):
     "Field Counts Resource"
 
+    parametizer = FieldDistParametizer
+
     def get(self, request, pk):
         instance = request.instance
-
         params = self.get_params(request)
 
-        # Only one grouping is currently supported
-        dimensions = params.getlist('dimension')
-        # aggregates = request.GET.getlist('aggregate')
-
-        nulls = params.get('nulls')
-        sort = params.get('sort')
-        # Perform clustering
-        cluster = params.get('cluster')
-        relative = params.get('relative')
-        k = params.get('n')
+        # This will eventually make it's way in the parametizer, but lists
+        # are not supported
+        dimensions = request.GET.getlist('dimensions')
 
         tree = trees[instance.model]
 
@@ -65,7 +83,7 @@ class FieldDistribution(FieldBase):
 
         # Exclude null values. Dependending on the downstream use of the data,
         # nulls may or may not be desirable.
-        if nulls != 'true':
+        if not params['nulls']:
             q = Q()
             for field in groupby:
                 q = q | Q(**{field: None})
@@ -93,7 +111,7 @@ class FieldDistribution(FieldBase):
         # Apply ordering. If any of the fields are enumerable, ordering should
         # be relative to those fields. For continuous data, the ordering is
         # relative to the count of each group
-        if any([d.enumerable for d in fields]) and not sort == 'count':
+        if any([d.enumerable for d in fields]) and not params['sort'] == 'count':
             stats = stats.order_by(*groupby)
         else:
             stats = stats.order_by('-count')
@@ -116,10 +134,10 @@ class FieldDistribution(FieldBase):
             # Perform k-means clustering. Determine centroids and calculate
             # the weighted count relatives to the centroid and observations
             # within the stats_cluster.
-            if cluster != 'false' and length >= MINIMUM_OBSERVATIONS:
+            if params['cluster'] and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
-                result = stats_cluster.kmeans_optm(obs, k=k)
+                result = stats_cluster.kmeans_optm(obs, k=params['n'])
                 outliers = [points[i] for i in result['outliers']]
 
                 dist_weights = defaultdict(lambda: {'dist': [], 'count': []})

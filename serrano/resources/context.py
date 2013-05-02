@@ -1,3 +1,4 @@
+import functools
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
@@ -13,6 +14,24 @@ from . import templates
 
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
+def context_posthook(instance, data, request):
+    uri = request.build_absolute_uri
+
+    # If this context is explicitly tied to a model (via the `count`)
+    # specify the object names.
+    if instance.model:
+        opts = instance.model._meta
+        data['object_name'] = opts.verbose_name.format()
+        data['object_name_plural'] = opts.verbose_name_plural.format()
+
+    data['_links'] = {
+        'self': {
+            'rel': 'self',
+            'href': uri(reverse('serrano:contexts:single', args=[instance.pk])),
+        }
+    }
+    return data
+
 
 class ContextBase(BaseResource):
     cache_max_age = 0
@@ -20,27 +39,12 @@ class ContextBase(BaseResource):
 
     template = templates.Context
 
-    @classmethod
-    def prepare(self, request, instance):
-        uri = request.build_absolute_uri
-        obj = serialize(instance, **self.template)
+    def prepare(self, request, instance, template=None):
+        if template is None:
+            template = self.template
+        posthook = functools.partial(context_posthook, request=request)
+        return serialize(instance, posthook=posthook, **template)
 
-        # If this context is explicitly tied to a model (via the `count`)
-        # specify the object names.
-        if instance.model:
-            opts = instance.model._meta
-            obj['object_name'] = opts.verbose_name.format()
-            obj['object_name_plural'] = opts.verbose_name_plural.format()
-
-        obj['_links'] = {
-            'self': {
-                'rel': 'self',
-                'href': uri(reverse('serrano:contexts:single', args=[instance.pk])),
-            }
-        }
-        return obj
-
-    @classmethod
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session."
 
@@ -60,7 +64,8 @@ class ContextBase(BaseResource):
 class ContextsResource(ContextBase):
     "Resource of active (non-archived) contexts"
     def get(self, request):
-        return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=False))
+        queryset = self.get_queryset(request, archived=False)
+        return self.prepare(request, queryset)
 
     def post(self, request):
         form = ContextForm(request, request.data)
@@ -79,12 +84,12 @@ class ContextsResource(ContextBase):
 class ContextsHistoryResource(ContextBase):
     "Resource of archived (non-active) contexts"
     def get(self, request):
-        return map(lambda x: self.prepare(request, x), self.get_queryset(request, archived=True))
+        queryset = self.get_queryset(request, archived=True)
+        return self.prepare(request, queryset)
 
 
 class ContextResource(ContextBase):
     "Resource for accessing a single context"
-    @classmethod
     def get_object(self, request, pk=None, session=None, **kwargs):
         if not pk and not session:
             raise ValueError('A pk or session must used for the lookup')

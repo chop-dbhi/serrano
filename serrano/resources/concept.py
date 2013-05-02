@@ -1,7 +1,9 @@
+import functools
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
-from avocado.models import DataConcept
+from restlib2.params import Parametizer, param_cleaners
+from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
 from .base import BaseResource
@@ -9,19 +11,114 @@ from . import templates
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
-# Shortcuts defined ahead of time for transparency
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 
 
+def concept_posthook(instance, data, request, embed, brief, categories=None):
+    """Concept serialization post-hook for augmenting per-instance data.
+
+    The only two arguments the post-hook takes is instance and data. The
+    remaining arguments must be partially applied using `functools.partial`
+    during the request/response cycle.
+    """
+    uri = request.build_absolute_uri
+
+    if categories is None:
+        categories = {}
+
+    if 'category_id' in data:
+        # This relies on categories being passed in as a dict with the key being
+        # the primary key. This makes it must faster since the categories are
+        # pre-cached
+        category = categories.get(data.pop('category_id'))
+        data['category'] = serialize(category, **templates.Category)
+
+        if data['category']:
+            parent = categories.get(data['category'].pop('parent_id'))
+            data['category']['parent'] = serialize(parent, **templates.Category)
+
+            # Embed first parent as well, but no others since this is the bound
+            # in Avocado's DataCategory parent field.
+            if data['category']['parent']:
+                data['category']['parent'].pop('parent_id')
+
+    if not brief:
+        data['_links'] = {
+            'self': {
+                'rel': 'self',
+                'href': uri(reverse('serrano:concept', args=[instance.pk])),
+            }
+        }
+
+    # Embeds the related fields directly in the concept output
+    if not brief and embed:
+        fields = []
+        field_resource = FieldResource()
+
+        for cfield in instance.concept_fields.select_related('field').iterator():
+            field = field_resource.prepare(request, cfield.field)
+            # Add the alternate name specific to the relationship between the
+            # concept and the field.
+            field.update(serialize(cfield, **templates.ConceptField))
+            fields.append(field)
+
+        data['fields'] = fields
+
+    return data
+
+
+class ConceptParametizer(Parametizer):
+    "Supported params and their defaults for Concept endpoints."
+
+    sort = None
+    order = 'asc'
+    published = None
+    archived = None
+    embed = False
+    brief = False
+    query = ''
+    limit = None
+
+    # Not implemented
+    offset = None
+    page = None
+
+    def clean_embed(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_brief(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_published(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_archived(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_query(self, value):
+        return param_cleaners.clean_string(value)
+
+    def clean_limit(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_offset(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_page(self, value):
+        return param_cleaners.clean_int(value)
+
+
 class ConceptBase(BaseResource):
-    param_defaults = {
-        'query': '',
-    }
+    "Base resource for Concept-related data."
+
+    model = DataConcept
 
     template = templates.Concept
 
+    parametizer = ConceptParametizer
+
     def get_queryset(self, request):
-        queryset = DataConcept.objects.all()
+        queryset = self.model.objects.all()
         if not can_change_concept(request.user):
             queryset = queryset.published()
         return queryset
@@ -30,30 +127,34 @@ class ConceptBase(BaseResource):
         queryset = self.get_queryset(request)
         try:
             return queryset.get(**kwargs)
-        except DataConcept.DoesNotExist:
+        except self.model.DoesNotExist:
             pass
 
-    @classmethod
-    def prepare(self, request, instance):
-        uri = request.build_absolute_uri
-        obj = serialize(instance, **self.template)
+    def _get_categories(self, request, objects):
+        """Returns a QuerySet of categories for use during serialization.
 
-        fields = []
-        for cfield in instance.concept_fields.select_related('field').iterator():
-            field = FieldResource.prepare(request, cfield.field)
-            # Add the alternate name specific to the relationship between the
-            # concept and the field.
-            field.update(serialize(cfield, **templates.ConceptField))
-            fields.append(field)
+        Since `category` is a nullable relationship to `concept`, a lookup
+        would have to occur for every concept being serialized. This returns
+        a QuerySet applicable to the resource using it and is cached for the
+        remainder of the request/response cycle.
+        """
+        return dict((x.pk, x) for x in list(DataCategory.objects.all()))
 
-        obj['fields'] = fields
-        obj['_links'] = {
-            'self': {
-                'rel': 'self',
-                'href': uri(reverse('serrano:concept', args=[instance.pk])),
-            }
-        }
-        return obj
+    def prepare(self, request, objects, template=None, embed=False,
+            brief=False, **params):
+
+        if template is None:
+            template = templates.BriefConcept if brief else self.template
+
+        if brief:
+            categories = {}
+        else:
+            categories = self._get_categories(request, objects)
+
+        posthook = functools.partial(concept_posthook, request=request,
+            embed=embed, brief=brief, categories=categories)
+
+        return serialize(objects, posthook=posthook, **template)
 
     def is_forbidden(self, request, response, *args, **kwargs):
         "Ensure non-privileged users cannot make any changes."
@@ -69,9 +170,10 @@ class ConceptBase(BaseResource):
 
 
 class ConceptResource(ConceptBase):
-    "Concept Resource"
+    "Resource for interacting with Concept instances."
     def get(self, request, pk):
-        return self.prepare(request, request.instance)
+        params = self.get_params(request)
+        return self.prepare(request, request.instance, embed=params['embed'])
 
 
 class ConceptsResource(ConceptBase):
@@ -81,53 +183,41 @@ class ConceptsResource(ConceptBase):
     def get(self, request, pk=None):
         params = self.get_params(request)
 
-        sort = params.get('sort')               # default: model ordering
-        direction = params.get('direction')     # default: desc
-        published = params.get('published')
-        archived = params.get('archived')
-
-        # This is only application if Haystack is setup
-        if OPTIONAL_DEPS['haystack']:
-            query = params.get('query').strip()
-        else:
-            query = ''
-
         queryset = self.get_queryset(request)
 
-        # For privileged users, check if any filters are applied
+        # For privileged users, check if any filters are applied, otherwise
+        # only allow for published objects.
         if can_change_concept(request.user):
             filters = {}
 
-            if published == 'true':
-                filters['published'] = True
-            elif published == 'false':
-                filters['published'] = False
+            if params['published'] is not None:
+                filters['published'] = params['published']
 
-            if archived == 'true':
-                filters['archived'] = True
-            elif archived == 'false':
-                filters['archived'] = False
+            if params['archived'] is not None:
+                filters['archived'] = params['archived']
 
             if filters:
                 queryset = queryset.filter(**filters)
-        # For non-privileged users, filter out the non-published and archived
         else:
             queryset = queryset.published()
 
-        # If there is a query parameter, perform the search
-        if query:
-            results = DataConcept.objects.search(query, queryset)
-            objects = map(lambda x: x.object, results)
+        # If Haystack is installed, perform the search
+        if params['query'] and OPTIONAL_DEPS['haystack']:
+            results = self.model.objects.search(params['query'],
+                queryset=queryset, max_results=params['limit'])
+            objects = (x.object for x in results)
         else:
             # Apply sorting
-            if sort == 'name':
-                if direction == 'asc':
-                    queryset = queryset.order_by('name')
-                else:
-                    queryset = queryset.order_by('-name')
-            objects = queryset.iterator()
+            if params['sort'] == 'name':
+                order = '-name' if params['order'] == 'desc' else 'name'
+                queryset = queryset.order_by(order)
 
-        return map(lambda x: self.prepare(request, x), objects)
+            if params['limit']:
+                queryset = queryset[:params['limit']]
+
+            objects = queryset
+
+        return self.prepare(request, objects, **params)
 
 
 concept_resource = ConceptResource()

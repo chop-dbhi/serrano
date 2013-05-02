@@ -1,5 +1,6 @@
 import functools
 from django.conf import settings
+from restlib2.params import Parametizer
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
@@ -59,17 +60,13 @@ get_request_context = functools.partial(_get_request_object, klass=DataContext, 
 
 
 class BaseResource(Resource):
-    param_defaults = {}
+    param_defaults = None
+
+    parametizer = Parametizer
 
     @check_auth
-    def __call__(self, *args, **kwargs):
-        return super(BaseResource, self).__call__(*args, **kwargs)
-
-    def get_params(self, request):
-        params = request.GET.copy()
-        for param, default in self.param_defaults.items():
-            params.setdefault(param, default)
-        return params
+    def __call__(self, request, **kwargs):
+        return super(BaseResource, self).__call__(request, **kwargs)
 
     def process_response(self, request, response):
         response = super(BaseResource, self).process_response(request, response)
@@ -79,6 +76,9 @@ class BaseResource(Resource):
             response['Access-Control-Allow-Methods'] = ', '.join(self.allowed_methods)
         return response
 
+    def get_params(self, request):
+        "Returns cleaned set of GET parameters."
+        return self.parametizer().clean(request.GET, self.param_defaults)
 
     def get_context(self, request, attrs=None):
         "Returns a DataContext object based on `attrs` or the request."

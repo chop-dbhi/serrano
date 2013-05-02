@@ -1,8 +1,21 @@
 from avocado.conf import OPTIONAL_DEPS
+from restlib2.params import Parametizer, param_cleaners
 from .base import FieldBase
 
 
 MAXIMUM_RANDOM = 100
+
+
+class FieldValuesParametizer(Parametizer):
+    query = None
+    random = None
+
+    def clean_query(self, value):
+        return param_cleaners.clean_string(value)
+
+    def clean_random(self, value):
+        value = param_cleaners.clean_int(value)
+        return min(value, MAXIMUM_RANDOM)
 
 
 class FieldValues(FieldBase):
@@ -11,6 +24,8 @@ class FieldValues(FieldBase):
     This resource can be overriden for any field to use a more
     performant search implementation.
     """
+
+    parametizer = FieldValuesParametizer
 
     def get_all_values(self, request, instance):
         "Returns all distinct values for this field."
@@ -52,29 +67,14 @@ class FieldValues(FieldBase):
 
     def get(self, request, pk):
         instance = request.instance
-
         params = self.get_params(request)
 
-        # Searches are only enabled if Haystack is installed
-        if OPTIONAL_DEPS['haystack']:
-            query = params.get('query').strip()
-        else:
-            query = ''
-
-        try:
-            random = min(int(params.get('random')), MAXIMUM_RANDOM)
-        except (ValueError, TypeError):
-            random = False
-
-        results = []
-
         # If a query term is supplied, perform the icontains search
-        if query:
-            return self.get_search_values(request, instance, query)
-        # get a random set of values
-        elif random:
-            return self.get_random_values(request, instance, random)
-        # ..otherwise use the cached choices
-        else:
-            return self.get_all_values(request, instance)
-        return results
+        # Searches are only enabled if Haystack is installed
+        if params['query'] and OPTIONAL_DEPS['haystack']:
+            return self.get_search_values(request, instance, params['query'])
+
+        if params['random']:
+            return self.get_random_values(request, instance, params['random'])
+
+        return self.get_all_values(request, instance)

@@ -1,25 +1,100 @@
+import functools
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
+from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
 from avocado.conf import OPTIONAL_DEPS
 from ..base import BaseResource
 from .. import templates
 
-# Shortcuts defined ahead of time for transparency
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
-
 stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
 
 
-class FieldBase(BaseResource):
-    template = templates.Field
+def field_posthook(instance, data, request):
+    """Field serialization post-hook for augmenting per-instance data.
 
-    param_defaults = {
-        'query': '',
+    The only two arguments the post-hook takes is instance and data. The
+    remaining arguments must be partially applied using `functools.partial`
+    during the request/response cycle.
+    """
+
+    uri = request.build_absolute_uri
+
+    # Augment the links
+    data['_links'] = {
+        'self': {
+            'rel': 'self',
+            'href': uri(reverse('serrano:field', args=[instance.pk])),
+        },
+        'values': {
+            'rel': 'data',
+            'href': uri(reverse('serrano:field-values', args=[instance.pk])),
+        },
     }
 
+    if stats_capable(instance):
+        data['_links']['stats'] = {
+            'rel': 'data',
+            'href': uri(reverse('serrano:field-stats', args=[instance.pk])),
+        }
+        # Add distribution link only if the relevent dependencies are
+        # installed.
+        if OPTIONAL_DEPS['scipy']:
+            data['_links']['distribution'] = {
+                'rel': 'data',
+                'href': uri(reverse('serrano:field-distribution', args=[instance.pk])),
+            }
+
+    return data
+
+
+class FieldParametizer(Parametizer):
+    "Supported params and their defaults for Field endpoints."
+
+    sort = None
+    order = 'asc'
+    published = None
+    archived = None
+    brief = False
+    query = ''
+    limit = None
+
+    # Not implemented
+    offset = None
+    page = None
+
+    def clean_published(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_archived(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_brief(self, value):
+        return param_cleaners.clean_bool(value)
+
+    def clean_query(self, value):
+        return param_cleaners.clean_string(value)
+
+    def clean_limit(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_offset(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_page(self, value):
+        return param_cleaners.clean_int(value)
+
+
+class FieldBase(BaseResource):
+    model = DataField
+
+    parametizer = FieldParametizer
+
+    template = templates.Field
+
     def get_queryset(self, request):
-        queryset = DataField.objects.all()
+        queryset = self.model.objects.all()
         if not can_change_field(request.user):
             queryset = queryset.published()
         return queryset
@@ -28,41 +103,15 @@ class FieldBase(BaseResource):
         queryset = self.get_queryset(request)
         try:
             return queryset.get(**kwargs)
-        except DataField.DoesNotExist:
+        except self.model.DoesNotExist:
             pass
 
-    # Augment the pre-serialized object
-    @classmethod
-    def prepare(self, request, instance):
-        uri = request.build_absolute_uri
-        obj = serialize(instance, **self.template)
+    def prepare(self, request, instance, template=None, brief=False, **params):
+        if template is None:
+            template = templates.BriefField if brief else self.template
 
-        # Augment the links
-        obj['_links'] = {
-            'self': {
-                'rel': 'self',
-                'href': uri(reverse('serrano:field', args=[instance.pk])),
-            },
-            'values': {
-                'rel': 'data',
-                'href': uri(reverse('serrano:field-values', args=[instance.pk])),
-            },
-        }
-
-        if stats_capable(instance):
-            obj['_links']['stats'] = {
-                'rel': 'data',
-                'href': uri(reverse('serrano:field-stats', args=[instance.pk])),
-            }
-            # Add distribution link only if the relevent dependencies are
-            # installed.
-            if OPTIONAL_DEPS['scipy']:
-                obj['_links']['distribution'] = {
-                    'rel': 'data',
-                    'href': uri(reverse('serrano:field-distribution', args=[instance.pk])),
-                }
-
-        return obj
+        posthook = functools.partial(field_posthook, request=request)
+        return serialize(instance, posthook=posthook, **template)
 
     def is_not_found(self, request, response, pk, *args, **kwargs):
         instance = self.get_object(request, pk=pk)
@@ -72,9 +121,9 @@ class FieldBase(BaseResource):
         return False
 
 
-
 class FieldResource(FieldBase):
-    "Field Resource"
+    "Resource for interacting with Field instances."
+
     def get(self, request, pk):
         return self.prepare(request, request.instance)
 
@@ -87,53 +136,37 @@ class FieldsResource(FieldResource):
 
     def get(self, request):
         params = self.get_params(request)
-
-        # Process GET parameters
-        sort = params.get('sort')               # default: model ordering
-        direction = params.get('direction')     # default: desc
-        published = params.get('published')
-        archived = params.get('archived')
-
-        # This is only application if Haystack is setup
-        if OPTIONAL_DEPS['haystack']:
-            query = params.get('query').strip()
-        else:
-            query = ''
-
         queryset = self.get_queryset(request)
 
-        # For privileged users, check if any filters are applied
+        # For privileged users, check if any filters are applied, otherwise
+        # only allow for published objects.
         if can_change_field(request.user):
             filters = {}
 
-            if published == 'true':
-                filters['published'] = True
-            elif published == 'false':
-                filters['published'] = False
+            if params['published'] is not None:
+                filters['published'] = params['published']
 
-            if archived == 'true':
-                filters['archived'] = True
-            elif archived == 'false':
-                filters['archived'] = False
+            if params['archived'] is not None:
+                filters['archived'] = params['archived']
 
             if filters:
                 queryset = queryset.filter(**filters)
-
-        # For non-privileged users, filter out the non-published and archived
         else:
             queryset = queryset.published()
 
-        # If there is a query parameter, perform the search
-        if query:
-            results = DataField.objects.search(query, queryset)
-            objects = map(lambda x: x.object, results)
+        # If Haystack is installed, perform the search
+        if params['query'] and OPTIONAL_DEPS['haystack']:
+            results = self.model.objects.search(params['query'],
+                queryset=queryset, max_results=params['limit'])
+            objects = (x.object for x in results)
         else:
-            # Apply sorting
-            if sort == 'name':
-                if direction == 'asc':
-                    queryset = queryset.order_by('name')
-                else:
-                    queryset = queryset.order_by('-name')
-            objects = queryset.iterator()
+            if params['sort'] == 'name':
+                order = '-name' if params['order'] == 'desc' else 'name'
+                queryset = queryset.order_by(order)
 
-        return map(lambda x: self.prepare(request, x), objects)
+            if params['limit']:
+                queryset = queryset[:params['limit']]
+
+            objects = queryset
+
+        return self.prepare(request, objects, **params)

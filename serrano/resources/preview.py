@@ -11,7 +11,19 @@ from django.core.serializers.json import DjangoJSONEncoder
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
 from avocado.export import HTMLExporter
+from restlib2.params import Parametizer, param_cleaners
 from .base import BaseResource
+
+
+class PreviewParametizer(Parametizer):
+    page = 1
+    per_page = 50
+
+    def clean_page(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_per_page(self, value):
+        return param_cleaners.clean_int(value)
 
 
 class PreviewResource(BaseResource):
@@ -21,10 +33,7 @@ class PreviewResource(BaseResource):
     or plain strings. Browser-based clients can consume the JSON and render
     the HTML for previewing.
     """
-    param_defaults = {
-        'page': 1,
-        'per_page': 50,
-    }
+    parametizer = PreviewParametizer
 
     def get(self, request):
         uri = request.build_absolute_uri
