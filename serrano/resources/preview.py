@@ -3,11 +3,9 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.paginator import EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
-from django.core.serializers.json import DjangoJSONEncoder
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
 from avocado.export import HTMLExporter
@@ -164,8 +162,7 @@ class PreviewResource(BaseResource):
 
         data['_links'] = links
 
-        return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder),
-            content_type='application/json')
+        return data
 
     post = get
 
