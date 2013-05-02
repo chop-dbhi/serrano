@@ -4,7 +4,7 @@ from preserialize.serialize import serialize
 from avocado.models import DataConcept
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
-from .base import ContextViewBaseResource
+from .base import BaseResource
 from . import templates
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
@@ -13,7 +13,7 @@ SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 
 
-class ConceptBase(ContextViewBaseResource):
+class ConceptBase(BaseResource):
     param_defaults = {
         'query': '',
     }

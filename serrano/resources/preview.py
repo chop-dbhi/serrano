@@ -11,10 +11,10 @@ from django.core.serializers.json import DjangoJSONEncoder
 from avocado.core.paginator import BufferedPaginator
 from avocado.formatters import RawFormatter
 from avocado.export import HTMLExporter
-from .base import ContextViewBaseResource
+from .base import BaseResource
 
 
-class PreviewResource(ContextViewBaseResource):
+class PreviewResource(BaseResource):
     """Resource for *previewing* data prior to exporting.
 
     Data is formatted using a JSON+HTML exporter which prefers HTML formatted

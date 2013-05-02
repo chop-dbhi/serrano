@@ -1,12 +1,13 @@
+import functools
 from django.conf import settings
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
 
+def _get_request_object(request, attrs=None, klass=None, key=None):
+    """Resolves the appropriate object for use from the request.
 
-def _resolve_object(klass, key, request, attrs=None):
-    """Resolves the appropriate object for use from the request. This is for
-    DataView or DataContext objects only.
+    This applies only to DataView or DataContext objects.
     """
     # Attempt to derive the `attrs` from the request
     if attrs is None:
@@ -51,6 +52,11 @@ def _resolve_object(klass, key, request, attrs=None):
 
     return klass()
 
+# Partially applied functions for DataView and DataContext. These functions
+# only require the request object and an optional `attrs` dict
+get_request_view = functools.partial(_get_request_object, klass=DataView, key='view')
+get_request_context = functools.partial(_get_request_object, klass=DataContext, key='context')
+
 
 class BaseResource(Resource):
     param_defaults = {}
@@ -74,11 +80,10 @@ class BaseResource(Resource):
         return response
 
 
-class ContextViewBaseResource(BaseResource):
     def get_context(self, request, attrs=None):
         "Returns a DataContext object based on `attrs` or the request."
-        return _resolve_object(DataContext, 'context', request, attrs)
+        return get_request_context(request, attrs=attrs)
 
     def get_view(self, request, attrs=None):
         "Returns a DataView object based on `attrs` or the request."
-        return _resolve_object(DataView, 'view', request, attrs)
+        return get_request_view(request, attrs=attrs)

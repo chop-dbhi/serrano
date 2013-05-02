@@ -7,14 +7,14 @@ from preserialize.serialize import serialize
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import ContextViewBaseResource
+from .base import BaseResource
 from . import templates
 
 
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 
-class ContextBase(ContextViewBaseResource):
+class ContextBase(BaseResource):
     cache_max_age = 0
     private_cache = True
 
