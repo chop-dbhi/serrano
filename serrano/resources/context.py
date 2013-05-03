@@ -73,11 +73,11 @@ class ContextsResource(ContextBase):
         if form.is_valid():
             instance = form.save(commit=False)
             form.save(archive=HISTORY_ENABLED)
-            response = HttpResponse(status=codes.created)
-            self.write(request, response, self.prepare(request, instance))
+            response = self.render(request, self.prepare(request, instance),
+                status=codes.created)
         else:
-            response = HttpResponse(status=codes.unprocessable_entity)
-            self.write(request, response, dict(form.errors))
+            response = self.render(request, dict(form.errors),
+                status=codes.unprocessable_entity)
         return response
 
 
@@ -129,11 +129,10 @@ class ContextResource(ContextBase):
                 else:
                     instance.count = None
             form.save(archive=HISTORY_ENABLED)
-            response = HttpResponse(status=codes.ok)
-            self.write(request, response, self.prepare(request, instance))
+            response = self.render(request, self.prepare(request, instance))
         else:
-            response = HttpResponse(status=codes.unprocessable_entity)
-            self.write(request, response, dict(form.errors))
+            response = self.render(request, dict(form.errors),
+                status=codes.unprocessable_entity)
         return response
 
     def delete(self, request, **kwargs):
