@@ -6,10 +6,8 @@ from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
-from .base import BaseResource
+from .base import BaseResource, SAFE_METHODS
 from . import templates
-
-SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 
