@@ -44,12 +44,12 @@ class ViewBase(BaseResource):
             kwargs['user'] = request.user
         elif request.session.session_key:
             kwargs['session_key'] = request.session.session_key
-
-        # The only case where kwargs is empty is for non-authenticated
-        # cookieless agents.. e.g. bots, most non-browser clients since
-        # no session exists yet for the agent.
-        if not kwargs:
+        else:
+            # The only case where kwargs is empty is for non-authenticated
+            # cookieless agents.. e.g. bots, most non-browser clients since
+            # no session exists yet for the agent.
             return DataView.objects.none()
+
         return DataView.objects.filter(**kwargs)
 
 
