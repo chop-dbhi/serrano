@@ -47,22 +47,17 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
             'self': {
                 'rel': 'self',
                 'href': uri(reverse('serrano:concept', args=[instance.pk])),
+            },
+            'fields': {
+                'rel': 'fields',
+                'href': uri(reverse('serrano:concept-fields', args=[instance.pk])),
             }
         }
 
     # Embeds the related fields directly in the concept output
     if not brief and embed:
-        fields = []
-        field_resource = FieldResource()
-
-        for cfield in instance.concept_fields.select_related('field').iterator():
-            field = field_resource.prepare(request, cfield.field)
-            # Add the alternate name specific to the relationship between the
-            # concept and the field.
-            field.update(serialize(cfield, **templates.ConceptField))
-            fields.append(field)
-
-        data['fields'] = fields
+        resource = ConceptFieldsResource()
+        data['fields'] = resource.prepare(request, instance)
 
     return data
 
@@ -176,6 +171,28 @@ class ConceptResource(ConceptBase):
         return self.prepare(request, request.instance, embed=params['embed'])
 
 
+class ConceptFieldsResource(ConceptBase):
+    "Resource for interacting with fields specific to a Concept instance."
+    def prepare(self, request, instance, template=None, **params):
+        if template is None:
+            template = templates.ConceptField
+
+        fields = []
+        resource = FieldResource()
+
+        for cfield in instance.concept_fields.select_related('field').iterator():
+            field = resource.prepare(request, cfield.field)
+            # Add the alternate name specific to the relationship between the
+            # concept and the field.
+            field.update(serialize(cfield, **template))
+            fields.append(field)
+
+        return fields
+
+    def get(self, request, pk):
+        return self.prepare(request, request.instance)
+
+
 class ConceptsResource(ConceptBase):
     def is_not_found(self, request, response, *args, **kwargs):
         return False
@@ -221,10 +238,12 @@ class ConceptsResource(ConceptBase):
 
 
 concept_resource = ConceptResource()
+concept_fields_resource = ConceptFieldsResource()
 concepts_resource = ConceptsResource()
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', concepts_resource, name='concepts'),
     url(r'^(?P<pk>\d+)/$', concept_resource, name='concept'),
+    url(r'^(?P<pk>\d+)/fields/$', concept_fields_resource, name='concept-fields'),
 )
