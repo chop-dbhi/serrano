@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.core import management
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
-from avocado.models import DataField
+from avocado.models import DataField, DataContext, DataView
 from serrano.resources import API_VERSION
 
 
@@ -150,7 +150,36 @@ class FieldResourceTestCase(BaseTestCase):
 
 
 class ContextResource(BaseTestCase):
+    def setUp(self):
+        User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+
     def test_get_all(self):
         response = self.client.get('/api/contexts/',
             HTTP_ACCEPT='application/json')
         self.assertFalse(json.loads(response.content))
+
+    def test_get_all_default(self):
+        cxt = DataContext(template=True, default=True, json={})
+        cxt.save()
+        response = self.client.get('/api/contexts/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+
+class ViewResource(BaseTestCase):
+    def setUp(self):
+        User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+
+    def test_get_all(self):
+        response = self.client.get('/api/views/',
+            HTTP_ACCEPT='application/json')
+        self.assertFalse(json.loads(response.content))
+
+    def test_get_all_default(self):
+        cxt = DataView(template=True, default=True, json={})
+        cxt.save()
+        response = self.client.get('/api/views/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)

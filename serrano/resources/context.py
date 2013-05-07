@@ -1,4 +1,5 @@
 import functools
+import logging
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
@@ -11,6 +12,7 @@ from serrano.forms import ContextForm
 from .base import BaseResource
 from . import templates
 
+log = logging.getLogger(__name__)
 
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
@@ -36,6 +38,7 @@ class ContextBase(BaseResource):
     cache_max_age = 0
     private_cache = True
 
+    model = DataContext
     template = templates.Context
 
     def prepare(self, request, instance, template=None):
@@ -55,15 +58,46 @@ class ContextBase(BaseResource):
             # The only case where kwargs is empty is for non-authenticated
             # cookieless agents.. e.g. bots, most non-browser clients since
             # no session exists yet for the agent.
-            return DataContext.objects.none()
+            return self.model.objects.none()
 
-        return DataContext.objects.filter(**kwargs)
+        return self.model.objects.filter(**kwargs)
+
+    def get_default_template(self, request, **kwargs):
+        try:
+            return self.model.objects.get(template=True, default=True)
+        except self.model.DoesNotExist:
+            pass
+
+    def create_default(self, request):
+        default = self.get_default_template(request)
+
+        if not default:
+            log.warning('No default template for context objects')
+            return
+
+        form = ContextForm(request, {'json': default.json, 'session': True})
+
+        if form.is_valid():
+            instance = form.save(archive=False)
+            return instance
+
+        log.error('Error creating default context', extra=dict(form.errors))
 
 
 class ContextsResource(ContextBase):
     "Resource of active (non-archived) contexts"
     def get(self, request):
         queryset = self.get_queryset(request, archived=False)
+
+        # Only create a default if a session exists
+        if request.session.session_key:
+            queryset = list(queryset)
+
+            if not len(queryset):
+                default = self.create_default(request)
+                if default:
+                    queryset.append(default)
+
         return self.prepare(request, queryset)
 
     def post(self, request):
@@ -99,7 +133,7 @@ class ContextResource(ContextBase):
                 return queryset.get(pk=pk)
             else:
                 return queryset.get(session=True)
-        except DataContext.DoesNotExist:
+        except self.model.DoesNotExist:
             pass
 
     def is_not_found(self, request, response, **kwargs):

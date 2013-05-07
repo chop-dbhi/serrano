@@ -1,4 +1,5 @@
 import functools
+import logging
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
@@ -11,6 +12,7 @@ from serrano.forms import ViewForm
 from .base import BaseResource
 from . import templates
 
+log = logging.getLogger(__name__)
 
 HISTORY_ENABLED = settings.HISTORY_ENABLED
 
@@ -28,6 +30,7 @@ class ViewBase(BaseResource):
     cache_max_age = 0
     private_cache = True
 
+    model = DataView
     template = templates.View
 
     def prepare(self, request, instance, template=None):
@@ -47,15 +50,46 @@ class ViewBase(BaseResource):
             # The only case where kwargs is empty is for non-authenticated
             # cookieless agents.. e.g. bots, most non-browser clients since
             # no session exists yet for the agent.
-            return DataView.objects.none()
+            return self.model.objects.none()
 
-        return DataView.objects.filter(**kwargs)
+        return self.model.objects.filter(**kwargs)
+
+    def get_default_template(self, request, **kwargs):
+        try:
+            return self.model.objects.get(template=True, default=True)
+        except self.model.DoesNotExist:
+            pass
+
+    def create_default(self, request):
+        default = self.get_default_template(request)
+
+        if not default:
+            log.warning('No default template for view objects')
+            return
+
+        form = ViewForm(request, {'json': default.json, 'session': True})
+
+        if form.is_valid():
+            instance = form.save(archive=False)
+            return instance
+
+        log.error('Error creating default view', extra=dict(form.errors))
 
 
 class ViewsResource(ViewBase):
     "Resource of active (non-archived) views"
     def get(self, request):
         queryset = self.get_queryset(request, archived=False)
+
+        # Only create a default is a session exists
+        if request.session.session_key:
+            queryset = list(queryset)
+
+            if not len(queryset):
+                default = self.create_default(request)
+                if default:
+                    queryset.append(default)
+
         return self.prepare(request, queryset)
 
     def post(self, request):
@@ -91,7 +125,7 @@ class ViewResource(ViewBase):
                 return queryset.get(pk=pk)
             else:
                 return queryset.get(session=True)
-        except DataView.DoesNotExist:
+        except self.model.DoesNotExist:
             pass
 
     def is_not_found(self, request, response, **kwargs):
