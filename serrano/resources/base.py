@@ -1,9 +1,11 @@
+import re
 import functools
 from django.conf import settings
 from restlib2.params import Parametizer
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
+from .. import cors
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -72,10 +74,7 @@ class BaseResource(Resource):
 
     def process_response(self, request, response):
         response = super(BaseResource, self).process_response(request, response)
-
-        if getattr(settings, 'SERRANO_CORS_ENABLED', False):
-            response['Access-Control-Allow-Origin'] = getattr(settings, 'SERRANO_CORS_ORIGIN', '*')
-            response['Access-Control-Allow-Methods'] = ', '.join(self.allowed_methods)
+        response = cors.patch_response(request, response, self.allowed_methods)
         return response
 
     def get_params(self, request):
