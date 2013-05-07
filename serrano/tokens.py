@@ -1,6 +1,6 @@
+import hashlib
 from datetime import datetime
 from django.conf import settings
-from django.utils.hashcompat import sha_constructor
 from django.utils.http import int_to_base36, base36_to_int
 
 
@@ -10,7 +10,7 @@ class TokenGenerator(object):
 
     def _make(self, user, timestamp):
         ts_b36 = int_to_base36(timestamp)
-        digest = sha_constructor(settings.SECRET_KEY + unicode(user.pk) + \
+        digest = hashlib.sha1(settings.SECRET_KEY + unicode(user.pk) + \
             user.password + unicode(timestamp)).hexdigest()[::2]
         return '{0}-{1}-{2}'.format(user.pk, ts_b36, digest)
 
