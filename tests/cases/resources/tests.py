@@ -30,13 +30,13 @@ class RootResourceTestCase(TestCase):
             'title': 'Serrano Hypermedia API',
             'version': API_VERSION,
             '_links': {
-                'exporter': {'href': 'http://testserver/api/data/export/', 'rel': 'data'},
-                'views': {'href': 'http://testserver/api/views/', 'rel': 'views'},
-                'contexts': {'href': 'http://testserver/api/contexts/', 'rel': 'contexts'},
-                'fields': {'href': 'http://testserver/api/fields/', 'rel': 'fields'},
-                'self': {'href': 'http://testserver/api/', 'rel': 'self'},
-                'concepts': {'href': 'http://testserver/api/concepts/', 'rel': 'concepts'},
-                'preview': {'href': 'http://testserver/api/data/preview/', 'rel': 'data'},
+                'exporter': {'href': 'http://testserver/api/data/export/'},
+                'views': {'href': 'http://testserver/api/views/'},
+                'contexts': {'href': 'http://testserver/api/contexts/'},
+                'fields': {'href': 'http://testserver/api/fields/'},
+                'self': {'href': 'http://testserver/api/'},
+                'concepts': {'href': 'http://testserver/api/concepts/'},
+                'preview': {'href': 'http://testserver/api/data/preview/'},
             },
         })
 

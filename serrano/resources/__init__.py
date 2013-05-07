@@ -24,31 +24,24 @@ class Root(BaseResource):
             'version': API_VERSION,
             '_links': {
                 'self': {
-                    'rel': 'self',
                     'href': uri(reverse('serrano:root')),
                 },
                 'fields': {
-                    'rel': 'fields',
                     'href': uri(reverse('serrano:fields')),
                 },
                 'concepts': {
-                    'rel': 'concepts',
                     'href': uri(reverse('serrano:concepts')),
                 },
                 'contexts': {
-                    'rel': 'contexts',
                     'href': uri(reverse('serrano:contexts:active')),
                 },
                 'views': {
-                    'rel': 'views',
                     'href': uri(reverse('serrano:views:active')),
                 },
                 'preview': {
-                    'rel': 'data',
                     'href': uri(reverse('serrano:data:preview')),
                 },
                 'exporter': {
-                    'rel': 'data',
                     'href': uri(reverse('serrano:data:exporter')),
                 }
             }
