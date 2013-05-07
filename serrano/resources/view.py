@@ -70,7 +70,7 @@ class ViewBase(BaseResource):
         form = ViewForm(request, {'json': default.json, 'session': True})
 
         if form.is_valid():
-            instance = form.save(archive=False)
+            instance = form.save()
             return instance
 
         log.error('Error creating default view', extra=dict(form.errors))

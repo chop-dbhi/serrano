@@ -78,7 +78,7 @@ class ContextBase(BaseResource):
         form = ContextForm(request, {'json': default.json, 'session': True})
 
         if form.is_valid():
-            instance = form.save(archive=False)
+            instance = form.save()
             return instance
 
         log.error('Error creating default context', extra=dict(form.errors))
@@ -104,7 +104,7 @@ class ContextsResource(ContextBase):
         form = ContextForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(archived=HISTORY_ENABLED)
+            instance = form.save(archive=HISTORY_ENABLED)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
         else:
@@ -150,7 +150,7 @@ class ContextResource(ContextBase):
         form = ContextForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(archived=HISTORY_ENABLED)
+            instance = form.save(archive=HISTORY_ENABLED)
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),
