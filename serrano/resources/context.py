@@ -70,8 +70,7 @@ class ContextsResource(ContextBase):
         form = ContextForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(commit=False)
-            form.save(archive=HISTORY_ENABLED)
+            instance = form.save(archived=HISTORY_ENABLED)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
         else:
@@ -117,17 +116,7 @@ class ContextResource(ContextBase):
         form = ContextForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(commit=False)
-            if form.count_needs_update:
-                # Only recalculated count if conditions exist. This is to
-                # prevent re-counting the entire dataset. An alternative
-                # solution may be desirable such as pre-computing and
-                # caching the count ahead of time.
-                if instance.json:
-                    instance.count = instance.apply().distinct().count()
-                else:
-                    instance.count = None
-            form.save(archive=HISTORY_ENABLED)
+            instance = form.save(archived=HISTORY_ENABLED)
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),

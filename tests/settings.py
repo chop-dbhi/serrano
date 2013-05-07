@@ -43,3 +43,9 @@ TEST_RUNNER = 'tests.runner.ProfilingTestRunner'
 TEST_PROFILE = 'unittest.profile'
 
 SECRET_KEY = 'abc123'
+
+MODELTREES = {
+    'default': {
+        'model': 'tests.Employee',
+    }
+}

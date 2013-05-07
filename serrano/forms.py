@@ -5,23 +5,38 @@ from avocado.models import DataContext, DataView
 class ContextForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
+        self.count_needs_update = kwargs.pop('force_count', None)
         super(ContextForm, self).__init__(*args, **kwargs)
 
     def clean_json(self):
         json = self.cleaned_data.get('json')
-        if not self.instance or self.instance.count is None or self.instance.json != json:
-            self.count_needs_update = True
-        else:
-            self.count_needs_update = False
+
+        if self.count_needs_update is None and self.instance:
+            existing = self.instance.json
+            if existing or json and existing != json or json and self.instance.count is None:
+                self.count_needs_update = True
+            else:
+                self.count_needs_update = False
         return json
 
-    def save(self, commit=True, archive=True):
+    def save(self, commit=True, archive=False):
         instance = super(ContextForm, self).save(commit=False)
         request = self.request
+
         if hasattr(request, 'user') and request.user.is_authenticated():
             instance.user = request.user
         else:
             instance.session_key = request.session.session_key
+
+        # Only recalculated count if conditions exist. This is to
+        # prevent re-counting the entire dataset. An alternative
+        # solution may be desirable such as pre-computing and
+        # caching the count ahead of time.
+        if self.count_needs_update:
+            instance.count = instance.apply().distinct().count()
+            self.count_needs_update = False
+        else:
+            instance.count = None
 
         if commit:
             instance.save()
@@ -38,19 +53,24 @@ class ContextForm(forms.ModelForm):
 class ViewForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
+        self.count_needs_update = kwargs.pop('force_count', None)
         super(ViewForm, self).__init__(*args, **kwargs)
 
     def clean_json(self):
         json = self.cleaned_data.get('json')
-        if not self.instance or self.instance.count is None or self.instance.json != json:
-            self.count_needs_update = True
-        else:
-            self.count_needs_update = False
+
+        if self.count_needs_update is None:
+            existing = self.instance.json
+            if existing or json and existing != json or json and self.instance.count is None:
+                self.count_needs_update = True
+            else:
+                self.count_needs_update = False
         return json
 
-    def save(self, commit=True, archive=True):
+    def save(self, commit=True, archive=False):
         instance = super(ViewForm, self).save(commit=False)
         request = self.request
+
         if hasattr(request, 'user') and request.user.is_authenticated():
             instance.user = request.user
         else:
