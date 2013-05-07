@@ -24,25 +24,21 @@ def field_posthook(instance, data, request):
     # Augment the links
     data['_links'] = {
         'self': {
-            'rel': 'self',
             'href': uri(reverse('serrano:field', args=[instance.pk])),
         },
         'values': {
-            'rel': 'data',
             'href': uri(reverse('serrano:field-values', args=[instance.pk])),
         },
     }
 
     if stats_capable(instance):
         data['_links']['stats'] = {
-            'rel': 'data',
             'href': uri(reverse('serrano:field-stats', args=[instance.pk])),
         }
         # Add distribution link only if the relevent dependencies are
         # installed.
         if OPTIONAL_DEPS['scipy']:
             data['_links']['distribution'] = {
-                'rel': 'data',
                 'href': uri(reverse('serrano:field-distribution', args=[instance.pk])),
             }
 

@@ -26,7 +26,6 @@ def context_posthook(instance, data, request):
 
     data['_links'] = {
         'self': {
-            'rel': 'self',
             'href': uri(reverse('serrano:contexts:single', args=[instance.pk])),
         }
     }

@@ -136,26 +136,22 @@ class PreviewResource(BaseResource):
         # Augment previous and next page links if other pages exist
         links = {
             'self': {
-                'rel': 'self',
                 'href': uri(reverse('serrano:data:preview') + '?page=' + \
                     str(page.number)),
             },
             'base': {
-                'rel': 'base',
                 'href': uri(reverse('serrano:data:preview')),
             }
         }
 
         if page.number != 1:
             links['prev'] = {
-                'rel': 'prev',
                 'href': uri(reverse('serrano:data:preview') + '?page=' + \
                     str(page.number - 1)),
             }
 
         if page.number < paginator.num_pages - 1:
             links['next'] = {
-                'rel': 'next',
                 'href': uri(reverse('serrano:data:preview') + '?page=' + \
                     str(page.number + 1)),
             }

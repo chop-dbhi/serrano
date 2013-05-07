@@ -18,7 +18,6 @@ def view_posthook(instance, data, request):
     uri = request.build_absolute_uri
     data['_links'] = {
         'self': {
-            'rel': 'self',
             'href': uri(reverse('serrano:views:single', args=[instance.pk])),
         }
     }

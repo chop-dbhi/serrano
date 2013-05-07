@@ -23,7 +23,6 @@ class FieldStats(FieldBase):
 
         resp['_links'] = {
             'parent': {
-                'rel': 'parent',
                 'href': uri(reverse('serrano:field', args=[instance.pk])),
             },
         }

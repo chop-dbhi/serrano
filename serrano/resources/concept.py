@@ -43,11 +43,9 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
     if not brief:
         data['_links'] = {
             'self': {
-                'rel': 'self',
                 'href': uri(reverse('serrano:concept', args=[instance.pk])),
             },
             'fields': {
-                'rel': 'fields',
                 'href': uri(reverse('serrano:concept-fields', args=[instance.pk])),
             }
         }

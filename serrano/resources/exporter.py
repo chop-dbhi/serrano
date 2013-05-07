@@ -18,7 +18,6 @@ class ExporterRootResource(resources.Resource):
             'title': 'Serrano Exporter Endpoints',
             '_links': {
                 'self': {
-                    'rel': 'self',
                     'href': uri(reverse('serrano:data:exporter')),
                 },
             }
@@ -26,7 +25,6 @@ class ExporterRootResource(resources.Resource):
 
         for export_type in EXPORT_TYPES:
             resp['_links'][export_type] = {
-                'rel': export_type,
                 'href': uri(reverse('serrano:data:exporter',
                     kwargs={'export_type': export_type})),
             }
