@@ -15,6 +15,7 @@ MAXIMUM_OBSERVATIONS = 50000
 
 
 class FieldDistParametizer(Parametizer):
+    aware = False
     nulls = False
     sort = None
     cluster = True
@@ -23,6 +24,9 @@ class FieldDistParametizer(Parametizer):
     # Not implemented
     aggregates = None
     relative = None
+
+    def clean_aware(self, value):
+        return param_cleaners.clean_bool(value)
 
     def clean_nulls(self, value):
         return param_cleaners.clean_bool(value)
@@ -52,8 +56,13 @@ class FieldDistribution(FieldBase):
 
         tree = trees[instance.model]
 
-        # Get the appropriate data context
-        context = self.get_context(request)
+        # The `aware` flag toggles the behavior of the distribution by making
+        # relative to the applied context or none
+        if params['aware']:
+            context = self.get_context(request)
+        else:
+            context = self.get_context(request, attrs={})
+
         queryset = context.apply(tree=tree).distinct()
 
         # Explicit fields to group by, ignore ones that dont exist or the
