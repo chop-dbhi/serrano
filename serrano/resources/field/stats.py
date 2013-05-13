@@ -9,11 +9,9 @@ class FieldStats(FieldBase):
         uri = request.build_absolute_uri
         instance = request.instance
 
-        stats = None
-
         if instance.simple_type == 'number':
             stats = instance.max().min().avg()
-        elif instance.simple_type == 'string' and instance.enumerable:
+        else:
             stats = instance.count(distinct=True)
 
         if stats is None:
