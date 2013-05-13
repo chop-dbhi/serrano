@@ -51,7 +51,6 @@ ConceptField = {
 
 
 Context = {
-    'fields': [':pk', ':local', 'language'],
     'exclude': ['user', 'session_key'],
     'allow_missing': True,
 }
