@@ -7,8 +7,12 @@ MAXIMUM_RANDOM = 100
 
 
 class FieldValuesParametizer(Parametizer):
+    aware = False
     query = None
     random = None
+
+    def clean_aware(self, value):
+        return param_cleaners.clean_bool(value)
 
     def clean_query(self, value):
         return param_cleaners.clean_string(value)
@@ -26,6 +30,16 @@ class FieldValues(FieldBase):
     """
 
     parametizer = FieldValuesParametizer
+
+    def get_base_values(self, request, instance, params):
+        "Returns the base queryset for this field."
+        # The `aware` flag toggles the behavior of the distribution by making
+        # relative to the applied context or none
+        if params['aware']:
+            context = self.get_context(request)
+        else:
+            context = self.get_context(request, attrs={})
+        return context.apply(queryset=instance.model.objects.all())
 
     def get_all_values(self, request, instance):
         "Returns all distinct values for this field."
