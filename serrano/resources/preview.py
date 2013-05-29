@@ -129,6 +129,7 @@ class PreviewResource(BaseResource):
             'objects': objects,
             'object_name': model_name,
             'object_name_plural': model_name_plural,
+            'per_page': paginator.per_page,
             'num_pages': paginator.num_pages,
             'page_num': page.number,
         }
@@ -136,7 +137,7 @@ class PreviewResource(BaseResource):
         # Augment previous and next page links if other pages exist
         links = {
             'self': {
-                'href': uri(reverse('serrano:data:preview') + '?page=' + \
+                'href': uri(reverse('serrano:data:preview') + '?page=' +
                     str(page.number)),
             },
             'base': {
@@ -146,13 +147,13 @@ class PreviewResource(BaseResource):
 
         if page.number != 1:
             links['prev'] = {
-                'href': uri(reverse('serrano:data:preview') + '?page=' + \
+                'href': uri(reverse('serrano:data:preview') + '?page=' +
                     str(page.number - 1)),
             }
 
         if page.number < paginator.num_pages - 1:
             links['next'] = {
-                'href': uri(reverse('serrano:data:preview') + '?page=' + \
+                'href': uri(reverse('serrano:data:preview') + '?page=' +
                     str(page.number + 1)),
             }
 
