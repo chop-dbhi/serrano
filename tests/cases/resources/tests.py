@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.test.utils import override_settings
 from avocado.models import DataField, DataContext, DataView
 from serrano.resources import API_VERSION
-
+from avocado.conf import OPTIONAL_DEPS
 
 class BaseTestCase(TestCase):
     fixtures = ['resources.json']
@@ -121,32 +121,39 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
 
-    def test_dist(self):
-        # title.salary
-        response = self.client.get('/api/fields/3/dist/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), {
-            u'size': 5,
-            u'clustered': False,
-            u'outliers': [],
-            u'data': [{
-                u'count': 3,
-                u'values': [15000]
-            }, {
-                u'count': 1,
-                u'values': [10000]
-            }, {
-                u'count': 1,
-                u'values': [20000]
-            }, {
-                u'count': 1,
-                u'values': [100000]
-            }, {
-                u'count': 1,
-                u'values': [200000]
-            }],
-        })
+    if OPTIONAL_DEPS['scipy']:
+        def test_dist(self):
+            # title.salary
+            response = self.client.get('/api/fields/3/dist/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json.loads(response.content), {
+                u'size': 5,
+                u'clustered': False,
+                u'outliers': [],
+                u'data': [{
+                    u'count': 3,
+                    u'values': [15000]
+                }, {
+                    u'count': 1,
+                    u'values': [10000]
+                }, {
+                    u'count': 1,
+                    u'values': [20000]
+                }, {
+                    u'count': 1,
+                    u'values': [100000]
+                }, {
+                    u'count': 1,
+                    u'values': [200000]
+                }],
+            })
+    else:
+        def test_dist(self):
+            # title.salary
+            response = self.client.get('/api/fields/3/dist/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 404)
 
 
 class ContextResource(BaseTestCase):
