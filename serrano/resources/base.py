@@ -55,12 +55,20 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
     except klass.DoesNotExist:
         pass
 
-    return klass()
+    # Fallback to an instance based off the default template if one exists
+    instance = klass()
+    default = klass.objects.get_default_template()
+    if default:
+        instance.json = default.json
+    return instance
+
 
 # Partially applied functions for DataView and DataContext. These functions
 # only require the request object and an optional `attrs` dict
-get_request_view = functools.partial(_get_request_object, klass=DataView, key='view')
-get_request_context = functools.partial(_get_request_object, klass=DataContext, key='context')
+get_request_view = functools.partial(_get_request_object,
+    klass=DataView, key='view')
+get_request_context = functools.partial(_get_request_object,
+    klass=DataContext, key='context')
 
 
 class BaseResource(Resource):

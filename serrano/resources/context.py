@@ -62,14 +62,8 @@ class ContextBase(BaseResource):
 
         return self.model.objects.filter(**kwargs)
 
-    def get_default_template(self, request, **kwargs):
-        try:
-            return self.model.objects.get(template=True, default=True)
-        except self.model.DoesNotExist:
-            pass
-
-    def create_default(self, request):
-        default = self.get_default_template(request)
+    def get_default(self, request):
+        default = self.model.objects.get_default_template()
 
         if not default:
             log.warning('No default template for context objects')
@@ -94,7 +88,7 @@ class ContextsResource(ContextBase):
             queryset = list(queryset)
 
             if not len(queryset):
-                default = self.create_default(request)
+                default = self.get_default(request)
                 if default:
                     queryset.append(default)
 
