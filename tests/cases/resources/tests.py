@@ -64,7 +64,8 @@ class ExporterResourceTestCase(TestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(response.content), {
+
+        expectedResponse = {
             'title': 'Serrano Exporter Endpoints',
             '_links': {
                 'self': {'href': 'http://testserver/api/data/export/'}, 
@@ -94,7 +95,16 @@ class ExporterResourceTestCase(TestCase):
                     'title': 'CSV'
                 }
             },
-        })
+        }
+
+        if OPTIONAL_DEPS['openpyxl']:
+            expectedResponse['_links']['excel'] = {
+                'href': 'http://testserver/api/data/export/excel/',
+                'description': 'Microsoft Excel 2007 Format',
+                'title': 'Excel'
+            }
+
+        self.assertEqual(json.loads(response.content), expectedResponse)
 
 
 class FieldResourceTestCase(BaseTestCase):
