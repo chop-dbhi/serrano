@@ -9,7 +9,6 @@ from .base import BaseResource
 # Single list of all registered exporters
 EXPORT_TYPES = zip(*exporters.choices)[0]
 
-
 class ExporterRootResource(resources.Resource):
     def get(self, request):
         uri = request.build_absolute_uri
@@ -27,6 +26,8 @@ class ExporterRootResource(resources.Resource):
             resp['_links'][export_type] = {
                 'href': uri(reverse('serrano:data:exporter',
                     kwargs={'export_type': export_type})),
+                'title': exporters.get(export_type).short_name,
+                'description': exporters.get(export_type).long_name,
             }
         return resp
 

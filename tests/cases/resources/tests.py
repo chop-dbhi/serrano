@@ -58,6 +58,45 @@ class RootResourceTestCase(TestCase):
         self.assertTrue('token' in json.loads(response.content))
 
 
+class ExporterResourceTestCase(TestCase):
+    def test_get(self):
+        response = self.client.get('/api/data/export/', 
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(response.content), {
+            'title': 'Serrano Exporter Endpoints',
+            '_links': {
+                'self': {'href': 'http://testserver/api/data/export/'}, 
+                'html': {
+                    'href': 'http://testserver/api/data/export/html/', 
+                    'description': 'HyperText Markup Language (HTML)', 
+                    'title': 'HTML'
+                }, 
+                'json': {
+                    'href': 'http://testserver/api/data/export/json/', 
+                    'description': 'JavaScript Object Notation (JSON)', 
+                    'title': 'JSON'
+                }, 
+                'r': {
+                    'href': 'http://testserver/api/data/export/r/', 
+                    'description': 'R Programming Language', 
+                    'title': 'R'
+                }, 
+                'sas': {
+                    'href': 'http://testserver/api/data/export/sas/', 
+                    'description': 'Statistical Analysis System (SAS)', 
+                    'title': 'SAS'
+                }, 
+                'csv': {
+                    'href': 'http://testserver/api/data/export/csv/', 
+                    'description': 'Comma-Separated Values (CSV)', 
+                    'title': 'CSV'
+                }
+            },
+        })
+
+
 class FieldResourceTestCase(BaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/fields/',
