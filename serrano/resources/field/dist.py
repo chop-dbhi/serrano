@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import trees
-from avocado.stats import cluster as stats_cluster
+from avocado.stats import kmeans as stats_cluster
 from .base import FieldBase
 
 
@@ -157,7 +157,6 @@ class FieldDistribution(FieldBase):
                 points = []
 
                 # Determine best count relative to each piont in the cluster
-                # TODO improve this step, use numpy arrays
                 for i, centroid in enumerate(result['centroids']):
                     dist_sum = sum(dist_weights[i]['dist'])
                     weighted_counts = []
@@ -174,7 +173,7 @@ class FieldDistribution(FieldBase):
                         'count': int(sum(weighted_counts)),
                     })
             else:
-                indexes = stats_cluster.find_outliers(obs, whitened=False)
+                indexes = stats_cluster.find_outliers(obs, normalized=False)
 
                 outliers = []
                 for idx in indexes:
