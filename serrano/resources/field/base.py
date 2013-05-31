@@ -3,7 +3,6 @@ from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
-from avocado.conf import OPTIONAL_DEPS
 from ..base import BaseResource
 from .. import templates
 
@@ -35,12 +34,9 @@ def field_posthook(instance, data, request):
         data['_links']['stats'] = {
             'href': uri(reverse('serrano:field-stats', args=[instance.pk])),
         }
-        # Add distribution link only if the relevent dependencies are
-        # installed.
-        if OPTIONAL_DEPS['scipy']:
-            data['_links']['distribution'] = {
-                'href': uri(reverse('serrano:field-distribution', args=[instance.pk])),
-            }
+        data['_links']['distribution'] = {
+            'href': uri(reverse('serrano:field-distribution', args=[instance.pk])),
+        }
 
     return data
 
