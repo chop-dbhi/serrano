@@ -44,25 +44,17 @@ class PreviewResource(BaseResource):
         view = self.get_view(request)
         context = self.get_context(request)
 
-        try:
-            per_page = int(per_page)
-        except (ValueError, TypeError):
-            per_page = self.param_defaults.get('per_page')
-
-        # Create the queryset based off the context. Note, this does not
-        # take a `tree` param to customize the root model.
-        queryset = context.apply().distinct()
-
-        # For new contexts, `count` will be `None`
-        if context.count is None:
-            context.count = queryset.count()
-            context.save()
+        # Apply the view to the queryset. This was not applied before since
+        # the distinct count may have been computed if this was a new context.
+        # Include the primary key in this case since these objects a parsed
+        # and dealt with programmatically downstream (due to the pagination)
+        queryset = view.apply(context.apply())
 
         # Standard pagination components. A buffered paginator is used
         # here which takes a pre-computed count to same a bit of performance.
         # Otherwise the Paginator class itself would execute a count on
         # initialization.
-        paginator = BufferedPaginator(context.count, per_page=per_page)
+        paginator = BufferedPaginator(queryset.count(), per_page=per_page)
 
         try:
             page = paginator.page(page)
@@ -73,12 +65,6 @@ class PreviewResource(BaseResource):
 
         # Get the current offset
         offset = page.offset()
-
-        # Apply the view to the queryset. This was not applied before since
-        # the distinct count may have been computed if this was a new context.
-        # Include the primary key in this case since these objects a parsed
-        # and dealt with programmatically downstream (due to the pagination)
-        queryset = view.apply(queryset)
 
         # Slice and prepare as a raw query (note: this is a
         # ModelTreeQuerySet method and is not built-in to Django)
