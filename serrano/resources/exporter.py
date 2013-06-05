@@ -96,7 +96,7 @@ class ExporterResource(BaseResource):
         filename = '{0}-{1}-data.{2}'.format(file_tag, datetime.now(),
             file_extension)
 
-        exporter.write(iterator, resp)
+        exporter.write(iterator, resp, request=request)
 
         resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
         resp['Content-Type'] = exporter.content_type

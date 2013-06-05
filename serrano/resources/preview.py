@@ -95,7 +95,7 @@ class PreviewResource(BaseResource):
             header.append(obj)
 
         objects = []
-        for row in exporter.read(iterator):
+        for row in exporter.read(iterator, request=request):
             pk = None
             values = []
             for i, output in enumerate(row):
