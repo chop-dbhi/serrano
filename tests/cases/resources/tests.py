@@ -4,6 +4,7 @@ from django.core import management
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
 from avocado.models import DataField, DataContext, DataView
+from avocado.conf import OPTIONAL_DEPS
 from serrano.resources import API_VERSION
 
 class BaseTestCase(TestCase):
