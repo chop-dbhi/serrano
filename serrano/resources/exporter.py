@@ -1,3 +1,4 @@
+from serrano.resources import API_VERSION
 from datetime import datetime
 from django.http import HttpResponse, Http404
 from django.conf.urls import patterns, url
@@ -16,6 +17,7 @@ class ExporterRootResource(resources.Resource):
 
         resp = {
             'title': 'Serrano Exporter Endpoints',
+            'version': API_VERSION,
             '_links': {
                 'self': {
                     'href': uri(reverse('serrano:data:exporter')),
@@ -98,6 +100,7 @@ class ExporterResource(BaseResource):
 
         exporter.write(iterator, resp, request=request)
 
+        resp.set_cookie('export-type-{}'.format(exporter.short_name.lower()), 'complete')
         resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
         resp['Content-Type'] = exporter.content_type
 

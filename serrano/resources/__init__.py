@@ -6,7 +6,7 @@ import serrano
 from serrano.tokens import token_generator
 from .base import BaseResource
 
-API_VERSION = int('{major}{minor}'.format(**serrano.__version_info__))
+API_VERSION = '{major}.{minor}.{micro}'.format(**serrano.__version_info__)
 
 class Root(BaseResource):
     # Override to allow a POST to not be checked for authorization since
