@@ -1,4 +1,4 @@
-import serrano
+from serrano.resources import API_VERSION
 from datetime import datetime
 from django.http import HttpResponse, Http404
 from django.conf.urls import patterns, url
@@ -17,7 +17,7 @@ class ExporterRootResource(resources.Resource):
 
         resp = {
             'title': 'Serrano Exporter Endpoints',
-            'version': serrano.__version_info__,
+            'version': API_VERSION,
             '_links': {
                 'self': {
                     'href': uri(reverse('serrano:data:exporter')),
