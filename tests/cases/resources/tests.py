@@ -60,38 +60,39 @@ class RootResourceTestCase(TestCase):
 
 class ExporterResourceTestCase(TestCase):
     def test_get(self):
-        response = self.client.get('/api/data/export/', 
+        response = self.client.get('/api/data/export/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
 
         expectedResponse = {
             'title': 'Serrano Exporter Endpoints',
+            'version': API_VERSION,
             '_links': {
-                'self': {'href': 'http://testserver/api/data/export/'}, 
+                'self': {'href': 'http://testserver/api/data/export/'},
                 'html': {
-                    'href': 'http://testserver/api/data/export/html/', 
-                    'description': 'HyperText Markup Language (HTML)', 
+                    'href': 'http://testserver/api/data/export/html/',
+                    'description': 'HyperText Markup Language (HTML)',
                     'title': 'HTML'
-                }, 
+                },
                 'json': {
-                    'href': 'http://testserver/api/data/export/json/', 
-                    'description': 'JavaScript Object Notation (JSON)', 
+                    'href': 'http://testserver/api/data/export/json/',
+                    'description': 'JavaScript Object Notation (JSON)',
                     'title': 'JSON'
-                }, 
+                },
                 'r': {
-                    'href': 'http://testserver/api/data/export/r/', 
-                    'description': 'R Programming Language', 
+                    'href': 'http://testserver/api/data/export/r/',
+                    'description': 'R Programming Language',
                     'title': 'R'
-                }, 
+                },
                 'sas': {
-                    'href': 'http://testserver/api/data/export/sas/', 
-                    'description': 'Statistical Analysis System (SAS)', 
+                    'href': 'http://testserver/api/data/export/sas/',
+                    'description': 'Statistical Analysis System (SAS)',
                     'title': 'SAS'
-                }, 
+                },
                 'csv': {
-                    'href': 'http://testserver/api/data/export/csv/', 
-                    'description': 'Comma-Separated Values (CSV)', 
+                    'href': 'http://testserver/api/data/export/csv/',
+                    'description': 'Comma-Separated Values (CSV)',
                     'title': 'CSV'
                 }
             },
