@@ -146,32 +146,9 @@ class FieldDistribution(FieldBase):
             if params['cluster'] and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
-                result = stats_cluster.kmeans_optm(obs, k=params['n'])
-                outliers = [points[i] for i in result['outliers']]
-
-                dist_weights = defaultdict(lambda: {'dist': [], 'count': []})
-                for i, idx in enumerate(result['indexes']):
-                    dist_weights[idx]['dist'].append(result['distances'][i])
-                    dist_weights[idx]['count'].append(points[i]['count'])
-
-                points = []
-
-                # Determine best count relative to each piont in the cluster
-                for i, centroid in enumerate(result['centroids']):
-                    dist_sum = sum(dist_weights[i]['dist'])
-                    weighted_counts = []
-                    for j, dist in enumerate(dist_weights[i]['dist']):
-                        if dist_sum:
-                            wc = (1 - dist / dist_sum) * dist_weights[i]['count'][j]
-                        else:
-                            wc = dist_weights[i]['count'][j]
-                        weighted_counts.append(wc)
-
-                    values = list(centroid)
-                    points.append({
-                        'values': values,
-                        'count': int(sum(weighted_counts)),
-                    })
+                counts = [p['count'] for p in points]
+                points, outliers = \
+                        stats_cluster.weighted_counts(obs, counts, params['n']) 
             else:
                 indexes = stats_cluster.find_outliers(obs, normalized=False)
 
