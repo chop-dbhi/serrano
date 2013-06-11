@@ -2,7 +2,7 @@ import sys
 from setuptools import setup, find_packages
 
 install_requires = [
-    'avocado>=2.0.23,<2.1',
+    'avocado>=2.0.24,<2.1',
     'restlib2>=0.3.5,<0.4',
     'django-preserialize>=1.0.4,<1.1',
 ]
@@ -20,7 +20,7 @@ kwargs = {
 
     # Test dependencies
     'tests_require': [
-        'avocado[permissions,search,clustering,extras]>=2.0.23,<2.1'
+        'avocado[permissions,search,extras]>=2.0.24,<2.1'
         'coverage',
         'whoosh',
     ],

@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import trees
-from avocado.stats import kmeans as stats_cluster
+from avocado.stats import kmeans
 from .base import FieldBase
 
 
@@ -142,38 +142,14 @@ class FieldDistribution(FieldBase):
 
             # Perform k-means clustering. Determine centroids and calculate
             # the weighted count relatives to the centroid and observations
-            # within the stats_cluster.
+            # within the kmeans module.
             if params['cluster'] and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
-                result = stats_cluster.kmeans_optm(obs, k=params['n'])
-                outliers = [points[i] for i in result['outliers']]
-
-                dist_weights = defaultdict(lambda: {'dist': [], 'count': []})
-                for i, idx in enumerate(result['indexes']):
-                    dist_weights[idx]['dist'].append(result['distances'][i])
-                    dist_weights[idx]['count'].append(points[i]['count'])
-
-                points = []
-
-                # Determine best count relative to each piont in the cluster
-                for i, centroid in enumerate(result['centroids']):
-                    dist_sum = sum(dist_weights[i]['dist'])
-                    weighted_counts = []
-                    for j, dist in enumerate(dist_weights[i]['dist']):
-                        if dist_sum:
-                            wc = (1 - dist / dist_sum) * dist_weights[i]['count'][j]
-                        else:
-                            wc = dist_weights[i]['count'][j]
-                        weighted_counts.append(wc)
-
-                    values = list(centroid)
-                    points.append({
-                        'values': values,
-                        'count': int(sum(weighted_counts)),
-                    })
+                counts = [p['count'] for p in points]
+                points, outliers = kmeans.weighted_counts(obs, counts, params['n'])
             else:
-                indexes = stats_cluster.find_outliers(obs, normalized=False)
+                indexes = kmeans.find_outliers(obs, normalized=False)
 
                 outliers = []
                 for idx in indexes:
