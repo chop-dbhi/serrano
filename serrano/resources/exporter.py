@@ -5,7 +5,9 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from restlib2 import resources
 from restlib2.params import Parametizer, param_cleaners
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
+from avocado.query import pipeline
 from .base import BaseResource
 
 # Single list of all registered exporters
@@ -37,9 +39,15 @@ class ExporterRootResource(resources.Resource):
 
 class ExporterParametizer(Parametizer):
     per_page = 50
+    tree = MODELTREE_DEFAULT_ALIAS
 
     def clean_per_page(self, value):
         return param_cleaners.clean_int(value)
+
+    def clean_tree(self, value):
+        if value not in trees:
+            return MODELTREE_DEFAULT_ALIAS
+        return value
 
 
 class ExporterResource(BaseResource):
@@ -54,14 +62,12 @@ class ExporterResource(BaseResource):
         resp = HttpResponse()
 
         params = self.get_params(request)
+
         per_page = params.get('per_page')
+        tree = params.get('tree')
 
-        exporter_class = exporters[export_type]
-        exporter = exporter_class(view)
-
-        file_extension = exporter.file_extension
-
-        queryset = view.apply(context.apply(), include_pk=False)
+        offset = None
+        limit = None
 
         # Restrict export to a particular page or page range
         if 'page' in kwargs:
@@ -75,7 +81,7 @@ class ExporterResource(BaseResource):
 
             # change to 0-base
             offset = per_page * (page - 1)
-            stop = offset + per_page
+            limit = per_page
 
             if 'page_stop' in kwargs:
                 page_stop = int(kwargs['page_stop'])
@@ -88,17 +94,23 @@ class ExporterResource(BaseResource):
                 # list slices, so 4...4 is equivalent to just 4
                 if page_stop > page:
                     file_tag = 'p{0}-{1}'.format(page, page_stop)
-                    stop = offset + per_page * page_stop
+                    limit = per_page * page_stop
 
-            iterator = queryset[offset:stop].raw()
         else:
             file_tag = 'all'
-            iterator = queryset.raw()
+
+        QueryProcessor = pipeline.query_processors.default
+        processor = QueryProcessor(context=context, view=view,
+            tree=tree, include_pk=False)
+
+        exporter = processor.get_exporter(exporters[export_type])
+        iterable = processor.get_iterable(offset=offset, limit=limit)
+
+        # Write the data to the response
+        exporter.write(iterable, resp, request=request)
 
         filename = '{0}-{1}-data.{2}'.format(file_tag, datetime.now(),
-            file_extension)
-
-        exporter.write(iterator, resp, request=request)
+            exporter.file_extension)
 
         resp.set_cookie('export-type-{}'.format(exporter.short_name.lower()), 'complete')
         resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)

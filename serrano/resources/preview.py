@@ -6,8 +6,9 @@ except ImportError:
 from django.conf.urls import patterns, url
 from django.core.paginator import EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.core.paginator import BufferedPaginator
-from avocado.formatters import RawFormatter
+from avocado.query import pipeline
 from avocado.export import HTMLExporter
 from restlib2.params import Parametizer, param_cleaners
 from .base import BaseResource
@@ -16,12 +17,18 @@ from .base import BaseResource
 class PreviewParametizer(Parametizer):
     page = 1
     per_page = 50
+    tree = MODELTREE_DEFAULT_ALIAS
 
     def clean_page(self, value):
         return param_cleaners.clean_int(value)
 
     def clean_per_page(self, value):
         return param_cleaners.clean_int(value)
+
+    def clean_tree(self, value):
+        if value not in trees:
+            return MODELTREE_DEFAULT_ALIAS
+        return value
 
 
 class PreviewResource(BaseResource):
@@ -34,21 +41,22 @@ class PreviewResource(BaseResource):
     parametizer = PreviewParametizer
 
     def get(self, request):
-        uri = request.build_absolute_uri
-
         params = self.get_params(request)
 
         page = params.get('page')
         per_page = params.get('per_page')
+        tree = params.get('tree')
 
+        # Get the request's view and context
         view = self.get_view(request)
         context = self.get_context(request)
 
-        # Apply the view to the queryset. This was not applied before since
-        # the distinct count may have been computed if this was a new context.
-        # Include the primary key in this case since these objects a parsed
-        # and dealt with programmatically downstream (due to the pagination)
-        queryset = view.apply(context.apply())
+        # Initialize a query processor
+        QueryProcessor = pipeline.query_processors.default
+        processor = QueryProcessor(context=context, view=view, tree=tree)
+
+        # Build a queryset for pagination and other downstream use
+        queryset = processor.get_queryset(request=request)
 
         # Standard pagination components. A buffered paginator is used
         # here which takes a pre-computed count to same a bit of performance.
@@ -66,18 +74,8 @@ class PreviewResource(BaseResource):
         # Get the current offset
         offset = page.offset()
 
-        # Slice and prepare as a raw query (note: this is a
-        # ModelTreeQuerySet method and is not built-in to Django)
-        iterator = queryset[offset:offset + per_page].raw()
-
-        # Apply the view to the exporter class to get the formatted output
-        exporter = HTMLExporter(view)
-
-        # Insert formatter to process the primary key as a raw value
-        # TODO: this is not terribly elegant
-        pk_name = queryset.model._meta.pk.name
-        exporter.params.insert(0, (RawFormatter(keys=[pk_name]), 1))
-        exporter.row_length += 1
+        # Prepare the exporter and iterable
+        iterable = processor.get_iterable(offset=offset, limit=per_page)
 
         # Build up the header keys.
         # TODO: This is flawed since it assumes the output columns
@@ -94,8 +92,13 @@ class PreviewResource(BaseResource):
                 obj['direction'] = ordering[concept.id]
             header.append(obj)
 
+        # Prepare an HTMLExporter
+        exporter = processor.get_exporter(HTMLExporter)
+        pk_name = queryset.model._meta.pk.name
+
         objects = []
-        for row in exporter.read(iterator, request=request):
+
+        for row in exporter.read(iterable, request=request):
             pk = None
             values = []
             for i, output in enumerate(row):
@@ -119,6 +122,9 @@ class PreviewResource(BaseResource):
             'num_pages': paginator.num_pages,
             'page_num': page.number,
         }
+
+
+        uri = request.build_absolute_uri
 
         # Augment previous and next page links if other pages exist
         links = {
