@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import trees
-from avocado.stats import kmeans as stats_cluster
+from avocado.stats import kmeans
 from .base import FieldBase
 
 
@@ -142,15 +142,14 @@ class FieldDistribution(FieldBase):
 
             # Perform k-means clustering. Determine centroids and calculate
             # the weighted count relatives to the centroid and observations
-            # within the stats_cluster.
+            # within the kmeans module.
             if params['cluster'] and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
                 counts = [p['count'] for p in points]
-                points, outliers = \
-                        stats_cluster.weighted_counts(obs, counts, params['n']) 
+                points, outliers = kmeans.weighted_counts(obs, counts, params['n'])
             else:
-                indexes = stats_cluster.find_outliers(obs, normalized=False)
+                indexes = kmeans.find_outliers(obs, normalized=False)
 
                 outliers = []
                 for idx in indexes:
