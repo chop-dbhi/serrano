@@ -158,6 +158,64 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 7)
 
+    def test_values_validate(self):
+        # Valid, single dict
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps({'value': 'IT'}),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(content, {
+            'value': 'IT',
+            'label': 'IT',
+            'valid': True,
+        })
+
+        # Invalid
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps({'value': 'Bartender'}),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(content, {
+            'value': 'Bartender',
+            'label': 'Bartender',
+            'valid': False,
+        })
+
+        # Mixed, list
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps([
+                {'value': 'IT'},
+                {'value': 'Bartender'},
+                {'value': 'Programmer'}
+            ]),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(content, [
+            {'value': 'IT', 'label': 'IT', 'valid': True},
+            {'value': 'Bartender', 'label': 'Bartender', 'valid': False},
+            {'value': 'Programmer', 'label': 'Programmer', 'valid': True},
+        ])
+
+        # Error - no value
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps({}),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 422)
+
+        # Error - type
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps(None),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 422)
+
     def test_stats(self):
         # title.name
         response = self.client.get('/api/fields/2/stats/',
