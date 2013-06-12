@@ -1,4 +1,6 @@
 from avocado.conf import OPTIONAL_DEPS
+from django.http import HttpResponse
+from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from .base import FieldBase
 
@@ -92,3 +94,32 @@ class FieldValues(FieldBase):
             return self.get_random_values(request, instance, params['random'])
 
         return self.get_all_values(request, instance)
+
+    def post(self, request, pk):
+        instance = request.instance
+        params = self.get_params(request)
+
+        if isinstance(request.data, dict):
+            array = [request.data]
+        else:
+            array = request.data
+
+        try:
+            values = map(lambda x: x['value'], array)
+        except (ValueError, TypeError):
+            return HttpResponse('Error parsing value', status=codes.UNPROCESSIBLE_ENTITY)
+
+        field_name = instance.field_name
+
+        # Note, this return a context-aware or naive queryset depending
+        # on params
+        queryset = self.get_base_values(request, instance, params)
+        lookup = {'{0}__in'.format(field_name): values}
+
+        results = set(queryset.filter(**lookup).values_list(field_name, flat=True))
+
+        for datum in array:
+            datum['label'] = instance.get_label(datum['value'])
+            datum['valid'] = datum['value'] in results
+
+        return request.data
