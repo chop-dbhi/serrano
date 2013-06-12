@@ -202,6 +202,20 @@ class FieldResourceTestCase(BaseTestCase):
             {'value': 'Programmer', 'label': 'Programmer', 'valid': True},
         ])
 
+        # Error - no value
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps({}),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 422)
+
+        # Error - type
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps(None),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 422)
+
     def test_stats(self):
         # title.name
         response = self.client.get('/api/fields/2/stats/',

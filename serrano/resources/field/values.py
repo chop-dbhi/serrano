@@ -106,8 +106,9 @@ class FieldValues(FieldBase):
 
         try:
             values = map(lambda x: x['value'], array)
-        except (ValueError, TypeError):
-            return HttpResponse('Error parsing value', status=codes.UNPROCESSIBLE_ENTITY)
+        except (KeyError, TypeError) as e:
+            return HttpResponse('Error parsing value',
+                status=codes.unprocessable_entity)
 
         field_name = instance.field_name
 
@@ -116,10 +117,12 @@ class FieldValues(FieldBase):
         queryset = self.get_base_values(request, instance, params)
         lookup = {'{0}__in'.format(field_name): values}
 
-        results = set(queryset.filter(**lookup).values_list(field_name, flat=True))
+        results = set(queryset.filter(**lookup)\
+            .values_list(field_name, flat=True))
 
         for datum in array:
             datum['label'] = instance.get_label(datum['value'])
             datum['valid'] = datum['value'] in results
 
+        # Return the augmented data
         return request.data
