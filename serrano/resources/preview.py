@@ -89,7 +89,7 @@ class PreviewResource(BaseResource):
         view_node = view.parse()
         ordering = OrderedDict(view_node.ordering)
 
-        for concept in view_node.columns:
+        for concept in view_node.get_concepts_for_select():
             obj = {'id': concept.id, 'name': concept.name}
             if concept.id in ordering:
                 obj['direction'] = ordering[concept.id]
