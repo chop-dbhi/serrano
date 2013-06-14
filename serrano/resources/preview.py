@@ -58,11 +58,14 @@ class PreviewResource(BaseResource):
         # Build a queryset for pagination and other downstream use
         queryset = processor.get_queryset(request=request)
 
+        # Compute the total number of results
+        object_count = queryset.count()
+
         # Standard pagination components. A buffered paginator is used
         # here which takes a pre-computed count to same a bit of performance.
         # Otherwise the Paginator class itself would execute a count on
         # initialization.
-        paginator = BufferedPaginator(queryset.count(), per_page=per_page)
+        paginator = BufferedPaginator(object_count, per_page=per_page)
 
         try:
             page = paginator.page(page)
@@ -118,6 +121,7 @@ class PreviewResource(BaseResource):
             'objects': objects,
             'object_name': model_name,
             'object_name_plural': model_name_plural,
+            'object_count': object_count,
             'per_page': paginator.per_page,
             'num_pages': paginator.num_pages,
             'page_num': page.number,
