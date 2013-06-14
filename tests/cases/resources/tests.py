@@ -170,19 +170,27 @@ class FieldResourceTestCase(BaseTestCase):
         response = self.client.get('/api/fields/2/values/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(json.loads(response.content))
+        self.assertTrue(json.loads(response.content)['values'])
 
+    def test_values_random(self):
         # Random values
         response = self.client.get('/api/fields/2/values/?random=3',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(json.loads(response.content))
+        self.assertEqual(len(json.loads(response.content)), 3)
 
+    def test_values_query(self):
         # Query values
-        response = self.client.get('/api/fields/2/values/?query=t',
+        response = self.client.get('/api/fields/2/values/?query=a',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(json.loads(response.content)), 7)
+        self.assertEqual(json.loads(response.content)['values'], [
+            {'label': 'Analyst', 'value': 'Analyst'},
+            {'label': 'Guard', 'value': 'Guard'},
+            {'label': 'Lawyer', 'value': 'Lawyer'},
+            {'label': 'Programmer', 'value': 'Programmer'},
+            {'label': 'QA', 'value': 'QA'},
+        ])
 
     def test_values_validate(self):
         # Valid, single dict

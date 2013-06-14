@@ -1,5 +1,7 @@
 from avocado.conf import OPTIONAL_DEPS
 from django.http import HttpResponse
+from django.core.urlresolvers import reverse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from .base import FieldBase
@@ -13,6 +15,9 @@ class FieldValuesParametizer(Parametizer):
     query = None
     random = None
 
+    page = 1
+    per_page = 10
+
     def clean_aware(self, value):
         return param_cleaners.clean_bool(value)
 
@@ -22,6 +27,12 @@ class FieldValuesParametizer(Parametizer):
     def clean_random(self, value):
         value = param_cleaners.clean_int(value)
         return min(value, MAXIMUM_RANDOM)
+
+    def clean_per_page(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_page(self, value):
+        return param_cleaners.clean_int(value)
 
 
 class FieldValues(FieldBase):
@@ -85,15 +96,66 @@ class FieldValues(FieldBase):
         instance = request.instance
         params = self.get_params(request)
 
-        # If a query term is supplied, perform the icontains search
-        # Searches are only enabled if Haystack is installed
-        if params['query'] and OPTIONAL_DEPS['haystack']:
-            return self.get_search_values(request, instance, params['query'])
-
         if params['random']:
             return self.get_random_values(request, instance, params['random'])
 
-        return self.get_all_values(request, instance)
+        page = params['page']
+        per_page = params['per_page']
+
+        # If a query term is supplied, perform the icontains search
+        if params['query']:
+            values = self.get_search_values(request, instance, params['query'])
+        else:
+            values = self.get_all_values(request, instance)
+
+        # No page specified, return everything
+        if not page:
+            return values
+
+        # Standard pagination components. A buffered paginator is used
+        # here which takes a pre-computed count to same a bit of performance.
+        # Otherwise the Paginator class itself would execute a count on
+        # initialization.
+        paginator = Paginator(values, per_page=per_page)
+
+        try:
+            page = paginator.page(page)
+        except PageNotAnInteger:
+            page = paginator.page(1)
+        except EmptyPage:
+            page = paginator.page(paginator.num_pages)
+
+        uri = request.build_absolute_uri
+        path = reverse('serrano:field-values', kwargs={'pk': pk})
+        fmtstr = '{0}?page={1}&per_page={2}'
+
+        # Augment previous and next page links if other pages exist
+        links = {
+            'self': {
+                'href': uri(fmtstr.format(path, page.number, per_page)),
+            },
+            'base': {
+                'href': uri(path),
+            }
+        }
+
+        if page.number != 1:
+            links['prev'] = {
+                'href': uri(fmtstr.format(path, page.number - 1, per_page)),
+            }
+
+        if page.number < paginator.num_pages - 1:
+            links['next'] = {
+                'href': uri(fmtstr.format(path, page.number + 1, per_page)),
+            }
+
+        return {
+            'values': page.object_list,
+            'per_page': paginator.per_page,
+            'num_pages': paginator.num_pages,
+            'page_num': page.number,
+            '_links': links,
+        }
 
     def post(self, request, pk):
         instance = request.instance
