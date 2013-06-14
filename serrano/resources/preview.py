@@ -16,7 +16,7 @@ from .base import BaseResource
 
 class PreviewParametizer(Parametizer):
     page = 1
-    per_page = 50
+    per_page = 20
     tree = MODELTREE_DEFAULT_ALIAS
 
     def clean_page(self, value):
@@ -111,12 +111,36 @@ class PreviewResource(BaseResource):
                     values.extend(output.values())
             objects.append({'pk': pk, 'values': values})
 
-        # Various other model options
+        # Various model options
         opts = queryset.model._meta
         model_name = opts.verbose_name.format()
         model_name_plural = opts.verbose_name_plural.format()
 
-        data = {
+        uri = request.build_absolute_uri
+        path = reverse('serrano:data:preview')
+        fmtstr = '{0}?page={1}&per_page={2}'
+
+        # Augment previous and next page links if other pages exist
+        links = {
+            'self': {
+                'href': uri(fmtstr.format(path, page.number, per_page)),
+            },
+            'base': {
+                'href': uri(path),
+            }
+        }
+
+        if page.number != 1:
+            links['prev'] = {
+                'href': uri(fmtstr.format(path, page.number - 1, per_page)),
+            }
+
+        if page.number < paginator.num_pages - 1:
+            links['next'] = {
+                'href': uri(fmtstr.format(path, page.number + 1, per_page)),
+            }
+
+        return {
             'keys': header,
             'objects': objects,
             'object_name': model_name,
@@ -125,38 +149,11 @@ class PreviewResource(BaseResource):
             'per_page': paginator.per_page,
             'num_pages': paginator.num_pages,
             'page_num': page.number,
+            '_links': links,
         }
 
-
-        uri = request.build_absolute_uri
-
-        # Augment previous and next page links if other pages exist
-        links = {
-            'self': {
-                'href': uri(reverse('serrano:data:preview') + '?page=' +
-                    str(page.number)),
-            },
-            'base': {
-                'href': uri(reverse('serrano:data:preview')),
-            }
-        }
-
-        if page.number != 1:
-            links['prev'] = {
-                'href': uri(reverse('serrano:data:preview') + '?page=' +
-                    str(page.number - 1)),
-            }
-
-        if page.number < paginator.num_pages - 1:
-            links['next'] = {
-                'href': uri(reverse('serrano:data:preview') + '?page=' +
-                    str(page.number + 1)),
-            }
-
-        data['_links'] = links
-
-        return data
-
+    # POST mimics GET to support sending large request bodies for on-the-fly
+    # context and view data.
     post = get
 
 
