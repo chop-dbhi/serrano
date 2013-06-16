@@ -4,19 +4,18 @@ from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
+from ..base import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
 
 
 MAXIMUM_RANDOM = 100
 
 
-class FieldValuesParametizer(Parametizer):
+class FieldValuesParametizer(PaginatorParametizer):
+    per_page = 10
     aware = False
     query = None
     random = None
-
-    page = 1
-    per_page = 10
 
     def clean_aware(self, value):
         return param_cleaners.clean_bool(value)
@@ -28,14 +27,8 @@ class FieldValuesParametizer(Parametizer):
         value = param_cleaners.clean_int(value)
         return min(value, MAXIMUM_RANDOM)
 
-    def clean_per_page(self, value):
-        return param_cleaners.clean_int(value)
 
-    def clean_page(self, value):
-        return param_cleaners.clean_int(value)
-
-
-class FieldValues(FieldBase):
+class FieldValues(FieldBase, PaginatorResource):
     """Field Values Resource
 
     This resource can be overriden for any field to use a more
@@ -112,42 +105,11 @@ class FieldValues(FieldBase):
         if not page:
             return values
 
-        # Standard pagination components. A buffered paginator is used
-        # here which takes a pre-computed count to same a bit of performance.
-        # Otherwise the Paginator class itself would execute a count on
-        # initialization.
-        paginator = Paginator(values, per_page=per_page)
+        paginator = self.get_paginator(values, per_page)
+        page = paginator.page(page)
 
-        try:
-            page = paginator.page(page)
-        except PageNotAnInteger:
-            page = paginator.page(1)
-        except EmptyPage:
-            page = paginator.page(paginator.num_pages)
-
-        uri = request.build_absolute_uri
         path = reverse('serrano:field-values', kwargs={'pk': pk})
-        fmtstr = '{0}?page={1}&per_page={2}'
-
-        # Augment previous and next page links if other pages exist
-        links = {
-            'self': {
-                'href': uri(fmtstr.format(path, page.number, per_page)),
-            },
-            'base': {
-                'href': uri(path),
-            }
-        }
-
-        if page.number != 1:
-            links['prev'] = {
-                'href': uri(fmtstr.format(path, page.number - 1, per_page)),
-            }
-
-        if page.number < paginator.num_pages - 1:
-            links['next'] = {
-                'href': uri(fmtstr.format(path, page.number + 1, per_page)),
-            }
+        links = self.get_page_links(request, path, page)
 
         return {
             'values': page.object_list,

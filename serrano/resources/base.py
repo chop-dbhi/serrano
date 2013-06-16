@@ -1,6 +1,7 @@
 import re
 import functools
 from django.conf import settings
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.params import Parametizer
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
@@ -96,3 +97,53 @@ class BaseResource(Resource):
     def get_view(self, request, attrs=None):
         "Returns a DataView object based on `attrs` or the request."
         return get_request_view(request, attrs=attrs)
+
+
+class PaginatorParametizer(Parametizer):
+    page = 1
+    per_page = 20
+
+    def clean_page(self, value):
+        return param_cleaners.clean_int(value)
+
+    def clean_per_page(self, value):
+        return param_cleaners.clean_int(value)
+
+
+class PaginatorResource(Resource):
+    parametizer = PaginatorParametizer
+
+    def get_paginator(self, queryset, per_page):
+        return Paginator(queryset, per_page=per_page)
+
+    def get_page_links(self, request, path, page):
+        "Returns the page links."
+        uri = request.build_absolute_uri
+        url_format = '{0}?page={1}&per_page={2}'
+
+        per_page = page.paginator.per_page
+
+        links = {
+            'self': {
+                'href': uri(url_format.format(path, page.number, per_page)),
+            },
+            'base': {
+                'href': uri(path),
+            }
+        }
+
+        if page.has_previous():
+            links['prev'] = {
+                'href': uri(url_format.format(path,
+                    page.previous_page_number(), per_page)),
+            }
+
+        if page.has_next():
+            links['next'] = {
+                'href': uri(url_format.format(path,
+                    page.next_page_number(), per_page)),
+            }
+
+        return links
+
+

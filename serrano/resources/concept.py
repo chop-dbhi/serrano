@@ -70,10 +70,6 @@ class ConceptParametizer(Parametizer):
     query = ''
     limit = None
 
-    # Not implemented
-    offset = None
-    page = None
-
     def clean_embed(self, value):
         return param_cleaners.clean_bool(value)
 
@@ -90,12 +86,6 @@ class ConceptParametizer(Parametizer):
         return param_cleaners.clean_string(value)
 
     def clean_limit(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_offset(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_page(self, value):
         return param_cleaners.clean_int(value)
 
 

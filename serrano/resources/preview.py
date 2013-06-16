@@ -4,26 +4,16 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 from django.conf.urls import patterns, url
-from django.core.paginator import EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
-from avocado.core.paginator import BufferedPaginator
 from avocado.query import pipeline
 from avocado.export import HTMLExporter
 from restlib2.params import Parametizer, param_cleaners
-from .base import BaseResource
+from .base import BaseResource, PaginatorResource, PaginatorParametizer
 
 
-class PreviewParametizer(Parametizer):
-    page = 1
-    per_page = 20
+class PreviewParametizer(PaginatorParametizer):
     tree = MODELTREE_DEFAULT_ALIAS
-
-    def clean_page(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_per_page(self, value):
-        return param_cleaners.clean_int(value)
 
     def clean_tree(self, value):
         if value not in trees:
@@ -31,13 +21,14 @@ class PreviewParametizer(Parametizer):
         return value
 
 
-class PreviewResource(BaseResource):
+class PreviewResource(BaseResource, PaginatorResource):
     """Resource for *previewing* data prior to exporting.
 
     Data is formatted using a JSON+HTML exporter which prefers HTML formatted
     or plain strings. Browser-based clients can consume the JSON and render
     the HTML for previewing.
     """
+
     parametizer = PreviewParametizer
 
     def get(self, request):
@@ -58,24 +49,10 @@ class PreviewResource(BaseResource):
         # Build a queryset for pagination and other downstream use
         queryset = processor.get_queryset(request=request)
 
-        # Compute the total number of results
-        object_count = queryset.count()
-
-        # Standard pagination components. A buffered paginator is used
-        # here which takes a pre-computed count to same a bit of performance.
-        # Otherwise the Paginator class itself would execute a count on
-        # initialization.
-        paginator = BufferedPaginator(object_count, per_page=per_page)
-
-        try:
-            page = paginator.page(page)
-        except PageNotAnInteger:
-            page = paginator.page(1)
-        except EmptyPage:
-            page = paginator.page(paginator.num_pages)
-
-        # Get the current offset
-        offset = page.offset()
+        # Get paginator and page
+        paginator = self.get_paginator(queryset, per_page)
+        page = paginator.page(page)
+        offset = max(0, page.start_index() - 1)
 
         # Prepare the exporter and iterable
         iterable = processor.get_iterable(offset=offset, limit=per_page)
@@ -116,36 +93,15 @@ class PreviewResource(BaseResource):
         model_name = opts.verbose_name.format()
         model_name_plural = opts.verbose_name_plural.format()
 
-        uri = request.build_absolute_uri
         path = reverse('serrano:data:preview')
-        fmtstr = '{0}?page={1}&per_page={2}'
-
-        # Augment previous and next page links if other pages exist
-        links = {
-            'self': {
-                'href': uri(fmtstr.format(path, page.number, per_page)),
-            },
-            'base': {
-                'href': uri(path),
-            }
-        }
-
-        if page.number != 1:
-            links['prev'] = {
-                'href': uri(fmtstr.format(path, page.number - 1, per_page)),
-            }
-
-        if page.number < paginator.num_pages - 1:
-            links['next'] = {
-                'href': uri(fmtstr.format(path, page.number + 1, per_page)),
-            }
+        links = self.get_page_links(request, path, page)
 
         return {
             'keys': header,
             'objects': objects,
             'object_name': model_name,
             'object_name_plural': model_name_plural,
-            'object_count': object_count,
+            'object_count': paginator.count,
             'per_page': paginator.per_page,
             'num_pages': paginator.num_pages,
             'page_num': page.number,
