@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
+from avocado.metrics import usage
 from ..base import BaseResource
 from .. import templates
 
@@ -117,7 +118,9 @@ class FieldResource(FieldBase):
     "Resource for interacting with Field instances."
 
     def get(self, request, pk):
-        return self.prepare(request, request.instance)
+        instance = request.instance
+        usage.log('read', instance=instance, request=request)
+        return self.prepare(request, instance)
 
 
 class FieldsResource(FieldResource):
@@ -148,6 +151,9 @@ class FieldsResource(FieldResource):
 
         # If Haystack is installed, perform the search
         if params['query'] and OPTIONAL_DEPS['haystack']:
+            usage.log('search', model=self.model, request=request, data={
+                'query': params['query'],
+            })
             results = self.model.objects.search(params['query'],
                 queryset=queryset, max_results=params['limit'])
             objects = (x.object for x in results)

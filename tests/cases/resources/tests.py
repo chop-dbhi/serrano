@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.core import management
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
-from avocado.models import DataField, DataContext, DataView
+from avocado.models import DataField, DataContext, DataView, Log
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources import API_VERSION
 
@@ -151,6 +151,7 @@ class FieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
+        self.assertTrue(Log.objects.filter(event='read', object_id=2).exists())
 
     def test_get_privileged(self):
         # Superuser sees everything
@@ -191,6 +192,8 @@ class FieldResourceTestCase(BaseTestCase):
             {'label': 'Programmer', 'value': 'Programmer'},
             {'label': 'QA', 'value': 'QA'},
         ])
+        message = Log.objects.get(event='values', object_id=2)
+        self.assertEqual(message.data['query'], 'a')
 
     def test_values_validate(self):
         # Valid, single dict
@@ -205,6 +208,8 @@ class FieldResourceTestCase(BaseTestCase):
             'label': 'IT',
             'valid': True,
         })
+        message = Log.objects.get(event='validate', object_id=2)
+        self.assertEqual(message.data['count'], 1)
 
         # Invalid
         response = self.client.post('/api/fields/2/values/',
@@ -256,12 +261,14 @@ class FieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
+        self.assertTrue(Log.objects.filter(event='stats', object_id=2).exists())
 
         # title.salary
         response = self.client.get('/api/fields/3/stats/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
+        self.assertTrue(Log.objects.filter(event='stats', object_id=3).exists())
 
     def test_dist(self):
         # title.salary
@@ -289,6 +296,7 @@ class FieldResourceTestCase(BaseTestCase):
                 u'values': [200000]
             }],
         })
+        self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
 
 
 class ContextResource(BaseTestCase):

@@ -1,9 +1,10 @@
-from avocado.conf import OPTIONAL_DEPS
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
+from avocado.conf import OPTIONAL_DEPS
+from avocado.metrics import usage
 from ..base import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
 
@@ -97,6 +98,9 @@ class FieldValues(FieldBase, PaginatorResource):
 
         # If a query term is supplied, perform the icontains search
         if params['query']:
+            usage.log('values', instance=instance, request=request, data={
+                'query': params['query'],
+            })
             values = self.get_search_values(request, instance, params['query'])
         else:
             values = self.get_all_values(request, instance)
@@ -147,6 +151,10 @@ class FieldValues(FieldBase, PaginatorResource):
         for datum in array:
             datum['label'] = instance.get_label(datum['value'])
             datum['valid'] = datum['value'] in results
+
+        usage.log('validate', instance=instance, request=request, data={
+            'count': len(array),
+        })
 
         # Return the augmented data
         return request.data

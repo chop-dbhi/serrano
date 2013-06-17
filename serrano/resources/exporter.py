@@ -8,6 +8,7 @@ from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
 from avocado.query import pipeline
+from avocado.metrics import usage
 from .base import BaseResource
 
 # Single list of all registered exporters
@@ -66,12 +67,15 @@ class ExporterResource(BaseResource):
         per_page = params.get('per_page')
         tree = params.get('tree')
 
+        page = kwargs.get('page')
+        stop_page = kwargs.get('stop_page')
+
         offset = None
         limit = None
 
         # Restrict export to a particular page or page range
-        if 'page' in kwargs:
-            page = int(kwargs['page'])
+        if page:
+            page = int(page)
 
             # params are 1-based
             if page < 1:
@@ -83,18 +87,18 @@ class ExporterResource(BaseResource):
             offset = per_page * (page - 1)
             limit = per_page
 
-            if 'page_stop' in kwargs:
-                page_stop = int(kwargs['page_stop'])
+            if stop_page:
+                stop_page = int(stop_page)
 
                 # cannot have a lower index than page
-                if page_stop < page:
+                if stop_page < page:
                     raise Http404
 
                 # 4...5 means 4 and 5, not everything up to 5 like with
                 # list slices, so 4...4 is equivalent to just 4
-                if page_stop > page:
-                    file_tag = 'p{0}-{1}'.format(page, page_stop)
-                    limit = per_page * page_stop
+                if stop_page > page:
+                    file_tag = 'p{0}-{1}'.format(page, stop_page)
+                    limit = per_page * stop_page
 
         else:
             file_tag = 'all'
@@ -115,6 +119,11 @@ class ExporterResource(BaseResource):
         resp.set_cookie('export-type-{}'.format(exporter.short_name.lower()), 'complete')
         resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
         resp['Content-Type'] = exporter.content_type
+
+        usage.log('export', request=request, data={
+            'type': export_type,
+            'partial': page is not None,
+        })
 
         return resp
 
@@ -138,5 +147,5 @@ urlpatterns = patterns('',
     url(r'^$', exporter_root_resource, name='exporter'),
     url(r'^(?P<export_type>\w+)/$', exporter_resource, name='exporter'),
     url(r'^(?P<export_type>\w+)/(?P<page>\d+)/$', exporter_resource, name='exporter'),
-    url(r'^(?P<export_type>\w+)/(?P<page>\d+)\.\.\.(?P<page_stop>\d+)/$', exporter_resource, name='exporter'),
+    url(r'^(?P<export_type>\w+)/(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$', exporter_resource, name='exporter'),
 )
