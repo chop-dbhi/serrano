@@ -60,3 +60,8 @@ View = {
     'exclude': ['user', 'session_key'],
     'allow_missing': True,
 }
+
+Query = {
+    'exclude': ['user', 'session_key'],
+    'allow_missing': True,
+}
