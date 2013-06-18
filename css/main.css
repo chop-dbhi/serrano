@@ -56,3 +56,8 @@ code {
     padding-left: 0;
     padding-right: 0;
 }
+
+li em {
+    background-color: #fffeca;
+    font-style: normal;
+}
