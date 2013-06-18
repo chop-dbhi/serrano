@@ -106,14 +106,14 @@ class FieldValues(FieldBase, PaginatorResource):
             values = self.get_all_values(request, instance)
 
         # No page specified, return everything
-        if not page:
+        if page is None:
             return values
 
         paginator = self.get_paginator(values, per_page)
         page = paginator.page(page)
 
         path = reverse('serrano:field-values', kwargs={'pk': pk})
-        links = self.get_page_links(request, path, page)
+        links = self.get_page_links(request, path, page, extra=params)
 
         return {
             'values': page.object_list,

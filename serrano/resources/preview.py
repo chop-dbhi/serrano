@@ -94,7 +94,7 @@ class PreviewResource(BaseResource, PaginatorResource):
         model_name_plural = opts.verbose_name_plural.format()
 
         path = reverse('serrano:data:preview')
-        links = self.get_page_links(request, path, page)
+        links = self.get_page_links(request, path, page, extra=params)
 
         return {
             'keys': header,

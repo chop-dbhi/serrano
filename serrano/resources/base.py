@@ -116,16 +116,35 @@ class PaginatorResource(Resource):
     def get_paginator(self, queryset, per_page):
         return Paginator(queryset, per_page=per_page)
 
-    def get_page_links(self, request, path, page):
+    def get_page_links(self, request, path, page, extra=None):
         "Returns the page links."
         uri = request.build_absolute_uri
-        url_format = '{0}?page={1}&per_page={2}'
+
+        # format string will be expanded below
+        params = {
+            'page': '{0}',
+            'per_page': '{1}',
+        }
+
+        if extra:
+            for key, value in extra.items():
+                # Use the original GET parameter if supplied and if the
+                # cleaned value is valid
+                if key in request.GET and value is not None and value != '':
+                    params.setdefault(key, request.GET.get(key))
+
+        # Stringify parameters. Since these are the original GET params,
+        # they do not need to be encoded
+        pairs = sorted(['{0}={1}'.format(k, v) for k, v in params.items()])
+
+        # Create path string
+        path_format = '{0}?{1}'.format(path, '&'.join(pairs))
 
         per_page = page.paginator.per_page
 
         links = {
             'self': {
-                'href': uri(url_format.format(path, page.number, per_page)),
+                'href': uri(path_format.format(page.number, per_page)),
             },
             'base': {
                 'href': uri(path),
@@ -134,14 +153,12 @@ class PaginatorResource(Resource):
 
         if page.has_previous():
             links['prev'] = {
-                'href': uri(url_format.format(path,
-                    page.previous_page_number(), per_page)),
+                'href': uri(path_format.format(page.previous_page_number(), per_page)),
             }
 
         if page.has_next():
             links['next'] = {
-                'href': uri(url_format.format(path,
-                    page.next_page_number(), per_page)),
+                'href': uri(path_format.format(page.next_page_number(), per_page)),
             }
 
         return links
