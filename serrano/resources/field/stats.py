@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+from avocado.metrics import usage
 from .base import FieldBase
 
 
@@ -28,4 +29,5 @@ class FieldStats(FieldBase):
             },
         }
 
+        usage.log('stats', instance=instance, request=request)
         return resp

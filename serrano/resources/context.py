@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from preserialize.serialize import serialize
+from avocado.metrics import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
@@ -99,6 +100,7 @@ class ContextsResource(ContextBase):
 
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
+            usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
         else:
@@ -137,6 +139,7 @@ class ContextResource(ContextBase):
         request.instance = instance
 
     def get(self, request, **kwargs):
+        usage.log('read', instance=instance, request=request)
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
@@ -145,6 +148,7 @@ class ContextResource(ContextBase):
 
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
+            usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),
@@ -155,6 +159,7 @@ class ContextResource(ContextBase):
         if request.instance.session:
             return HttpResponse(status=codes.bad_request)
         request.instance.delete()
+        usage.log('delete', instance=instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 

@@ -8,6 +8,7 @@ from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataView
 from avocado.conf import settings
+from avocado.metrics import usage
 from serrano.forms import ViewForm
 from .base import BaseResource
 from . import templates
@@ -91,6 +92,7 @@ class ViewsResource(ViewBase):
 
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
+            usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
         else:
@@ -129,6 +131,7 @@ class ViewResource(ViewBase):
         request.instance = instance
 
     def get(self, request, **kwargs):
+        usage.log('read', instance=instance, request=request)
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
@@ -137,7 +140,7 @@ class ViewResource(ViewBase):
 
         if form.is_valid():
             instance = form.save(archive=HISTORY_ENABLED)
-            response = HttpResponse(status=codes.ok)
+            usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),
@@ -148,6 +151,7 @@ class ViewResource(ViewBase):
         if request.instance.session:
             return HttpResponse(status=codes.bad_request)
         request.instance.delete()
+        usage.log('delete', instance=instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 

@@ -3,6 +3,7 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
+from avocado.metrics import usage
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
@@ -154,7 +155,9 @@ class ConceptResource(ConceptBase):
     "Resource for interacting with Concept instances."
     def get(self, request, pk):
         params = self.get_params(request)
-        return self.prepare(request, request.instance, embed=params['embed'])
+        instance = request.instance
+        usage.log('read', instance=instance, request=request)
+        return self.prepare(request, instance, embed=params['embed'])
 
 
 class ConceptFieldsResource(ConceptBase):
@@ -176,7 +179,9 @@ class ConceptFieldsResource(ConceptBase):
         return fields
 
     def get(self, request, pk):
-        return self.prepare(request, request.instance)
+        instance = request.instance
+        usage.log('fields', instance=instance, request=request)
+        return self.prepare(request, instance)
 
 
 class ConceptsResource(ConceptBase):
@@ -206,11 +211,13 @@ class ConceptsResource(ConceptBase):
 
         # If Haystack is installed, perform the search
         if params['query'] and OPTIONAL_DEPS['haystack']:
+            usage.log('search', model=self.model, request=request, data={
+                'query': params['query'],
+            })
             results = self.model.objects.search(params['query'],
                 queryset=queryset, max_results=params['limit'])
             objects = (x.object for x in results)
         else:
-            # Apply sorting
             if params['sort'] == 'name':
                 order = '-name' if params['order'] == 'desc' else 'name'
                 queryset = queryset.order_by(order)

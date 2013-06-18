@@ -7,6 +7,7 @@ from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import trees
 from avocado.stats import kmeans
+from avocado.metrics import usage
 from .base import FieldBase
 
 
@@ -111,6 +112,11 @@ class FieldDistribution(FieldBase):
 
         # Nothing to do
         if not length:
+            usage.log('dist', instance=instance, request=request, data={
+                'size': 0,
+                'clustered': False,
+                'aware': params['aware'],
+            })
             return resp
 
         if length > MAXIMUM_OBSERVATIONS:
@@ -156,6 +162,12 @@ class FieldDistribution(FieldBase):
                     outliers.append(points[idx])
                     points[idx] = None
                 points = [p for p in points if p is not None]
+
+        usage.log('dist', instance=instance, request=request, data={
+            'size': length,
+            'clustered': clustered,
+            'aware': params['aware'],
+        })
 
         return {
             'data': points,

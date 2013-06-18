@@ -49,3 +49,35 @@ MODELTREES = {
         'model': 'tests.Employee',
     }
 }
+
+AVOCADO = {
+    'FORCE_SYNC_LOG': True,
+}
+
+# Switch handlers from 'null' => 'console' to see logging output
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'null': {
+            'level': 'DEBUG',
+            'class': 'django.utils.log.NullHandler',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler'
+        }
+    },
+    'loggers': {
+        'avocado': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'serrano': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    }
+}
