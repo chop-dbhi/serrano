@@ -1,5 +1,5 @@
 from django.core.urlresolvers import reverse
-from avocado.metrics import usage
+from avocado.events import usage
 from .base import FieldBase
 
 

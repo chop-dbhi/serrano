@@ -3,7 +3,7 @@ from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
-from avocado.metrics import usage
+from avocado.events import usage
 from ..base import BaseResource
 from .. import templates
 

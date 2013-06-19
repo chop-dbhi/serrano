@@ -8,7 +8,7 @@ from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataView
 from avocado.conf import settings
-from avocado.metrics import usage
+from avocado.events import usage
 from serrano.forms import ViewForm
 from .base import BaseResource
 from . import templates

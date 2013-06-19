@@ -3,7 +3,7 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
-from avocado.metrics import usage
+from avocado.events import usage
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource

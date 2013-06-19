@@ -4,7 +4,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from avocado.conf import OPTIONAL_DEPS
-from avocado.metrics import usage
+from avocado.events import usage
 from ..base import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
 

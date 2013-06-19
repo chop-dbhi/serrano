@@ -7,7 +7,7 @@ from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import trees
 from avocado.stats import kmeans
-from avocado.metrics import usage
+from avocado.events import usage
 from .base import FieldBase
 
 

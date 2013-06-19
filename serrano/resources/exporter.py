@@ -8,7 +8,7 @@ from restlib2.params import Parametizer, param_cleaners
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
 from avocado.query import pipeline
-from avocado.metrics import usage
+from avocado.events import usage
 from .base import BaseResource
 
 # Single list of all registered exporters

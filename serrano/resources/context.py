@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from preserialize.serialize import serialize
-from avocado.metrics import usage
+from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
