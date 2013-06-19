@@ -1,5 +1,5 @@
 from django.template import defaultfilters as filters
-from avocado.formatters import Formatter
+from avocado.formatters import Formatter, process_multiple
 
 
 class HTMLFormatter(Formatter):
@@ -9,6 +9,7 @@ class HTMLFormatter(Formatter):
         None: '<em>n/a</em>'
     }
 
+    @process_multiple
     def to_html(self, values, **context):
         toks = []
         for value in values.values():
@@ -25,5 +26,3 @@ class HTMLFormatter(Formatter):
                 tok = unicode(value)
             toks.append(tok)
         return self.delimiter.join(toks)
-
-    to_html.process_multiple = True
