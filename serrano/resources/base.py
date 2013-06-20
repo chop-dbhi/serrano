@@ -2,7 +2,7 @@ import re
 import functools
 from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from restlib2.params import Parametizer
+from restlib2.params import Parametizer, param_cleaners
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView
 from ..decorators import check_auth
