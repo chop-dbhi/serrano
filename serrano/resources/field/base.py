@@ -155,7 +155,8 @@ class FieldsResource(FieldResource):
                 'query': params['query'],
             })
             results = self.model.objects.search(params['query'],
-                queryset=queryset, max_results=params['limit'])
+                queryset=queryset, max_results=params['limit'],
+                partial=True)
             objects = (x.object for x in results)
         else:
             if params['sort'] == 'name':
