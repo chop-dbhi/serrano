@@ -96,11 +96,6 @@ class ExporterResourceTestCase(TestCase):
             'version': API_VERSION,
             '_links': {
                 'self': {'href': 'http://testserver/api/data/export/'},
-                'html': {
-                    'href': 'http://testserver/api/data/export/html/',
-                    'description': 'HyperText Markup Language (HTML)',
-                    'title': 'HTML'
-                },
                 'json': {
                     'href': 'http://testserver/api/data/export/json/',
                     'description': 'JavaScript Object Notation (JSON)',
