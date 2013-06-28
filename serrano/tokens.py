@@ -1,4 +1,5 @@
 import hashlib
+import sys
 from datetime import datetime
 from django.conf import settings
 from django.utils.http import int_to_base36, base36_to_int
@@ -6,7 +7,25 @@ from django.utils.http import int_to_base36, base36_to_int
 
 class TokenGenerator(object):
     def _total_seconds(self, dt):
-        return int((dt - datetime(2001, 1, 1)).total_seconds())
+        """
+        Computes the number of seconds in a datetime.timedelta object.
+
+        Ideally, this is done just using the built in total seconds method
+        but if the python version we are running on is < 2.7 we manually 
+        compute the number of seconds in the delta and return that. The 
+        manual computation method comes from the Python docs here:
+
+            http://docs.python.org/2/library/datetime.html#datetime.timedelta.total_seconds
+        
+        NOTE: Manual computation opens us up to possible loss of precision but
+        it's the best we can do in Python < 2.7.
+        """
+        timedelta = (dt - datetime(2001, 1, 1))
+        
+        if sys.version_info >= (2, 7):
+            return int(timedelta.total_seconds())
+        else:
+            return int((timedelta.microseconds + (timedelta.seconds + timedelta.days * 24 * 3600) * 10**6) / 10**6)
 
     def _make(self, user, timestamp):
         ts_b36 = int_to_base36(timestamp)
