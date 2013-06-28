@@ -38,6 +38,9 @@ class Root(BaseResource):
                 'views': {
                     'href': uri(reverse('serrano:views:active')),
                 },
+                'queries': {
+                    'href': uri(reverse('serrano:queries:active')),
+                },
                 'preview': {
                     'href': uri(reverse('serrano:data:preview')),
                 },

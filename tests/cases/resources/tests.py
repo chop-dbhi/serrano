@@ -33,6 +33,7 @@ class RootResourceTestCase(TestCase):
                 'exporter': {'href': 'http://testserver/api/data/export/'},
                 'views': {'href': 'http://testserver/api/views/'},
                 'contexts': {'href': 'http://testserver/api/contexts/'},
+                'queries': {'href': 'http://testserver/api/queries/'},
                 'fields': {'href': 'http://testserver/api/fields/'},
                 'self': {'href': 'http://testserver/api/'},
                 'concepts': {'href': 'http://testserver/api/concepts/'},
