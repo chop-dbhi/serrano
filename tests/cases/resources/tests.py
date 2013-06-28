@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.core import management
 from django.contrib.auth.models import User
 from django.test.utils import override_settings
-from avocado.models import DataField, DataContext, DataView, Log
+from avocado.models import DataField, DataContext, DataView, DataQuery, Log
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources import API_VERSION
 
@@ -33,6 +33,7 @@ class RootResourceTestCase(TestCase):
                 'exporter': {'href': 'http://testserver/api/data/export/'},
                 'views': {'href': 'http://testserver/api/views/'},
                 'contexts': {'href': 'http://testserver/api/contexts/'},
+                'queries': {'href': 'http://testserver/api/queries/'},
                 'fields': {'href': 'http://testserver/api/fields/'},
                 'self': {'href': 'http://testserver/api/'},
                 'concepts': {'href': 'http://testserver/api/concepts/'},
@@ -96,11 +97,6 @@ class ExporterResourceTestCase(TestCase):
             'version': API_VERSION,
             '_links': {
                 'self': {'href': 'http://testserver/api/data/export/'},
-                'html': {
-                    'href': 'http://testserver/api/data/export/html/',
-                    'description': 'HyperText Markup Language (HTML)',
-                    'title': 'HTML'
-                },
                 'json': {
                     'href': 'http://testserver/api/data/export/json/',
                     'description': 'JavaScript Object Notation (JSON)',
@@ -328,8 +324,26 @@ class ViewResource(BaseTestCase):
         self.assertFalse(json.loads(response.content))
 
     def test_get_all_default(self):
-        cxt = DataView(template=True, default=True, json={})
-        cxt.save()
+        view = DataView(template=True, default=True, json={})
+        view.save()
         response = self.client.get('/api/views/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+
+class QueryResource(BaseTestCase):
+    def setUp(self):
+        User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+
+    def test_get_all(self):
+        response = self.client.get('/api/queries/',
+            HTTP_ACCEPT='application/json')
+        self.assertFalse(json.loads(response.content))
+
+    def test_get_all_default(self):
+        query = DataQuery(template=True, default=True, json={})
+        query.save()
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)

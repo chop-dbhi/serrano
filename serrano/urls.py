@@ -7,6 +7,7 @@ urlpatterns = patterns('',
         url(r'^fields/', include('serrano.resources.field')),
         url(r'^concepts/', include('serrano.resources.concept')),
         url(r'^contexts/', include('serrano.resources.context', namespace='contexts')),
+        url(r'^queries/', include('serrano.resources.query', namespace='queries')),
         url(r'^views/', include('serrano.resources.view', namespace='views')),
 
         url(r'^data/', include(patterns('',
