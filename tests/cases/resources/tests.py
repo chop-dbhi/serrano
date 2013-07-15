@@ -8,10 +8,10 @@ from avocado.conf import OPTIONAL_DEPS
 from serrano.resources import API_VERSION
 
 class BaseTestCase(TestCase):
-    fixtures = ['resources.json']
+    fixtures = ['test_data.json']
 
     def setUp(self):
-        management.call_command('avocado', 'init', 'resources', quiet=True)
+        management.call_command('avocado', 'init', 'tests', quiet=True)
         # Only publish some of them..
         DataField.objects.filter(model_name='title').update(published=True)
         self.user = User.objects.create_user(username='root',
