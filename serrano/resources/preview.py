@@ -35,7 +35,7 @@ class PreviewResource(BaseResource, PaginatorResource):
         params = self.get_params(request)
 
         page = params.get('page')
-        per_page = params.get('per_page')
+        limit = params.get('limit')
         tree = params.get('tree')
 
         # Get the request's view and context
@@ -50,12 +50,12 @@ class PreviewResource(BaseResource, PaginatorResource):
         queryset = processor.get_queryset(request=request)
 
         # Get paginator and page
-        paginator = self.get_paginator(queryset, per_page)
+        paginator = self.get_paginator(queryset, limit=limit)
         page = paginator.page(page)
         offset = max(0, page.start_index() - 1)
 
         # Prepare the exporter and iterable
-        iterable = processor.get_iterable(offset=offset, limit=per_page)
+        iterable = processor.get_iterable(offset=offset, limit=limit)
 
         # Build up the header keys.
         # TODO: This is flawed since it assumes the output columns
@@ -102,7 +102,7 @@ class PreviewResource(BaseResource, PaginatorResource):
             'object_name': model_name,
             'object_name_plural': model_name_plural,
             'object_count': paginator.count,
-            'per_page': paginator.per_page,
+            'limit': paginator.per_page,
             'num_pages': paginator.num_pages,
             'page_num': page.number,
             '_links': links,

@@ -39,10 +39,10 @@ class ExporterRootResource(resources.Resource):
 
 
 class ExporterParametizer(Parametizer):
-    per_page = 50
+    limit = 50
     tree = MODELTREE_DEFAULT_ALIAS
 
-    def clean_per_page(self, value):
+    def clean_limit(self, value):
         return param_cleaners.clean_int(value)
 
     def clean_tree(self, value):
@@ -64,14 +64,13 @@ class ExporterResource(BaseResource):
 
         params = self.get_params(request)
 
-        per_page = params.get('per_page')
+        limit = params.get('limit')
         tree = params.get('tree')
 
         page = kwargs.get('page')
         stop_page = kwargs.get('stop_page')
 
         offset = None
-        limit = None
 
         # Restrict export to a particular page or page range
         if page:
@@ -84,8 +83,7 @@ class ExporterResource(BaseResource):
             file_tag = 'p{0}'.format(page)
 
             # change to 0-base
-            offset = per_page * (page - 1)
-            limit = per_page
+            offset = limit * (page - 1)
 
             if stop_page:
                 stop_page = int(stop_page)
@@ -98,7 +96,7 @@ class ExporterResource(BaseResource):
                 # list slices, so 4...4 is equivalent to just 4
                 if stop_page > page:
                     file_tag = 'p{0}-{1}'.format(page, stop_page)
-                    limit = per_page * stop_page
+                    limit = limit * stop_page
 
         else:
             file_tag = 'all'

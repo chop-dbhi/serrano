@@ -13,7 +13,7 @@ MAXIMUM_RANDOM = 100
 
 
 class FieldValuesParametizer(PaginatorParametizer):
-    per_page = 10
+    limit = 10
     aware = False
     query = None
     random = None
@@ -94,7 +94,7 @@ class FieldValues(FieldBase, PaginatorResource):
             return self.get_random_values(request, instance, params['random'])
 
         page = params['page']
-        per_page = params['per_page']
+        limit = params['limit']
 
         # If a query term is supplied, perform the icontains search
         if params['query']:
@@ -109,7 +109,7 @@ class FieldValues(FieldBase, PaginatorResource):
         if page is None:
             return values
 
-        paginator = self.get_paginator(values, per_page)
+        paginator = self.get_paginator(values, limit=limit)
         page = paginator.page(page)
 
         path = reverse('serrano:field-values', kwargs={'pk': pk})
@@ -117,7 +117,7 @@ class FieldValues(FieldBase, PaginatorResource):
 
         return {
             'values': page.object_list,
-            'per_page': paginator.per_page,
+            'limit': paginator.per_page,
             'num_pages': paginator.num_pages,
             'page_num': page.number,
             '_links': links,

@@ -68,7 +68,7 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(json.loads(response.content), {
             '_links': {
                 'self': {
-                    'href': 'http://testserver/api/data/preview/?page=1&per_page=20',
+                    'href': 'http://testserver/api/data/preview/?limit=20&page=1',
                 },
                 'base': {
                     'href': 'http://testserver/api/data/preview/',
@@ -81,7 +81,7 @@ class PreviewResourceTestCase(TestCase):
             'objects': [],
             'page_num': 1,
             'num_pages': 1,
-            'per_page': 20,
+            'limit': 20,
         })
 
 

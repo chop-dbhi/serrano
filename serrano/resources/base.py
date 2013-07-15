@@ -216,20 +216,20 @@ class BaseResource(Resource):
 
 class PaginatorParametizer(Parametizer):
     page = 1
-    per_page = 20
+    limit = 20
 
     def clean_page(self, value):
         return param_cleaners.clean_int(value)
 
-    def clean_per_page(self, value):
+    def clean_limit(self, value):
         return param_cleaners.clean_int(value)
 
 
 class PaginatorResource(Resource):
     parametizer = PaginatorParametizer
 
-    def get_paginator(self, queryset, per_page):
-        return Paginator(queryset, per_page=per_page)
+    def get_paginator(self, queryset, limit):
+        return Paginator(queryset, per_page=limit)
 
     def get_page_links(self, request, path, page, extra=None):
         "Returns the page links."
@@ -238,7 +238,7 @@ class PaginatorResource(Resource):
         # format string will be expanded below
         params = {
             'page': '{0}',
-            'per_page': '{1}',
+            'limit': '{1}',
         }
 
         if extra:
@@ -255,11 +255,11 @@ class PaginatorResource(Resource):
         # Create path string
         path_format = '{0}?{1}'.format(path, '&'.join(pairs))
 
-        per_page = page.paginator.per_page
+        limit = page.paginator.per_page
 
         links = {
             'self': {
-                'href': uri(path_format.format(page.number, per_page)),
+                'href': uri(path_format.format(page.number, limit)),
             },
             'base': {
                 'href': uri(path),
@@ -268,12 +268,12 @@ class PaginatorResource(Resource):
 
         if page.has_previous():
             links['prev'] = {
-                'href': uri(path_format.format(page.previous_page_number(), per_page)),
+                'href': uri(path_format.format(page.previous_page_number(), limit)),
             }
 
         if page.has_next():
             links['next'] = {
-                'href': uri(path_format.format(page.next_page_number(), per_page)),
+                'href': uri(path_format.format(page.next_page_number(), limit)),
             }
 
         return links
