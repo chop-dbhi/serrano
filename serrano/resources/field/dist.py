@@ -5,7 +5,8 @@ from django.db.models import Q
 from django.http import HttpResponse
 from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
-from modeltree.tree import trees
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
+from avocado.models import DataField
 from avocado.stats import kmeans
 from avocado.events import usage
 from .base import FieldBase
@@ -16,6 +17,7 @@ MAXIMUM_OBSERVATIONS = 50000
 
 
 class FieldDistParametizer(Parametizer):
+    tree = MODELTREE_DEFAULT_ALIAS
     aware = False
     nulls = False
     sort = None
@@ -25,6 +27,11 @@ class FieldDistParametizer(Parametizer):
     # Not implemented
     aggregates = None
     relative = None
+
+    def clean_tree(self, value):
+        if value not in trees:
+            return MODELTREE_DEFAULT_ALIAS
+        return value
 
     def clean_aware(self, value):
         return param_cleaners.clean_bool(value)
@@ -51,20 +58,25 @@ class FieldDistribution(FieldBase):
         instance = request.instance
         params = self.get_params(request)
 
+        tree = trees[params.get('tree')]
+        opts = tree.root_model._meta
+        tree_field = DataField(app_name=opts.app_label,
+            model_name=opts.module_name, field_name=opts.pk.name)
+
         # This will eventually make it's way in the parametizer, but lists
         # are not supported
         dimensions = request.GET.getlist('dimensions')
 
-        tree = trees[instance.model]
-
         # The `aware` flag toggles the behavior of the distribution by making
-        # relative to the applied context or none
+        # it relative to the applied context or not
         if params['aware']:
-            context = self.get_context(request)
+            attrs = None
         else:
-            context = self.get_context(request, attrs={})
+            attrs = {}
 
-        queryset = context.apply(tree=tree).distinct()
+        # Get and apply context relative to the tree
+        context = self.get_context(request, attrs=attrs)
+        queryset = context.apply(tree=tree)
 
         # Explicit fields to group by, ignore ones that dont exist or the
         # user does not have permission to view. Default is to group by the
@@ -82,11 +94,9 @@ class FieldDistribution(FieldBase):
             fields = [instance]
             groupby = [tree.query_string_for_field(instance.field)]
 
-        # Always perform a count aggregation for the group since downstream
-        # processing requires it to be present.
-        stats = instance.groupby(*groupby).count()#\
-#                .filter(**{'{0}__{1}__isnull'\
-#                    .format(root_opts.module_name, root_opts.pk.name): False})
+        # Perform a count aggregation of the tree model grouped by the
+        # specified dimensions
+        stats = tree_field.count(*groupby)
 
         # Apply it relative to the queryset
         stats = stats.apply(queryset)

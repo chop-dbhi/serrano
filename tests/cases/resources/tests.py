@@ -272,7 +272,7 @@ class FieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.content), {
-            u'size': 5,
+            u'size': 4,
             u'clustered': False,
             u'outliers': [],
             u'data': [{
@@ -284,9 +284,6 @@ class FieldResourceTestCase(BaseTestCase):
             }, {
                 u'count': 1,
                 u'values': [20000]
-            }, {
-                u'count': 1,
-                u'values': [100000]
             }, {
                 u'count': 1,
                 u'values': [200000]
