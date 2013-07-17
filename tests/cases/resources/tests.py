@@ -294,7 +294,7 @@ class FieldResourceTestCase(BaseTestCase):
 
 class ContextResource(BaseTestCase):
     def setUp(self):
-        User.objects.create_user(username='test', password='test')
+        self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
 
     def test_get_all(self):
@@ -309,10 +309,17 @@ class ContextResource(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
+    def test_get(self):
+        DataContext(user=self.user).save()
+        response = self.client.get('/api/contexts/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content)
+
 
 class ViewResource(BaseTestCase):
     def setUp(self):
-        User.objects.create_user(username='test', password='test')
+        self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
 
     def test_get_all(self):
@@ -327,10 +334,17 @@ class ViewResource(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
+    def test_get(self):
+        DataView(user=self.user).save()
+        response = self.client.get('/api/views/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content)
+
 
 class QueryResource(BaseTestCase):
     def setUp(self):
-        User.objects.create_user(username='test', password='test')
+        self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
 
     def test_get_all(self):
@@ -344,3 +358,10 @@ class QueryResource(BaseTestCase):
         response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
+
+    def test_get(self):
+        DataQuery(user=self.user).save()
+        response = self.client.get('/api/queries/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content)

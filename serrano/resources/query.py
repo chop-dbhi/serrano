@@ -130,7 +130,7 @@ class QueryResource(QueryBase):
         request.instance = instance
 
     def get(self, request, **kwargs):
-        usage.log('read', instance=instance, request=request)
+        usage.log('read', instance=request.instance, request=request)
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
