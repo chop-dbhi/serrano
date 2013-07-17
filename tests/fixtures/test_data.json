@@ -99,7 +99,7 @@
             "last_name": "Smith",
             "is_manager": false,
             "office": 1,
-            "title": 1
+            "title": 3
         }
     },
     {
@@ -110,7 +110,7 @@
             "last_name": "Harris",
             "is_manager": false,
             "office": 1,
-            "title": 2
+            "title": 4
         }
     },
     {
@@ -121,7 +121,7 @@
             "last_name": "Cook",
             "is_manager": false,
             "office": 1,
-            "title": 1
+            "title": 5
         }
     },
     {
@@ -132,7 +132,7 @@
             "last_name": "Brooks",
             "is_manager": false,
             "office": 1,
-            "title": 2
+            "title": 6
         }
     }
 ]
