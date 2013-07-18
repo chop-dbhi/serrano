@@ -6,6 +6,7 @@ env:
     - DJANGO=1.4.5
     - DJANGO=1.5.1
 install:
+    - pip install git+https://github.com/cbmi/avocado.git@2.1
     - pip install -q Django==$DJANGO --use-mirrors
 script:
     - python setup.py test
