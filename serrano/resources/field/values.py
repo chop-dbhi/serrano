@@ -51,7 +51,7 @@ class FieldValues(FieldBase, PaginatorResource):
     def get_all_values(self, request, instance):
         "Returns all distinct values for this field."
         results = []
-        for value, label in instance.choices:
+        for value, label in instance.choices():
             results.append({
                 'label': label,
                 'value': value,
