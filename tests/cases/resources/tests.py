@@ -227,6 +227,15 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 3)
 
+    def test_get_all_orphan(self):
+        # Orphan one of the fields we are about to retrieve 
+        DataField.objects.filter(pk=2).update(field_name="XXX")
+
+        response = self.client.get('/api/fields/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
     def test_get_one(self):
         # Not allowed to see
         response = self.client.get('/api/fields/1/',
@@ -238,6 +247,14 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='read', object_id=2).exists())
+
+    def test_get_one_orphan(self):
+        # Orphan the field before we retrieve it
+        DataField.objects.filter(pk=2).update(model_name="XXX")
+
+        response = self.client.get('/api/fields/2/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 500)
 
     def test_get_privileged(self):
         # Superuser sees everything
