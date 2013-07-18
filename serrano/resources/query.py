@@ -1,5 +1,6 @@
 import functools
 import logging
+from datetime import datetime
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
@@ -131,6 +132,8 @@ class QueryResource(QueryBase):
 
     def get(self, request, **kwargs):
         usage.log('read', instance=request.instance, request=request)
+        self.model.objects.filter(pk=request.instance.pk).update(
+                accessed = datetime.now())
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):

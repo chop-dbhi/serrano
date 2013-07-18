@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from django.test import TestCase
 from django.core import management
 from django.contrib.auth.models import User
@@ -310,11 +311,14 @@ class ContextResource(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_get(self):
-        DataContext(user=self.user).save()
+        ctx = DataContext(user=self.user)
+        ctx.save()
         response = self.client.get('/api/contexts/1/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content)
+        self.assertLess(ctx.accessed, 
+                DataContext.objects.get(pk=ctx.pk).accessed) 
 
 
 class ViewResource(BaseTestCase):
@@ -335,13 +339,16 @@ class ViewResource(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_get(self):
-        DataView(user=self.user).save()
+        view = DataView(user=self.user)
+        view.save()
         response = self.client.get('/api/views/1/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content)
+        self.assertLess(view.accessed, 
+                DataView.objects.get(pk=view.pk).accessed)
 
-
+        
 class QueryResource(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
@@ -360,8 +367,11 @@ class QueryResource(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_get(self):
-        DataQuery(user=self.user).save()
+        query = DataQuery(user=self.user)
+        query.save()
         response = self.client.get('/api/queries/1/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content)
+        self.assertLess(query.accessed,
+                DataQuery.objects.get(pk=query.pk).accessed)
