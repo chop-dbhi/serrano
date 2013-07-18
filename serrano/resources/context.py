@@ -141,8 +141,8 @@ class ContextResource(ContextBase):
 
     def get(self, request, **kwargs):
         usage.log('read', instance=request.instance, request=request)
-        request.instance.accessed = datetime.now()
-        request.instance.save()
+        self.model.objects.filter(pk=request.instance.pk).update(
+                accessed = datetime.now())
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
