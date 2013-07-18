@@ -1,6 +1,9 @@
 import functools
+import logging
+from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
+from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
 from avocado.events import usage
@@ -9,7 +12,10 @@ from .. import templates
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
 stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
+log = logging.getLogger(__name__)
 
+def is_field_orphaned(instance):
+    return instance.model is None or instance.field is None
 
 def field_posthook(instance, data, request):
     """Field serialization post-hook for augmenting per-instance data.
@@ -120,6 +126,15 @@ class FieldResource(FieldBase):
     def get(self, request, pk):
         instance = request.instance
         usage.log('read', instance=instance, request=request)
+        
+        # If the field is an orphan then log an error before returning an error
+        if is_field_orphaned(instance):
+            log.error('Error occurred when retrieving orphaned field \
+                    {}.{}.{} with id {}'.format(instance.app_name,
+                        instance.model_name, instance.field_name, instance.pk))
+            return HttpResponse(status=codes.internal_server_error,
+                    content="Error occurred when retrieving orphaned field")
+
         return self.prepare(request, instance)
 
 
@@ -167,5 +182,14 @@ class FieldsResource(FieldResource):
                 queryset = queryset[:params['limit']]
 
             objects = queryset
+        
+        # Remove any orphaned fields before preparing the response
+        orphans = [o for o in objects if is_field_orphaned(o)]
+        orphan_pks = []
+        for o in orphans:
+            log.warning('Truncating orphaned field {}.{}.{} with id {}'.format(
+                o.app_name, o.model_name, o.field_name, o.pk))
+            orphan_pks.append(o.pk)
+        objects = objects.exclude(pk__in=orphan_pks)
 
         return self.prepare(request, objects, **params)
