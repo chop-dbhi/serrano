@@ -20,7 +20,7 @@ kwargs = {
 
     # Test dependencies
     'tests_require': [
-        'avocado[permissions,search,extras]>=2.1.0,<2.2'
+        'avocado[permissions,search,extras]>=2.1a,<2.2'
         'coverage',
         'whoosh',
     ],
