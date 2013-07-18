@@ -1,5 +1,6 @@
 import functools
 import logging
+from datetime import datetime
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
@@ -140,6 +141,8 @@ class ContextResource(ContextBase):
 
     def get(self, request, **kwargs):
         usage.log('read', instance=request.instance, request=request)
+        request.instance.accessed = datetime.now()
+        request.instance.save()
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
