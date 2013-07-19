@@ -15,7 +15,12 @@ stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
 log = logging.getLogger(__name__)
 
 def is_field_orphaned(instance):
-    return instance.model is None or instance.field is None
+    if instance.model is None or instance.field is None:
+        log.error("Field {0}.{1}.{2} with id {3} is an orphan.".format(
+            instance.app_name, instance.model_name, instance.field_name, 
+            instance.pk))
+        return True
+    return False
 
 def field_posthook(instance, data, request):
     """Field serialization post-hook for augmenting per-instance data.
@@ -129,9 +134,6 @@ class FieldResource(FieldBase):
         
         # If the field is an orphan then log an error before returning an error
         if is_field_orphaned(instance):
-            log.error("Error occurred when retrieving orphaned field "
-                    "{0}.{1}.{2} with id {3}".format(instance.app_name,
-                        instance.model_name, instance.field_name, instance.pk))
             return HttpResponse(status=codes.internal_server_error,
                     content="Error occurred when retrieving orphaned field")
 
@@ -187,8 +189,6 @@ class FieldsResource(FieldResource):
         orphans = [o for o in objects if is_field_orphaned(o)]
         orphan_pks = []
         for o in orphans:
-            log.warning("Truncating orphaned field {0}.{1}.{2} with "
-                "id {3}".format(o.app_name, o.model_name, o.field_name, o.pk))
             orphan_pks.append(o.pk)
         objects = objects.exclude(pk__in=orphan_pks)
 

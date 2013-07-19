@@ -18,10 +18,13 @@ can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 log = logging.getLogger(__name__)
 
 def has_orphaned_field(instance):
+    has_orphan = False
     for field in instance.fields.iterator():
         if FieldResources.is_field_orphaned(field):
-            return True
-    return False
+            log.error("Concept with ID={0} has orphaned field.".format(
+                instance.pk))
+            has_orphan =  True
+    return has_orphan
 
 def concept_posthook(instance, data, request, embed, brief, categories=None):
     """Concept serialization post-hook for augmenting per-instance data.
@@ -167,12 +170,7 @@ class ConceptResource(ConceptBase):
         params = self.get_params(request)
         instance = request.instance
         
-        if params['embed']:
-            for field in instance.fields.iterator():
-                log.error("Concept with ID={0} has orphaned field "
-                    "{1}.{2}.{3}. with id {4}".format(instance.pk, 
-                        field.app_name, field.model_name, field.field_name, 
-                        field.pk))
+        if params['embed'] and has_orphaned_field(instance):
             return HttpResponse(status=codes.internal_server_error,
                 content="Could not get concept because it has one or more "
                     "orphaned fields.")
@@ -190,26 +188,17 @@ class ConceptFieldsResource(ConceptBase):
         fields = []
         resource = FieldResource()
 
-        has_orphaned_field = False
-        for cfield in instance.concept_fields.iterator():
-            if FieldResources.is_field_orphaned(cfield.field):
-                log.error("Concept with ID={0} has orphaned concept field for "
-                    "field {1}.{2}.{3} with id {4}".format(instance.pk, 
-                        cfield.field.app_name, cfield.field.model_name, 
-                        cfield.field.field_name, cfield.field.pk))
-                has_orphaned_field = True
-                continue
+        if has_orphaned_field(instance):
+            return HttpResponse(status=codes.internal_server_error,
+                content="Could not get concept fields because one or more are "
+                    "linked to orphaned fields.")
 
+        for cfield in instance.concept_fields.iterator():
             field = resource.prepare(request, cfield.field)
             # Add the alternate name specific to the relationship between the
             # concept and the field.
             field.update(serialize(cfield, **template))
             fields.append(field)
-
-        if has_orphaned_field:
-            return HttpResponse(status=codes.internal_server_error,
-                content="Could not get concept fields because one or more are "
-                    "linked to orphaned fields.")
 
         return fields
 
@@ -266,10 +255,7 @@ class ConceptsResource(ConceptBase):
         if params['embed']:
             pks = []
             for obj in objects:
-                if has_orphaned_field(obj):
-                    log.warning("Truncating concept(id={0}) with orphaned "
-                        "field.".format(obj.pk))
-                else:
+                if not has_orphaned_field(obj):
                     pks.append(obj.pk)
             objects = self.model.objects.filter(pk__in=pks)
 

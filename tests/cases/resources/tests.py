@@ -460,7 +460,7 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
 
-    def test_one_orphan(self):
+    def test_get_one_orphan(self):
         # Orphan one of the fields on the concept before we retrieve it
         DataField.objects.filter(pk=2).update(model_name="XXX")
 
