@@ -18,7 +18,7 @@ can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 log = logging.getLogger(__name__)
 
 def has_orphaned_field(instance):
-    for cfield in instance.concept_fields.select_related('field').iterator():
+    for cfield in instance.concept_fields.iterator():
         if FieldResources.is_field_orphaned(cfield.field):
             return True
     return False
@@ -168,7 +168,7 @@ class ConceptResource(ConceptBase):
         instance = request.instance
         
         if params.get('embed', False):
-            for cf in instance.concept_fields.select_related('field').iterator():
+            for cf in instance.concept_fields.iterator():
                 log.error("Concept with ID={0} has orphaned field "
                     "{1}.{2}.{3}. with id {4}".format(instance.pk, 
                         cf.field.app_name, cf.field.model_name, 
@@ -191,7 +191,7 @@ class ConceptFieldsResource(ConceptBase):
         resource = FieldResource()
 
         has_orphaned_field = False
-        for cfield in instance.concept_fields.select_related('field').iterator():
+        for cfield in instance.concept_fields.iterator():
             if FieldResources.is_field_orphaned(cfield.field):
                 log.error("Concept with ID={0} has orphaned concept field for "
                     "field {1}.{2}.{3} with id {4}".format(instance.pk, 
