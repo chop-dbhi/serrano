@@ -1,3 +1,4 @@
+import logging
 import functools
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
@@ -9,9 +10,10 @@ from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
 from .base import DataResource, SAFE_METHODS
 from . import templates
+from .field import base as FieldResources
 
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
-
+log = logging.getLogger(__name__)
 
 def concept_posthook(instance, data, request, embed, brief, categories=None):
     """Concept serialization post-hook for augmenting per-instance data.
@@ -170,6 +172,12 @@ class ConceptFieldsResource(ConceptBase):
         resource = FieldResource()
 
         for cfield in instance.concept_fields.select_related('field').iterator():
+            if FieldResources.is_field_orphaned(cfield.field):
+                log.warning('Truncating orphaned field {}.{}.{} with id \
+                    {}'.format(cfield.field.app_name, cfield.field.model_name, 
+                        cfield.field.field_name, cfield.field.pk))
+                continue
+
             field = resource.prepare(request, cfield.field)
             # Add the alternate name specific to the relationship between the
             # concept and the field.

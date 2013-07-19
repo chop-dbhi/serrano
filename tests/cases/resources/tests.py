@@ -462,10 +462,12 @@ class ConceptFieldResourceTestCase(BaseTestCase):
         DataConceptField(concept=c1, field=boss_field, order=3).save()
 
     def test_get(self):
+        DataField.objects.filter(pk=2).update(field_name="XXX")
+
         response = self.client.get('/api/concepts/1/fields/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(json.loads(response.content)), 3)
+        self.assertEqual(len(json.loads(response.content)), 2)
 
 
 class ContextResourceTestCase(BaseTestCase):
