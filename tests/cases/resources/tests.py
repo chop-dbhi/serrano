@@ -444,6 +444,30 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
 
 
+class ConceptFieldResourceTestCase(BaseTestCase):
+    def setUp(self):
+        super(ConceptFieldResourceTestCase, self).setUp()
+
+        name_field = DataField.objects.get_by_natural_key('tests', 'title',
+                        'name')
+        salary_field = DataField.objects.get_by_natural_key('tests', 'title',
+                        'salary')
+        boss_field = DataField.objects.get_by_natural_key('tests', 'title',
+                        'boss')
+
+        c1 = DataConcept(name='Title', published=True, pk=1)
+        c1.save()
+        DataConceptField(concept=c1, field=name_field, order=1).save()
+        DataConceptField(concept=c1, field=salary_field, order=2).save()
+        DataConceptField(concept=c1, field=boss_field, order=3).save()
+
+    def test_get(self):
+        response = self.client.get('/api/concepts/1/fields/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 3)
+
+
 class ContextResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
