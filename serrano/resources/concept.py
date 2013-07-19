@@ -264,13 +264,14 @@ class ConceptsResource(ConceptBase):
             objects = queryset
         
         if params['embed']:
-            orphans = [o for o in objects if has_orphaned_field(o)]
-            orphan_pks = []
-            for o in orphans:
-                log.warning("Truncating concept(id={0}) with orphaned "
-                    "field.".format(o.pk))
-                orphan_pks.append(o.pk)
-            objects = objects.exclude(pk__in=orphan_pks)
+            pks = []
+            for obj in objects:
+                if has_orphaned_field(obj):
+                    log.warning("Truncating concept(id={0}) with orphaned "
+                        "field.".format(obj.pk))
+                else:
+                    pks.append(obj.pk)
+            objects = self.model.objects.filter(pk__in=pks)
 
         return self.prepare(request, objects, **params)
 
