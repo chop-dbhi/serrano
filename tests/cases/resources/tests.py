@@ -7,7 +7,8 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.test.utils import override_settings
 from avocado.conf import OPTIONAL_DEPS
-from avocado.models import DataField, DataContext, DataView, DataQuery, Log
+from avocado.models import DataField, DataConcept, DataConceptField, \
+    DataContext, DataView, DataQuery, Log
 from restlib2.http import codes
 from serrano.resources import API_VERSION
 
@@ -228,7 +229,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 3)
 
     def test_get_all_orphan(self):
-        # Orphan one of the fields we are about to retrieve 
+        # Orphan one of the fields we are about to retrieve
         DataField.objects.filter(pk=2).update(field_name="XXX")
 
         response = self.client.get('/api/fields/',
@@ -397,6 +398,50 @@ class FieldResourceTestCase(BaseTestCase):
             }],
         })
         self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
+
+
+class ConceptResourceTestCase(BaseTestCase):
+    def setUp(self):
+        super(ConceptResourceTestCase, self).setUp()
+
+        name_field = DataField.objects.get_by_natural_key('tests', 'title',
+                        'name')
+        salary_field = DataField.objects.get_by_natural_key('tests', 'title',
+                        'salary')
+        boss_field = DataField.objects.get_by_natural_key('tests', 'title',
+                        'boss')
+
+        c1 = DataConcept(name='Title', published=True, pk=1)
+        c1.save()
+        DataConceptField(concept=c1, field=name_field, order=1).save()
+        DataConceptField(concept=c1, field=salary_field, order=2).save()
+        DataConceptField(concept=c1, field=boss_field, order=3).save()
+
+        c2 = DataConcept(name='Salary', pk=2)
+        c2.save()
+        DataConceptField(concept=c2, field=salary_field, order=1).save()
+        DataConceptField(concept=c2, field=boss_field, order=2).save()
+
+        c3 = DataConcept(name='Name', published=True, pk=3)
+        c3.save()
+        DataConceptField(concept=c1, field=name_field, order=1).save()
+
+    def test_get_all(self):
+        response = self.client.get('/api/concepts/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+    def test_get_one(self):
+        response = self.client.get('/api/concepts/999/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get('/api/concepts/3/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content))
+        self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
 
 
 class ContextResourceTestCase(BaseTestCase):
