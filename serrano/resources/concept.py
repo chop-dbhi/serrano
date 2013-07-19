@@ -22,8 +22,8 @@ def has_orphaned_field(instance):
     for field in instance.fields.iterator():
         if FieldResources.is_field_orphaned(field):
             log.error('Concept has orphaned field.', extra={
-                'concept': instance,
-                'field': field
+                'concept': instance.pk,
+                'field': field.pk
                 })
             has_orphan =  True
     return has_orphan

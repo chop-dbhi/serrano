@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 def is_field_orphaned(instance):
     if instance.model is None or instance.field is None:
-        log.error("Field is an orphan.", extra={'field': instance})
+        log.error("Field is an orphan.", extra={'field': instance.pk})
         return True
     return False
 
