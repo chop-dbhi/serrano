@@ -185,11 +185,10 @@ class FieldsResource(FieldResource):
 
             objects = queryset
         
-        # Remove any orphaned fields before preparing the response
-        orphans = [o for o in objects if is_field_orphaned(o)]
-        orphan_pks = []
-        for o in orphans:
-            orphan_pks.append(o.pk)
-        objects = objects.exclude(pk__in=orphan_pks)
+        pks = []
+        for obj in objects:
+            if not is_field_orphaned(obj):
+                pks.append(obj.pk)
+        objects = self.model.objects.filter(pk__in=pks)
 
         return self.prepare(request, objects, **params)
