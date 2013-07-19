@@ -169,9 +169,10 @@ class ConceptResource(ConceptBase):
         
         if params.get('embed', False):
             for cf in instance.concept_fields.select_related('field').iterator():
-                log.error("Concept with ID={} has orphaned field {}.{}.{}. "
-                    "with id {}".format(instance.pk, cf.field.app_name,
-                        cf.field.model_name, cf.field.field_name, cf.field.pk))
+                log.error("Concept with ID={0} has orphaned field "
+                    "{1}.{2}.{3}. with id {4}".format(instance.pk, 
+                        cf.field.app_name, cf.field.model_name, 
+                        cf.field.field_name, cf.field.pk))
             return HttpResponse(status=codes.internal_server_error,
                 content="Could not get concept because it has one or more "
                     "orphaned fields.")
@@ -192,8 +193,8 @@ class ConceptFieldsResource(ConceptBase):
         has_orphaned_field = False
         for cfield in instance.concept_fields.select_related('field').iterator():
             if FieldResources.is_field_orphaned(cfield.field):
-                log.error("Concept with ID={} has orphaned concept field for "
-                    "field {}.{}.{} with id {}".format(instance.pk, 
+                log.error("Concept with ID={0} has orphaned concept field for "
+                    "field {1}.{2}.{3} with id {4}".format(instance.pk, 
                         cfield.field.app_name, cfield.field.model_name, 
                         cfield.field.field_name, cfield.field.pk))
                 has_orphaned_field = True
@@ -266,7 +267,7 @@ class ConceptsResource(ConceptBase):
             orphans = [o for o in objects if has_orphaned_field(o)]
             orphan_pks = []
             for o in orphans:
-                log.warning("Truncating concept(id={}) with orphaned "
+                log.warning("Truncating concept(id={0}) with orphaned "
                     "field.".format(o.pk))
                 orphan_pks.append(o.pk)
             objects = objects.exclude(pk__in=orphan_pks)

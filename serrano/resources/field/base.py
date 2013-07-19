@@ -130,7 +130,7 @@ class FieldResource(FieldBase):
         # If the field is an orphan then log an error before returning an error
         if is_field_orphaned(instance):
             log.error("Error occurred when retrieving orphaned field "
-                    "{}.{}.{} with id {}".format(instance.app_name,
+                    "{0}.{1}.{2} with id {3}".format(instance.app_name,
                         instance.model_name, instance.field_name, instance.pk))
             return HttpResponse(status=codes.internal_server_error,
                     content="Error occurred when retrieving orphaned field")
@@ -187,8 +187,8 @@ class FieldsResource(FieldResource):
         orphans = [o for o in objects if is_field_orphaned(o)]
         orphan_pks = []
         for o in orphans:
-            log.warning('Truncating orphaned field {}.{}.{} with id {}'.format(
-                o.app_name, o.model_name, o.field_name, o.pk))
+            log.warning("Truncating orphaned field {0}.{1}.{2} with "
+                "id {3}".format(o.app_name, o.model_name, o.field_name, o.pk))
             orphan_pks.append(o.pk)
         objects = objects.exclude(pk__in=orphan_pks)
 
