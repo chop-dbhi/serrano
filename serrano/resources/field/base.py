@@ -129,8 +129,8 @@ class FieldResource(FieldBase):
         
         # If the field is an orphan then log an error before returning an error
         if is_field_orphaned(instance):
-            log.error('Error occurred when retrieving orphaned field \
-                    {}.{}.{} with id {}'.format(instance.app_name,
+            log.error("Error occurred when retrieving orphaned field "
+                    "{}.{}.{} with id {}".format(instance.app_name,
                         instance.model_name, instance.field_name, instance.pk))
             return HttpResponse(status=codes.internal_server_error,
                     content="Error occurred when retrieving orphaned field")
