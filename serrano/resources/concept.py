@@ -167,7 +167,7 @@ class ConceptResource(ConceptBase):
         params = self.get_params(request)
         instance = request.instance
         
-        if params.get('embed', False):
+        if params['embed']:
             for cf in instance.concept_fields.iterator():
                 log.error("Concept with ID={0} has orphaned field "
                     "{1}.{2}.{3}. with id {4}".format(instance.pk, 
@@ -263,7 +263,7 @@ class ConceptsResource(ConceptBase):
 
             objects = queryset
         
-        if params.get('embed', None):
+        if params['embed']:
             orphans = [o for o in objects if has_orphaned_field(o)]
             orphan_pks = []
             for o in orphans:
