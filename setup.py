@@ -23,6 +23,7 @@ kwargs = {
         'avocado[permissions,search,extras]>=2.1a,<2.2'
         'coverage',
         'whoosh',
+        'python-memcached==1.48'
     ],
 
     'test_suite': 'test_suite',
