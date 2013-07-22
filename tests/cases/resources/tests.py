@@ -293,7 +293,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
 
 
-class ContextResource(BaseTestCase):
+class ContextResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -321,7 +321,7 @@ class ContextResource(BaseTestCase):
                 DataContext.objects.get(pk=ctx.pk).accessed) 
 
 
-class ViewResource(BaseTestCase):
+class ViewResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -349,7 +349,7 @@ class ViewResource(BaseTestCase):
                 DataView.objects.get(pk=view.pk).accessed)
 
         
-class QueryResource(BaseTestCase):
+class QueryResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
