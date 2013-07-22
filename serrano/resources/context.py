@@ -11,7 +11,7 @@ from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import BaseResource
+from .base import DataResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def context_posthook(instance, data, request):
     return data
 
 
-class ContextBase(BaseResource):
+class ContextBase(DataResource):
     cache_max_age = 0
     private_cache = True
 

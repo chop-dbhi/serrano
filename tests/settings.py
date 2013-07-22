@@ -33,6 +33,16 @@ AUTHENTICATION_BACKENDS = (
     'serrano.backends.TokenBackend',
 )
 
+SERRANO_RATE_LIMIT_COUNT=20
+SERRANO_RATE_LIMIT_SECONDS=3
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+
 SITE_ID = 1
 
 ROOT_URLCONF = 'tests.urls'

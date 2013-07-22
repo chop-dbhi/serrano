@@ -7,7 +7,7 @@ from avocado.events import usage
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
-from .base import BaseResource, SAFE_METHODS
+from .base import DataResource, SAFE_METHODS
 from . import templates
 
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
@@ -90,7 +90,7 @@ class ConceptParametizer(Parametizer):
         return param_cleaners.clean_int(value)
 
 
-class ConceptBase(BaseResource):
+class ConceptBase(DataResource):
     "Base resource for Concept-related data."
 
     model = DataConcept
