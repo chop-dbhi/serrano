@@ -4,7 +4,7 @@ from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
 from avocado.events import usage
-from ..base import BaseResource
+from ..base import DataResource
 from .. import templates
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
@@ -79,7 +79,7 @@ class FieldParametizer(Parametizer):
         return param_cleaners.clean_int(value)
 
 
-class FieldBase(BaseResource):
+class FieldBase(DataResource):
     model = DataField
 
     parametizer = FieldParametizer

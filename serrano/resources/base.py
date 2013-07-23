@@ -1,6 +1,8 @@
-import re
 import functools
+import re
+from datetime import datetime
 from django.conf import settings
+from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.params import Parametizer, param_cleaners
 from restlib2.resources import Resource
@@ -213,6 +215,66 @@ class BaseResource(Resource):
     def get_query(self, request, attrs=None):
         "Returns a DataQuery object based on `attrs` or the request."
         return get_request_query(request, attrs=attrs)
+
+
+class DataResource(BaseResource):
+    def __init__(self, **kwargs):
+        self.rate_limit_count = getattr(settings, 'SERRANO_RATE_LIMIT_COUNT',
+            self.rate_limit_count)
+        self.rate_limit_seconds = getattr(settings,
+            'SERRANO_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
+
+        return super(DataResource, self).__init__(**kwargs)
+
+    def is_too_many_requests(self, request, *arg, **kwargs):
+        # Check for an identifier for this request. First, try to use the
+        # user id and then try the session key as a fallback.
+        if hasattr(request, 'user') and request.user.is_authenticated():
+            request_id = request.user.id
+        elif request.session.session_key:
+            request_id = request.session.session_key
+        else:
+            # The only time we should reach this point is for
+            # non-authenitcated, cookieless agents(bots). Simply return False
+            # here and let other methods decide how to deal with the bot.
+            return False
+
+        # Construct the cache key from the request identifier and lookup
+        # the current cached value for the key. The counts that are stored in
+        # the cache are tuples where the 1st value is the request count for
+        # the given time interval and the 2nd value is the start of the
+        # time interval.
+        cache_key = 'serrano:data_request:{0}'.format(request_id)
+        current_count = cache.get(cache_key)
+
+        # If there is nothing cached for this key then add a new cache value
+        # with a count of 1 and interval starting at the current date and time.
+        # Obviously, if nothing is cached then we can't have had too many
+        # requests as this is the first one so we return False here.
+        if current_count is None:
+            cache.set(cache_key, (1, datetime.now()))
+            return False
+        else:
+            # Calculate the time in seconds between the current date and time
+            # and the interval start from the cached value.
+            interval = (datetime.now() - current_count[1]).seconds
+
+            # If we have exceeded the interval size then reset the interval
+            # start time and reset the request count to 1 since we are on a
+            # new interval now.
+            if interval > self.rate_limit_seconds:
+                cache.set(cache_key, (1, datetime.now()))
+                return False
+
+            # Update the request count to account for this request
+            new_count = current_count[0] + 1
+            cache.set(cache_key, (new_count, current_count[1]))
+
+            # Since we are still within the interval, just check if we have
+            # exceeded the request limit or not and return the result of the
+            # comparison.
+            return new_count > self.rate_limit_count
+
 
 class PaginatorParametizer(Parametizer):
     page = 1

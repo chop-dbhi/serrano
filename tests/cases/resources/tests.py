@@ -1,11 +1,14 @@
 import json
-from datetime import datetime
-from django.test import TestCase
-from django.core import management
+import time
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import management
+from django.core.cache import cache
+from django.test import TestCase
 from django.test.utils import override_settings
-from avocado.models import DataField, DataContext, DataView, DataQuery, Log
 from avocado.conf import OPTIONAL_DEPS
+from avocado.models import DataField, DataContext, DataView, DataQuery, Log
+from restlib2.http import codes
 from serrano.resources import API_VERSION
 
 class BaseTestCase(TestCase):
@@ -129,6 +132,46 @@ class ExporterResourceTestCase(TestCase):
             }
 
         self.assertEqual(json.loads(response.content), expectedResponse)
+
+
+@override_settings(SERRANO_RATE_LIMIT_COUNT=None)
+class DataResourceTestCase(BaseTestCase):
+    def test_too_many_requests(self):
+        self.client.login(username='root', password='password')
+
+        cache_key = 'serrano:data_request:{0}'.format(self.user.id)
+        # Be certain we are clear of the current interval
+        time.sleep(4)
+
+        # These 10 requests should be OK
+        for _ in range(0, 10):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
+
+        # Wait a little while but stay in the interval
+        time.sleep(1)
+
+        # These 10 requests should be still be OK
+        for _ in range(0, 10):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
+
+        # These 10 requests should fail as we've exceeded the limit
+        for _ in range(0, 10):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.too_many_requests)
+
+        # Wait out the interval
+        time.sleep(4)
+
+        # These 5 requests should be OK
+        for _ in range(0, 5):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
 
 
 class FieldResourceTestCase(BaseTestCase):
@@ -293,7 +336,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
 
 
-class ContextResource(BaseTestCase):
+class ContextResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -321,7 +364,7 @@ class ContextResource(BaseTestCase):
                 DataContext.objects.get(pk=ctx.pk).accessed) 
 
 
-class ViewResource(BaseTestCase):
+class ViewResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -349,7 +392,7 @@ class ViewResource(BaseTestCase):
                 DataView.objects.get(pk=view.pk).accessed)
 
         
-class QueryResource(BaseTestCase):
+class QueryResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
