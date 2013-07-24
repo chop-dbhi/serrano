@@ -7,4 +7,4 @@ title: "Serrano: Hypermedia APIs for Avocado"
 
 ---
 
-#### Next: [Install & Setup]({{ site.baseurl }}{% post_url 2013-06-12-install-setup %})
+Get started with the [Install & Setup]({{ site.baseurl }}{% post_url 2013-06-12-install-setup %}) guide.
