@@ -136,15 +136,61 @@ class ExporterResourceTestCase(TestCase):
 
 @override_settings(SERRANO_RATE_LIMIT_COUNT=None)
 class DataResourceTestCase(BaseTestCase):
-    def test_too_many_requests(self):
+    def test_too_many_auth_requests(self):
         self.client.login(username='root', password='password')
 
-        cache_key = 'serrano:data_request:{0}'.format(self.user.id)
         # Be certain we are clear of the current interval
-        time.sleep(4)
+        time.sleep(7)
+
+        # These 20 requests should be OK
+        for _ in range(20):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
+
+        # Wait a little while but stay in the interval
+        time.sleep(3)
+
+        # These 20 requests should be still be OK
+        for _ in range(20):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
+
+        # These 10 requests should fail as we've exceeded the limit
+        for _ in range(10):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.too_many_requests)
+
+        # Wait out the interval
+        time.sleep(6)
+
+        # These 5 requests should be OK
+        for _ in range(5):
+            response = self.client.get('/api/fields/2/',
+                HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, 200)
+
+
+    def test_too_many_requests(self):
+        # Force these the requests to be unauthenitcated
+        self.user = None
+
+        # We execute a request before the actual test in order to initialize
+        # the session so that we have valid session keys on subsequent
+        # requests.
+        # TODO: Can the session be initialized somehow without sending
+        # a request via the client?
+        response = self.client.get('/api/fields/2/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        # Be certain we are clear of the current interval
+        time.sleep(5)
 
         # These 10 requests should be OK
-        for _ in range(0, 10):
+        for _ in range(10):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, 200)
@@ -153,13 +199,13 @@ class DataResourceTestCase(BaseTestCase):
         time.sleep(1)
 
         # These 10 requests should be still be OK
-        for _ in range(0, 10):
+        for _ in range(10):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, 200)
 
         # These 10 requests should fail as we've exceeded the limit
-        for _ in range(0, 10):
+        for _ in range(10):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.too_many_requests)
@@ -168,7 +214,7 @@ class DataResourceTestCase(BaseTestCase):
         time.sleep(4)
 
         # These 5 requests should be OK
-        for _ in range(0, 5):
+        for _ in range(5):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, 200)

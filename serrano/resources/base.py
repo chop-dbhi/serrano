@@ -224,13 +224,25 @@ class DataResource(BaseResource):
         self.rate_limit_seconds = getattr(settings,
             'SERRANO_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
 
+        self.auth_rate_limit_count = getattr(settings,
+            'SERRANO_AUTH_RATE_LIMIT_COUNT', self.rate_limit_count)
+        self.auth_rate_limit_seconds = getattr(settings,
+            'SERRANO_AUTH_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
+
         return super(DataResource, self).__init__(**kwargs)
 
     def is_too_many_requests(self, request, *arg, **kwargs):
+        limit_count = self.rate_limit_count
+        limit_seconds = self.rate_limit_seconds
+
         # Check for an identifier for this request. First, try to use the
-        # user id and then try the session key as a fallback.
+        # user id and then try the session key as a fallback. If this is an
+        # authenticated request then we prepend an indicator to the request
+        # id and use the authenticated limiter settings.
         if hasattr(request, 'user') and request.user.is_authenticated():
-            request_id = request.user.id
+            request_id = "auth:{0}".format(request.user.id)
+            limit_count = self.auth_rate_limit_count
+            limit_seconds = self.auth_rate_limit_seconds
         elif request.session.session_key:
             request_id = request.session.session_key
         else:
@@ -262,7 +274,7 @@ class DataResource(BaseResource):
             # If we have exceeded the interval size then reset the interval
             # start time and reset the request count to 1 since we are on a
             # new interval now.
-            if interval > self.rate_limit_seconds:
+            if interval > limit_seconds:
                 cache.set(cache_key, (1, datetime.now()))
                 return False
 
@@ -273,7 +285,7 @@ class DataResource(BaseResource):
             # Since we are still within the interval, just check if we have
             # exceeded the request limit or not and return the result of the
             # comparison.
-            return new_count > self.rate_limit_count
+            return new_count > limit_count
 
 
 class PaginatorParametizer(Parametizer):
