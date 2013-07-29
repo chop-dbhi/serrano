@@ -62,6 +62,7 @@ View = {
 }
 
 Query = {
+    'fields': [':pk', 'name', 'description', 'accessed', 'shared_users'],
     'exclude': ['user', 'session_key'],
     'allow_missing': True,
 }
