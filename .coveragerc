@@ -14,6 +14,3 @@ exclude_lines =
     raise NotImplemented(Error)?
     if 0:
     if __name__ == .__main__.:
-
-[html]
-directory = docs/coverage
