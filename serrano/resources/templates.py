@@ -61,8 +61,18 @@ View = {
     'allow_missing': True,
 }
 
+User = {
+    'fields': [':pk', 'name', 'username', 'email'],
+    'aliases': {
+        'name': 'get_full_name',
+    }
+}
+
 Query = {
-    'fields': [':pk', 'name', 'description', 'accessed', 'shared_users'],
-    'exclude': ['user', 'session_key'],
+    'exclude': ['session_key'],
     'allow_missing': True,
+    'related': {
+        'user': User,
+        'shared_users': User,
+    }
 }
