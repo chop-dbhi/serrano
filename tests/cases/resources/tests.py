@@ -406,8 +406,8 @@ class ContextResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content)
-        self.assertLess(ctx.accessed, 
-                DataContext.objects.get(pk=ctx.pk).accessed) 
+        self.assertLess(ctx.accessed,
+                DataContext.objects.get(pk=ctx.pk).accessed)
 
 
 class ViewResourceTestCase(BaseTestCase):
@@ -434,10 +434,10 @@ class ViewResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content)
-        self.assertLess(view.accessed, 
+        self.assertLess(view.accessed,
                 DataView.objects.get(pk=view.pk).accessed)
 
-        
+
 class QueryResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
@@ -464,3 +464,19 @@ class QueryResourceTestCase(BaseTestCase):
         self.assertTrue(response.content)
         self.assertLess(query.accessed,
                 DataQuery.objects.get(pk=query.pk).accessed)
+
+    def test_shared_user(self):
+        query = DataQuery(user=self.user)
+        query.save()
+        sharee = User(username='sharee', first_name='Shared',
+            last_name='User', email='share@example.com')
+        sharee.save()
+        query.shared_users.add(sharee)
+        response = self.client.get('/api/queries/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(json.loads(response.content)['shared_users'][0], {
+            'id': 2,
+            'username': 'sharee',
+            'name': 'Shared User',
+            'email': 'share@example.com',
+        })
