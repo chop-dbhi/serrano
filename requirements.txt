@@ -1,4 +1,4 @@
 avocado>=2.1a,<2.2
 django-preserialize>=1.0.4,<1.1.0
 restlib2>=0.3.7,<0.4
-coverage
+python-memcached==1.4.8
