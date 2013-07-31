@@ -1,6 +1,17 @@
 import os
+import sys
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
 
 from django.core import management
-management.call_command('test', 'resources', 'forms', 'tokens')
+
+apps = sys.argv[1:]
+
+if not apps:
+    apps = [
+        'resources',
+        'forms',
+        'tokens',
+    ]
+
+management.call_command('test', *apps)
