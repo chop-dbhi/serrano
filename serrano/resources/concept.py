@@ -172,7 +172,8 @@ class ConceptResource(ConceptBase):
         params = self.get_params(request)
         instance = request.instance
 
-        if params['embed'] and has_orphaned_field(instance):
+        if (self.checks_for_orphans and params['embed'] and
+                has_orphaned_field(instance)):
             return HttpResponse(status=codes.internal_server_error,
                 content="Could not get concept because it has one or more "
                     "orphaned fields.")
@@ -190,7 +191,7 @@ class ConceptFieldsResource(ConceptBase):
         fields = []
         resource = FieldResource()
 
-        if has_orphaned_field(instance):
+        if self.checks_for_orphans and has_orphaned_field(instance):
             return HttpResponse(status=codes.internal_server_error,
                 content="Could not get concept fields because one or more are "
                     "linked to orphaned fields.")
@@ -254,7 +255,7 @@ class ConceptsResource(ConceptBase):
 
             objects = queryset
 
-        if params['embed']:
+        if self.checks_for_orphans and params['embed']:
             pks = []
             for obj in objects:
                 if not has_orphaned_field(obj):

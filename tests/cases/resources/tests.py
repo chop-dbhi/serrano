@@ -237,6 +237,14 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
+    def test_get_all_orphan_check_off(self):
+        # Orphan one of the fields we are about to retrieve
+        DataField.objects.filter(pk=2).update(field_name="XXX")
+
+        self.assertRaises(AttributeError, self.client.get, '/api/fields/',
+            HTTP_ACCEPT='application/json')
+
     def test_get_one(self):
         # Not allowed to see
         response = self.client.get('/api/fields/1/',
@@ -256,6 +264,14 @@ class FieldResourceTestCase(BaseTestCase):
         response = self.client.get('/api/fields/2/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 500)
+
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
+    def test_get_one_orphan_check_off(self):
+        # Orphan one of the fields we are about to retrieve
+        DataField.objects.filter(pk=2).update(field_name="XXX")
+
+        self.assertRaises(AttributeError, self.client.get, '/api/fields/2/',
+            HTTP_ACCEPT='application/json')
 
     def test_get_privileged(self):
         # Superuser sees everything
@@ -442,7 +458,23 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        # If we aren't embedding the fields, then we none of the concepts 
+        # If we aren't embedding the fields, then none of the concepts
+        # should be filtered out.
+        response = self.client.get('/api/concepts/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
+    def test_get_all_orphan_check_off(self):
+        # Orphan one of the fields we are about to embed in the concepts we
+        # are about to retrieve.
+        DataField.objects.filter(pk=2).update(field_name='XXX')
+
+        self.assertRaises(AttributeError, self.client.get, '/api/concepts/',
+            {'embed': True}, HTTP_ACCEPT='application/json')
+
+        # If we aren't embedding the fields, then none of the concepts
         # should be filtered out.
         response = self.client.get('/api/concepts/',
             HTTP_ACCEPT='application/json')
@@ -473,6 +505,18 @@ class ConceptResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
 
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
+    def test_get_one_orphan_check_off(self):
+        # Orphan one of the fields on the concept before we retrieve it
+        DataField.objects.filter(pk=2).update(model_name="XXX")
+
+        self.assertRaises(AttributeError, self.client.get, '/api/concepts/1/',
+            {'embed': True}, HTTP_ACCEPT='application/json')
+
+        # If we aren't embedding the fields, there should not be a server error
+        response = self.client.get('/api/concepts/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
 
 
 class ConceptFieldResourceTestCase(BaseTestCase):
@@ -499,7 +543,7 @@ class ConceptFieldResourceTestCase(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 3)
 
     def test_get_orphan(self):
-        # Orphan the data field linked to the concept we are about to read 
+        # Orphan the data field linked to the concept we are about to read
         # the fields for.
         DataField.objects.filter(pk=2).update(field_name="XXX")
 
@@ -507,7 +551,17 @@ class ConceptFieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 500)
 
-class ContextResourceTestCase(BaseTestCase):
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
+    def test_get_orphan_check_off(self):
+        # Orphan the data field linked to the concept we are about to read
+        # the fields for.
+        DataField.objects.filter(pk=2).update(field_name="XXX")
+
+        self.assertRaises(AttributeError, self.client.get,
+            '/api/concepts/1/fields/', HTTP_ACCEPT='application/json')
+
+
+class ContextResource(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')

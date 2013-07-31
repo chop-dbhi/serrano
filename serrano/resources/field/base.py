@@ -131,7 +131,7 @@ class FieldResource(FieldBase):
         usage.log('read', instance=instance, request=request)
         
         # If the field is an orphan then log an error before returning an error
-        if is_field_orphaned(instance):
+        if self.checks_for_orphans and is_field_orphaned(instance):
             return HttpResponse(status=codes.internal_server_error,
                     content="Error occurred when retrieving orphaned field")
 
@@ -182,11 +182,12 @@ class FieldsResource(FieldResource):
                 queryset = queryset[:params['limit']]
 
             objects = queryset
-        
-        pks = []
-        for obj in objects:
-            if not is_field_orphaned(obj):
-                pks.append(obj.pk)
-        objects = self.model.objects.filter(pk__in=pks)
+
+        if self.checks_for_orphans:
+            pks = []
+            for obj in objects:
+                if not is_field_orphaned(obj):
+                    pks.append(obj.pk)
+            objects = self.model.objects.filter(pk__in=pks)
 
         return self.prepare(request, objects, **params)
