@@ -10,6 +10,7 @@ from preserialize.serialize import serialize
 from avocado.models import DataQuery
 from avocado.conf import settings
 from avocado.events import usage
+from serrano import utils
 from serrano.forms import QueryForm
 from .base import DataResource
 from . import templates
@@ -17,6 +18,10 @@ from . import templates
 log = logging.getLogger(__name__)
 
 HISTORY_ENABLED = settings.HISTORY_ENABLED
+DELETE_QUERY_EMAIL_TITLE = "'{0}' has been deleted"
+DELETE_QUERY_EMAIL_BODY = """The query named '{0}' has been deleted. You are
+ being notified because this query was shared with you. This query is no
+ longer available."""
 
 def query_posthook(instance, data, request):
     uri = request.build_absolute_uri
@@ -152,8 +157,13 @@ class QueryResource(QueryBase):
     def delete(self, request, **kwargs):
         if request.instance.session:
             return HttpResponse(status=codes.bad_request)
+
+        utils.email_users(request.instance.shared_users.all().only('email'),
+            DELETE_QUERY_EMAIL_TITLE.format(request.instance.name),
+            DELETE_QUERY_EMAIL_BODY.format(request.instance.name))
+
         request.instance.delete()
-        usage.log('delete', instance=instance, request=request)
+        usage.log('delete', instance=request.instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 
