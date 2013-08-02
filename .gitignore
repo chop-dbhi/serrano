@@ -6,5 +6,5 @@
 .coverage
 MANIFEST
 dist
-docs
+docs/_build
 profiled_tests.txt
