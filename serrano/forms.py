@@ -93,13 +93,20 @@ class QueryForm(forms.ModelForm):
         self.count_needs_update = kwargs.pop('force_count', None)
         super(QueryForm, self).__init__(*args, **kwargs)
 
-    def clean_json(self):
-        # XXX: Does this need to be split into context_json and view_json
-        # checks here and in the fields in the Meta class?
-        json = self.cleaned_data.get('json')
-
+    def clean_context_json(self):
+        json = self.cleaned_data.get('context_json')
         if self.count_needs_update is None:
-            existing = self.instance.json
+            existing = self.instance.context_json
+            if existing or json and existing != json or json and self.instance.count is None:
+                self.count_needs_update = True
+            else:
+                self.count_needs_update = False
+        return json
+
+    def clean_view_json(self):
+        json = self.cleaned_data.get('view_json')
+        if self.count_needs_update is None:
+            existing = self.instance.view_json
             if existing or json and existing != json or json and self.instance.count is None:
                 self.count_needs_update = True
             else:
