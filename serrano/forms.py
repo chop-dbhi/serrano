@@ -177,7 +177,8 @@ class QueryForm(forms.ModelForm):
             # already shared with. We only want to email users the first time
             # a query is shared with them so we get the existing list of email
             # addresses to avoid repeated emails to users about the same query.
-            existing_emails = set(instance.shared_users.all().values('email'))
+            existing_emails = set(instance.shared_users.all().values_list(
+                'email', flat=True))
             new_emails = all_emails - existing_emails
 
             # Email and register all the new email addresses
