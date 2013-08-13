@@ -140,7 +140,13 @@ class QueryForm(forms.ModelForm):
         """
         user_labels = self.cleaned_data.get('usernames_or_emails')
         emails = set()
-        for label in user_labels.split('|'):
+        for label in user_labels.split(','):
+            # Remove whitespace from the label, there should not be whitespace
+            # in usernames or email addresses. This use of split is somewhat
+            # non-obvious, see the link below:
+            #       http://docs.python.org/2/library/stdtypes.html#str.split
+            label = "".join(label.split())
+
             try:
                 validate_email(label)
                 emails.add(label)
@@ -154,8 +160,8 @@ class QueryForm(forms.ModelForm):
                     user = User.objects.get(username=label)
                     emails.add(user.email)
                 except User.DoesNotExist:
-                    log.warning("Unable to share query with {0}. It is not a \
-                        valid email or username.")
+                    log.warning("Unable to share query with '{0}'. It is not \
+                        a valid email or username.")
 
         return emails
 
