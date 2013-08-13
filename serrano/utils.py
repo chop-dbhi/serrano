@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 def _send_mail(subject, message, sender, recipient_list, fail_silently):
     send_mail(subject, message, sender, recipient_list, fail_silently)
 
-def email_users(users, subject, message, async=True, fail_silently=True):
+def email_users(emails, subject, message, async=True, fail_silently=True):
     """Send email built from 'email_title' and 'email_body' to all 'users'
 
     'users' is an iterable collection of django.contrib.auth.models.User
@@ -15,12 +15,9 @@ def email_users(users, subject, message, async=True, fail_silently=True):
     False, a SMTPException will be raised if there is an error sending the
     email.
     """
-    email_addresses = [u.email for u in users if u.email]
-
     if async:
         Thread(target=_send_mail, args=(subject, message,
-            settings.DEFAULT_FROM_EMAIL, email_addresses,
-            fail_silently)).start()
+            settings.DEFAULT_FROM_EMAIL, emails, fail_silently)).start()
     else:
-        _send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-            email_addresses, fail_silently)
+        _send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, emails,
+            fail_silently)
