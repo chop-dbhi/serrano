@@ -81,7 +81,6 @@ class QueryFormTestCase(TestCase):
         instance = form.save()
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
-        self.assertEqual(instance.count, None)
 
     def test_with_query(self):
         query = DataQuery()

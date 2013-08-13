@@ -181,14 +181,11 @@ class QueryForm(forms.ModelForm):
             new_emails = all_emails - existing_emails
 
             # Email and register all the new email addresses
-            utils.email_users(new_emails,
+            utils.send_mail(new_emails,
                 SHARE_QUERY_EMAIL_TITLE.format(instance.name),
                 SHARE_QUERY_EMAIL_BODY.format(instance.name))
             for email in new_emails:
-                # If commit is set to true here then we will be saving this
-                # instance now which we don't want to do. The instance should only
-                # be saved once below if commit(for this method) is True.
-                instance.share_with_user(email, commit=False)
+                instance.share_with_user(email)
 
             # Find and remove users who have had their query share revoked
             removed_emails = existing_emails - all_emails
