@@ -152,7 +152,7 @@ class QueryForm(forms.ModelForm):
                 # lookups.
                 try:
                     user = User.objects.get(username=label)
-                    all_emails.add(user.email)
+                    emails.add(user.email)
                 except User.DoesNotExist:
                     log.warning("Unable to share query with {0}. It is not a \
                         valid email or username.")
