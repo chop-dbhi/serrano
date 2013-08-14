@@ -157,7 +157,7 @@ class QueryForm(forms.ModelForm):
                 # then give up since we only support email and username
                 # lookups.
                 try:
-                    user = User.objects.get(username=label)
+                    user = User.objects.only('email').get(username=label)
                     emails.add(user.email)
                 except User.DoesNotExist:
                     log.warning("Unable to share query with '{0}'. It is not \

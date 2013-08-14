@@ -159,7 +159,7 @@ class QueryResource(QueryBase):
             return HttpResponse(status=codes.bad_request)
 
         utils.send_mail(
-            request.instance.shared_users.all().values_list('email', flat=True),
+            request.instance.shared_users.values_list('email', flat=True),
             DELETE_QUERY_EMAIL_TITLE.format(request.instance.name),
             DELETE_QUERY_EMAIL_BODY.format(request.instance.name))
 
