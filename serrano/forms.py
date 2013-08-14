@@ -177,6 +177,13 @@ class QueryForm(forms.ModelForm):
         if commit:
             instance.save()
 
+            # The code to update the shared_users field on the Query model
+            # included inside this if statement because the shared_users
+            # field in inaccessible until the instance is saved which is only
+            # done in the case of commit being True. Using commit=False when
+            # saving the super class was not enough. That is the reason for
+            # this being embedded within the commit if and for the explicit
+            # save_m2m call below.
             all_emails = self.cleaned_data.get('usernames_or_emails')
 
             # Get the list of existing email addresses for users this query is
