@@ -91,8 +91,8 @@ class QueryFormTestCase(TestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
-        # Since the delete handler send email asyncronously, wait for a while
-        # while the mail goes through.
+        # Since save sends email asyncronously, wait for a while for the mail
+        # to go through.
         time.sleep(5)
 
         # Make sure the user was created
@@ -113,8 +113,8 @@ class QueryFormTestCase(TestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
-        # Since the delete handler send email asyncronously, wait for a while
-        # while the mail goes through.
+        # Since save sends email asyncronously, wait for a while for the mail
+        # to go through.
         time.sleep(5)
 
         # Make sure the email was sent
@@ -135,8 +135,8 @@ class QueryFormTestCase(TestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 2)
 
-        # Since the delete handler send email asyncronously, wait for a while
-        # while the mail goes through.
+        # Since save sends email asyncronously, wait for a while for the mail
+        # to go through.
         time.sleep(5)
 
         # Make sure the user was created
@@ -148,3 +148,52 @@ class QueryFormTestCase(TestCase):
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to, ['user_1@email.com',
             'valid@email.com'])
+
+        # Remove a user from the list
+        previous_user_count = User.objects.count()
+        form = QueryForm(self.request, {'usernames_or_emails': 'user_1'},
+            instance=instance)
+        instance = form.save()
+        self.assertEqual(instance.shared_users.count(), 1)
+
+        # Since save sends email asyncronously, wait for a while for the mail
+        # to go through.
+        time.sleep(5)
+
+        # Make sure the user count is unaffected
+        self.assertEqual(previous_user_count, User.objects.count())
+
+        # Make sure no email was generated as a result
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_no_commit(self):
+        previous_user_count = User.objects.count()
+
+        form = QueryForm(self.request,
+            {'usernames_or_emails': 'email1@email.com'})
+        instance = form.save(commit=False)
+
+        # Since save sends email asyncronously, wait for a while for the mail
+        # to go through.
+        time.sleep(5)
+
+        # The instance should not be saved and shared_users should be
+        # inaccessible on the model instance because the commit flag was False.
+        self.assertIsNone(instance.pk)
+        self.assertRaises(ValueError, lambda: instance.shared_users)
+
+        # Make sure no users were created and no email was sent
+        self.assertEqual(previous_user_count, User.objects.count())
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_with_archive(self):
+        previous_query_count = DataQuery.objects.count()
+
+        form = QueryForm(self.request,
+            {'usernames_or_emails': 'email@email.com'})
+        instance = form.save(archive=True)
+
+        # When passing the archive flag, we should see 2 new DataQuery models
+        # in the DB. The one normally created when the commit flag is True
+        # and another representing the archive of that model.
+        self.assertEqual(previous_query_count + 2, DataQuery.objects.count())
