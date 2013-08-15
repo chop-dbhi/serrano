@@ -4,6 +4,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from preserialize.serialize import serialize
@@ -11,6 +12,7 @@ from avocado.models import DataQuery
 from avocado.conf import settings
 from avocado.events import usage
 from serrano import utils
+from serrano.decorators import check_auth
 from serrano.forms import QueryForm
 from .base import DataResource
 from . import templates
@@ -74,6 +76,22 @@ class QueryBase(DataResource):
             return instance
 
         log.error('Error creating default query', extra=dict(form.errors))
+
+
+class SharedQueriesResource(QueryBase):
+    "Resource of shared queries"
+    def get_queryset(self, request, **kwargs):
+        if hasattr(request, 'user') and request.user.is_authenticated():
+            f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
+            return self.model.objects.filter(**kwargs).filter(f)
+        else:
+            return self.model.objects.none()
+
+    @check_auth
+    def get(self, request):
+        queryset = self.get_queryset(request, archived=False)
+
+        return self.prepare(request, queryset)
 
 
 class QueriesResource(QueryBase):
@@ -171,11 +189,13 @@ class QueryResource(QueryBase):
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 history_resource = never_cache(QueriesHistoryResource())
+shared_resource = never_cache(SharedQueriesResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', active_resource, name='active'),
     url(r'^history/$', history_resource, name='history'),
+    url(r'^shared/$', shared_resource, name='shared'),
 
     # Endpoints for specific queries
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),

@@ -617,6 +617,76 @@ class ViewResourceTestCase(BaseTestCase):
                 DataView.objects.get(pk=view.pk).accessed)
 
 
+class SharedQueryTestCase(BaseTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+
+    def test_only_owner(self):
+        query = DataQuery(user=self.user)
+        query.save()
+
+        query2 = DataQuery()
+        query2.save()
+
+        # Ensure that there are 2 queries to start
+        self.assertEqual(DataQuery.objects.count(), 2)
+
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+    def test_owner_and_shared(self):
+        query = DataQuery()
+        query.save()
+        query.shared_users.add(self.user)
+        query.save()
+
+        query2 = DataQuery()
+        query2.save()
+
+        query3 = DataQuery(user=self.user)
+        query3.save()
+
+        # Ensure that there are 2 queries to start
+        self.assertEqual(DataQuery.objects.count(), 3)
+
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+        self.client.logout()
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 0)
+
+    def test_only_shared(self):
+        query = DataQuery()
+        query.save()
+        query.shared_users.add(self.user)
+        query.save()
+
+        query2 = DataQuery()
+        query2.save()
+
+        # Ensure that there are 2 queries to start
+        self.assertEqual(DataQuery.objects.count(), 2)
+
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+    @override_settings(SERRANO_AUTH_REQUIRED=True)
+    def test_require_login(self):
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        self.client.logout()
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 401)
+
 class QueryResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
