@@ -1,7 +1,10 @@
+import logging
 import functools
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 from preserialize.serialize import serialize
+from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from avocado.events import usage
 from avocado.models import DataConcept, DataCategory
@@ -9,9 +12,21 @@ from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
 from .base import DataResource, SAFE_METHODS
 from . import templates
+from .field import base as FieldResources
 
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
+log = logging.getLogger(__name__)
 
+def has_orphaned_field(instance):
+    has_orphan = False
+    for field in instance.fields.iterator():
+        if FieldResources.is_field_orphaned(field):
+            log.error('Concept has orphaned field.', extra={
+                'concept': instance.pk,
+                'field': field.pk
+                })
+            has_orphan =  True
+    return has_orphan
 
 def concept_posthook(instance, data, request, embed, brief, categories=None):
     """Concept serialization post-hook for augmenting per-instance data.
@@ -156,6 +171,13 @@ class ConceptResource(ConceptBase):
     def get(self, request, pk):
         params = self.get_params(request)
         instance = request.instance
+
+        if (self.checks_for_orphans and params['embed'] and
+                has_orphaned_field(instance)):
+            return HttpResponse(status=codes.internal_server_error,
+                content="Could not get concept because it has one or more "
+                    "orphaned fields.")
+
         usage.log('read', instance=instance, request=request)
         return self.prepare(request, instance, embed=params['embed'])
 
@@ -168,6 +190,11 @@ class ConceptFieldsResource(ConceptBase):
 
         fields = []
         resource = FieldResource()
+
+        if self.checks_for_orphans and has_orphaned_field(instance):
+            return HttpResponse(status=codes.internal_server_error,
+                content="Could not get concept fields because one or more are "
+                    "linked to orphaned fields.")
 
         for cfield in instance.concept_fields.select_related('field').iterator():
             field = resource.prepare(request, cfield.field)
@@ -227,6 +254,13 @@ class ConceptsResource(ConceptBase):
                 queryset = queryset[:params['limit']]
 
             objects = queryset
+
+        if self.checks_for_orphans and params['embed']:
+            pks = []
+            for obj in objects:
+                if not has_orphaned_field(obj):
+                    pks.append(obj.pk)
+            objects = self.model.objects.filter(pk__in=pks)
 
         return self.prepare(request, objects, **params)
 

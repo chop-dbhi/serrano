@@ -216,6 +216,10 @@ class BaseResource(Resource):
         "Returns a DataQuery object based on `attrs` or the request."
         return get_request_query(request, attrs=attrs)
 
+    @property
+    def checks_for_orphans(self):
+        return getattr(settings, 'SERRANO_CHECK_ORPHANED_FIELDS', True)
+
 
 class DataResource(BaseResource):
     def __init__(self, **kwargs):

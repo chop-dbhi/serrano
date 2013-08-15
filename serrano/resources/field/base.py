@@ -1,6 +1,9 @@
 import functools
+import logging
+from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
+from restlib2.http import codes
 from restlib2.params import Parametizer, param_cleaners
 from avocado.models import DataField
 from avocado.events import usage
@@ -9,7 +12,13 @@ from .. import templates
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
 stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
+log = logging.getLogger(__name__)
 
+def is_field_orphaned(instance):
+    if instance.model is None or instance.field is None:
+        log.error("Field is an orphan.", extra={'field': instance.pk})
+        return True
+    return False
 
 def field_posthook(instance, data, request):
     """Field serialization post-hook for augmenting per-instance data.
@@ -120,6 +129,12 @@ class FieldResource(FieldBase):
     def get(self, request, pk):
         instance = request.instance
         usage.log('read', instance=instance, request=request)
+        
+        # If the field is an orphan then log an error before returning an error
+        if self.checks_for_orphans and is_field_orphaned(instance):
+            return HttpResponse(status=codes.internal_server_error,
+                    content="Error occurred when retrieving orphaned field")
+
         return self.prepare(request, instance)
 
 
@@ -167,5 +182,12 @@ class FieldsResource(FieldResource):
                 queryset = queryset[:params['limit']]
 
             objects = queryset
+
+        if self.checks_for_orphans:
+            pks = []
+            for obj in objects:
+                if not is_field_orphaned(obj):
+                    pks.append(obj.pk)
+            objects = self.model.objects.filter(pk__in=pks)
 
         return self.prepare(request, objects, **params)
