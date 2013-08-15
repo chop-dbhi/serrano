@@ -14,4 +14,4 @@ if not apps:
         'tokens',
     ]
 
-management.call_command('test', *apps)
+management.call_command('test', *apps, interactive=False)

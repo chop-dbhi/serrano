@@ -517,7 +517,7 @@ class QueryResourceTestCase(BaseTestCase):
             "'TestQuery' has been deleted")
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to,
-            ['share@example.com', 'share3@example.com'])
+            ['share@example.com', '', 'share3@example.com'])
 
         response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
@@ -529,7 +529,7 @@ class EmailTestCase(BaseTestCase):
     message = str([i for i in range(5000)])
 
     def test_syncronous(self):
-        from serrano.utils import email_users
+        from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
         user2 = User(username='u2', first_name='Shared', last_name='User',
@@ -537,8 +537,8 @@ class EmailTestCase(BaseTestCase):
         user3 = User(username='u3', first_name='Shared', last_name='User',
             email='share3@example.com')
 
-        email_users([user1, user2, user3], self.subject, self.message,
-            async=False)
+        send_mail([user1.email, user2.email, user3.email], self.subject,
+            self.message, async=False)
 
         # Make sure the mail was sent
         self.assertEqual(len(mail.outbox), 1)
@@ -547,10 +547,10 @@ class EmailTestCase(BaseTestCase):
         self.assertEqual(mail.outbox[0].body, self.message)
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to,
-            ['share@example.com', 'share3@example.com'])
+            ['share@example.com', '', 'share3@example.com'])
 
     def test_asyncronous(self):
-        from serrano.utils import email_users
+        from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
         user2 = User(username='u2', first_name='Shared', last_name='User',
@@ -558,7 +558,8 @@ class EmailTestCase(BaseTestCase):
         user3 = User(username='u3', first_name='Shared', last_name='User',
             email='share3@example.com')
 
-        email_users([user1, user2, user3], self.subject, self.message)
+        send_mail([user1.email, user2.email, user3.email], self.subject,
+            self.message)
 
         # Make sure the mail was sent(after a slight pause to account for the
         # "asyncronousness".
@@ -569,4 +570,4 @@ class EmailTestCase(BaseTestCase):
         self.assertEqual(mail.outbox[0].body, self.message)
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to,
-            ['share@example.com', 'share3@example.com'])
+            ['share@example.com', '', 'share3@example.com'])
