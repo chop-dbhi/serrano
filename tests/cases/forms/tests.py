@@ -6,6 +6,7 @@ from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
 from avocado.models import DataContext, DataQuery, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
+from ...models import Employee
 
 
 class BaseTestCase(TestCase):
@@ -25,9 +26,9 @@ class ContextFormTestCase(BaseTestCase):
         self.assertTrue(form.is_valid())
         self.assertFalse(form.count_needs_update)
         instance = form.save()
-        self.assertEqual(instance.user, None)
+        self.assertIsNone(instance.user)
         self.assertEqual(instance.session_key, self.request.session.session_key)
-        self.assertEqual(instance.count, None)
+        self.assertIsNone(instance.count)
 
     def test_user(self):
         user = User.objects.create_user(username='test', password='test')
@@ -38,6 +39,13 @@ class ContextFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
+
+    def test_force_count(self):
+        expected_count = Employee.objects.distinct().count()
+        form = ContextForm(self.request, {}, force_count=True)
+        self.assertTrue(form.is_valid())
+        instance = form.save()
+        self.assertEqual(instance.count, expected_count)
 
     def test_no_commit(self):
         previous_context_count = DataContext.objects.count()
@@ -81,6 +89,10 @@ class ViewFormTestCase(BaseTestCase):
         self.assertEqual(instance.session_key, None)
         self.assertEqual(instance.count, None)
 
+    def test_force_count(self):
+        form = ViewForm(self.request, {}, force_count=True)
+        self.assertTrue(form.is_valid())
+
     def test_no_commit(self):
         previous_view_count = DataView.objects.count()
 
@@ -123,6 +135,7 @@ class QueryFormTestCase(BaseTestCase):
 
     def test_with_email(self):
         previous_user_count = User.objects.count()
+        previous_mail_count = len(mail.outbox)
 
         form = QueryForm(self.request, {'usernames_or_emails': 'email1@email.com'})
         instance = form.save()
@@ -136,7 +149,7 @@ class QueryFormTestCase(BaseTestCase):
         self.assertEqual(previous_user_count + 1, User.objects.count())
 
         # Make sure the mail was sent
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(previous_mail_count + 1, len(mail.outbox))
 
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to, ['email1@email.com'])
