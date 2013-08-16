@@ -648,7 +648,6 @@ class SharedQueryTestCase(BaseTestCase):
         query3 = DataQuery(user=self.user)
         query3.save()
 
-        # Ensure that there are 2 queries to start
         self.assertEqual(DataQuery.objects.count(), 3)
 
         response = self.client.get('/api/queries/shared/',
