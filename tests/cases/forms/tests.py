@@ -40,6 +40,15 @@ class ContextFormTestCase(BaseTestCase):
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
 
+    def test_json(self):
+        expected_count = Employee.objects.filter(title__salary__gt=1000).count()
+
+        form = ContextForm(self.request, {'json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
+        self.assertTrue(form.is_valid())
+
+        instance = form.save()
+        self.assertEqual(instance.count, expected_count)
+
     def test_force_count(self):
         expected_count = Employee.objects.distinct().count()
         form = ContextForm(self.request, {}, force_count=True)
@@ -88,6 +97,15 @@ class ViewFormTestCase(BaseTestCase):
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
         self.assertEqual(instance.count, None)
+
+    def test_json(self):
+        previous_view_count = DataView.objects.count()
+
+        form = ViewForm(self.request, {'json': {'columns': []}})
+        self.assertTrue(form.is_valid())
+
+        instance = form.save()
+        self.assertEqual(previous_view_count + 1, DataView.objects.count())
 
     def test_force_count(self):
         form = ViewForm(self.request, {}, force_count=True)

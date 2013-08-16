@@ -25,6 +25,7 @@ class ContextForm(forms.ModelForm):
 
         if self.count_needs_update is None and self.instance:
             existing = self.instance.json
+
             if existing or json and existing != json or json and self.instance.count is None:
                 self.count_needs_update = True
             else:
