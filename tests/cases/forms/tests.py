@@ -1,19 +1,25 @@
 import time
-from django.core import mail
+from django.core import mail, management
 from django.test import TestCase
 from django.http import HttpRequest
 from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
-from avocado.models import DataQuery
+from avocado.models import DataContext, DataQuery, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
 
 
-class ContextFormTestCase(TestCase):
+class BaseTestCase(TestCase):
+    fixtures = ['test_data.json']
+
     def setUp(self):
+        management.call_command('avocado', 'init', 'tests', quiet=True)
+
         self.request = HttpRequest()
         self.request.session = SessionStore()
         self.request.session.save()
 
+
+class ContextFormTestCase(BaseTestCase):
     def test_session(self):
         form = ContextForm(self.request, {})
         self.assertTrue(form.is_valid())
@@ -33,13 +39,29 @@ class ContextFormTestCase(TestCase):
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
 
+    def test_no_commit(self):
+        previous_context_count = DataContext.objects.count()
 
-class ViewFormTestCase(TestCase):
-    def setUp(self):
-        self.request = HttpRequest()
-        self.request.session = SessionStore()
-        self.request.session.save()
+        form = ContextForm(self.request,{})
+        instance = form.save(commit=False)
 
+        self.assertIsNone(instance.pk)
+        self.assertEqual(previous_context_count, DataContext.objects.count())
+
+    def test_with_archive(self):
+        previous_context_count = DataContext.objects.count()
+
+        form = ContextForm(self.request, {})
+        instance = form.save(archive=True)
+
+        # Make sure the context was saved and the archived copy exists. When
+        # calling save with commit True and archive True, two copies of the
+        # context are saved when it is new. That is why we add 2 below.
+        self.assertEqual(previous_context_count + 2,
+            DataContext.objects.count())
+
+
+class ViewFormTestCase(BaseTestCase):
     def test_session(self):
         form = ViewForm(self.request, {})
         self.assertTrue(form.is_valid())
@@ -59,13 +81,28 @@ class ViewFormTestCase(TestCase):
         self.assertEqual(instance.session_key, None)
         self.assertEqual(instance.count, None)
 
+    def test_no_commit(self):
+        previous_view_count = DataView.objects.count()
 
-class QueryFormTestCase(TestCase):
-    def setUp(self):
-        self.request = HttpRequest()
-        self.request.session = SessionStore()
-        self.request.session.save()
+        form = ViewForm(self.request,{})
+        instance = form.save(commit=False)
 
+        self.assertIsNone(instance.pk)
+        self.assertEqual(previous_view_count, DataView.objects.count())
+
+    def test_with_archive(self):
+        previous_view_count = DataView.objects.count()
+
+        form = ViewForm(self.request, {})
+        instance = form.save(archive=True)
+
+        # Make sure the view was saved and the archived copy exists. When
+        # calling save with commit True and archive True, two copies of the
+        # view are saved when it is new. That is why we add 2 below.
+        self.assertEqual(previous_view_count + 2, DataView.objects.count())
+
+
+class QueryFormTestCase(BaseTestCase):
     def test_session(self):
         form = QueryForm(self.request, {})
         self.assertTrue(form.is_valid())
