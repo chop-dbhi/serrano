@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.http import HttpRequest
 from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
-from avocado.models import DataContext, DataQuery, DataView
+from avocado.models import DataConcept, DataConceptField, DataContext, DataField, DataQuery, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
 from ...models import Employee
 
@@ -14,6 +14,15 @@ class BaseTestCase(TestCase):
 
     def setUp(self):
         management.call_command('avocado', 'init', 'tests', quiet=True)
+
+        f1 = DataField.objects.get(pk=1)
+        f2 = DataField.objects.get(pk=2)
+
+        c1 = DataConcept()
+        c1.save()
+
+        DataConceptField(concept=c1, field=f1).save()
+        DataConceptField(concept=c1, field=f2).save()
 
         self.request = HttpRequest()
         self.request.session = SessionStore()
@@ -101,7 +110,7 @@ class ViewFormTestCase(BaseTestCase):
     def test_json(self):
         previous_view_count = DataView.objects.count()
 
-        form = ViewForm(self.request, {'json': {'columns': []}})
+        form = ViewForm(self.request, {'json': {'columns': [1]}})
         self.assertTrue(form.is_valid())
 
         instance = form.save()
@@ -233,6 +242,39 @@ class QueryFormTestCase(BaseTestCase):
 
         # Make sure no email was generated as a result
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_view_json(self):
+        expected_count = Employee.objects.count()
+
+        form = QueryForm(self.request, {'view_json': {'columns': [1]}})
+        self.assertTrue(form.is_valid())
+        instance = form.save()
+        self.assertEqual(instance.count, expected_count)
+
+    def test_context_json(self):
+        expected_count = Employee.objects.filter(title__salary__gt=1000).count()
+
+        form = QueryForm(self.request, {'context_json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
+        self.assertTrue(form.is_valid())
+        instance = form.save()
+        self.assertEqual(instance.count, expected_count)
+
+    def test_both_json(self):
+        expected_count = Employee.objects.filter(title__salary__gt=1000).count()
+
+        form = QueryForm(self.request, {'context_json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}, 'view_json': {'columns': [1]}})
+        self.assertTrue(form.is_valid())
+        instance = form.save()
+        self.assertEqual(instance.count, expected_count)
+
+    def test_force_count(self):
+        expected_count = Employee.objects.distinct().count()
+
+        form = QueryForm(self.request, {}, force_count=True)
+        self.assertTrue(form.is_valid())
+
+        instance = form.save()
+        self.assertEqual(instance.count, expected_count)
 
     def test_no_commit(self):
         previous_user_count = User.objects.count()
