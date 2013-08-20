@@ -113,10 +113,6 @@ class QueryForm(forms.ModelForm):
         self.count_needs_update_view = self.count_needs_update_context
         super(QueryForm, self).__init__(*args, **kwargs)
 
-    @property
-    def count_needs_update(self):
-        return self.count_needs_update_context or self.count_needs_update_view
-
     def clean_context_json(self):
         json = self.cleaned_data.get('context_json')
         if self.count_needs_update_context is None:
@@ -184,12 +180,17 @@ class QueryForm(forms.ModelForm):
         # prevent re-counting the entire dataset. An alternative
         # solution may be desirable such as pre-computing and
         # caching the count ahead of time.
-        if self.count_needs_update:
-            instance.count = instance.apply().distinct().count()
+        if self.count_needs_update_context:
+            instance.distinct_count = instance.apply().distinct().count()
             self.count_needs_update_context = False
+        else:
+            instance.distinct_count = None
+
+        if self.count_needs_update_view:
+            instance.record_count = instance.apply().count()
             self.count_needs_update_view = False
         else:
-            instance.count = None
+            instance.record_count = None
 
         if commit:
             instance.save()

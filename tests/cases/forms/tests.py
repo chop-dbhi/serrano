@@ -155,7 +155,8 @@ class QueryFormTestCase(BaseTestCase):
 
         form = QueryForm(self.request, {})
         self.assertTrue(form.is_valid())
-        self.assertFalse(form.count_needs_update)
+        self.assertFalse(form.count_needs_update_context)
+        self.assertFalse(form.count_needs_update_view)
         instance = form.save()
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
@@ -249,7 +250,7 @@ class QueryFormTestCase(BaseTestCase):
         form = QueryForm(self.request, {'view_json': {'columns': [1]}})
         self.assertTrue(form.is_valid())
         instance = form.save()
-        self.assertEqual(instance.count, expected_count)
+        self.assertEqual(instance.record_count, expected_count)
 
     def test_context_json(self):
         expected_count = Employee.objects.filter(title__salary__gt=1000).count()
@@ -257,7 +258,7 @@ class QueryFormTestCase(BaseTestCase):
         form = QueryForm(self.request, {'context_json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
         self.assertTrue(form.is_valid())
         instance = form.save()
-        self.assertEqual(instance.count, expected_count)
+        self.assertEqual(instance.distinct_count, expected_count)
 
     def test_both_json(self):
         expected_count = Employee.objects.filter(title__salary__gt=1000).count()
@@ -265,7 +266,8 @@ class QueryFormTestCase(BaseTestCase):
         form = QueryForm(self.request, {'context_json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}, 'view_json': {'columns': [1]}})
         self.assertTrue(form.is_valid())
         instance = form.save()
-        self.assertEqual(instance.count, expected_count)
+        self.assertEqual(instance.distinct_count, expected_count)
+        self.assertEqual(instance.record_count, expected_count)
 
     def test_force_count(self):
         expected_count = Employee.objects.distinct().count()
@@ -274,7 +276,8 @@ class QueryFormTestCase(BaseTestCase):
         self.assertTrue(form.is_valid())
 
         instance = form.save()
-        self.assertEqual(instance.count, expected_count)
+        self.assertEqual(instance.distinct_count, expected_count)
+        self.assertEqual(instance.record_count, expected_count)
 
     def test_no_commit(self):
         previous_user_count = User.objects.count()
