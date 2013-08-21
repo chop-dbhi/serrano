@@ -43,6 +43,7 @@ class RootResourceTestCase(TestCase):
                 'self': {'href': 'http://testserver/api/'},
                 'concepts': {'href': 'http://testserver/api/concepts/'},
                 'preview': {'href': 'http://testserver/api/data/preview/'},
+                'shared_queries': {'href': 'http://testserver/api/queries/shared/'},
             },
         })
 
