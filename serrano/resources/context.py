@@ -16,8 +16,6 @@ from . import templates
 
 log = logging.getLogger(__name__)
 
-HISTORY_ENABLED = settings.HISTORY_ENABLED
-
 def context_posthook(instance, data, request):
     uri = request.build_absolute_uri
 

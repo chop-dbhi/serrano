@@ -19,7 +19,6 @@ from . import templates
 
 log = logging.getLogger(__name__)
 
-HISTORY_ENABLED = settings.HISTORY_ENABLED
 DELETE_QUERY_EMAIL_TITLE = "'{0}' has been deleted"
 DELETE_QUERY_EMAIL_BODY = """The query named '{0}' has been deleted. You are
  being notified because this query was shared with you. This query is no
