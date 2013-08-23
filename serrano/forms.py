@@ -32,7 +32,7 @@ class ContextForm(forms.ModelForm):
                 self.count_needs_update = False
         return json
 
-    def save(self, commit=True, archive=False):
+    def save(self, commit=True):
         instance = super(ContextForm, self).save(commit=False)
         request = self.request
 
@@ -53,9 +53,7 @@ class ContextForm(forms.ModelForm):
 
         if commit:
             instance.save()
-            if archive:
-                # Should this be a signal?
-                instance.archive()
+
         return instance
 
     class Meta(object):
@@ -80,7 +78,7 @@ class ViewForm(forms.ModelForm):
                 self.count_needs_update = False
         return json
 
-    def save(self, commit=True, archive=False):
+    def save(self, commit=True):
         instance = super(ViewForm, self).save(commit=False)
         request = self.request
 
@@ -91,9 +89,7 @@ class ViewForm(forms.ModelForm):
 
         if commit:
             instance.save()
-            if archive:
-                # Should this be a signal?
-                instance.archive()
+
         return instance
 
     class Meta(object):
@@ -167,7 +163,7 @@ class QueryForm(forms.ModelForm):
 
         return emails
 
-    def save(self, commit=True, archive=False):
+    def save(self, commit=True):
         instance = super(QueryForm, self).save(commit=False)
         request = self.request
 
@@ -226,9 +222,6 @@ class QueryForm(forms.ModelForm):
 
             self.save_m2m()
 
-            if archive:
-                # Should this be a signal?
-                instance.archive()
         return instance
 
     class Meta(object):

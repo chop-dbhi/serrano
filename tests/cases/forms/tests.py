@@ -74,18 +74,6 @@ class ContextFormTestCase(BaseTestCase):
         self.assertIsNone(instance.pk)
         self.assertEqual(previous_context_count, DataContext.objects.count())
 
-    def test_with_archive(self):
-        previous_context_count = DataContext.objects.count()
-
-        form = ContextForm(self.request, {})
-        instance = form.save(archive=True)
-
-        # Make sure the context was saved and the archived copy exists. When
-        # calling save with commit True and archive True, two copies of the
-        # context are saved when it is new. That is why we add 2 below.
-        self.assertEqual(previous_context_count + 2,
-            DataContext.objects.count())
-
 
 class ViewFormTestCase(BaseTestCase):
     def test_session(self):
@@ -128,17 +116,6 @@ class ViewFormTestCase(BaseTestCase):
 
         self.assertIsNone(instance.pk)
         self.assertEqual(previous_view_count, DataView.objects.count())
-
-    def test_with_archive(self):
-        previous_view_count = DataView.objects.count()
-
-        form = ViewForm(self.request, {})
-        instance = form.save(archive=True)
-
-        # Make sure the view was saved and the archived copy exists. When
-        # calling save with commit True and archive True, two copies of the
-        # view are saved when it is new. That is why we add 2 below.
-        self.assertEqual(previous_view_count + 2, DataView.objects.count())
 
 
 class QueryFormTestCase(BaseTestCase):
@@ -298,15 +275,3 @@ class QueryFormTestCase(BaseTestCase):
         # Make sure no users were created and no email was sent
         self.assertEqual(previous_user_count, User.objects.count())
         self.assertEqual(len(mail.outbox), 0)
-
-    def test_with_archive(self):
-        previous_query_count = DataQuery.objects.count()
-
-        form = QueryForm(self.request,
-            {'usernames_or_emails': 'email@email.com'})
-        instance = form.save(archive=True)
-
-        # When passing the archive flag, we should see 2 new DataQuery models
-        # in the DB. The one normally created when the commit flag is True
-        # and another representing the archive of that model.
-        self.assertEqual(previous_query_count + 2, DataQuery.objects.count())
