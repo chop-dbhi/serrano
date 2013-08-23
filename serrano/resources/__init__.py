@@ -61,7 +61,9 @@ class Root(BaseResource):
             if user:
                 login(request, user)
                 token = token_generator.make(user)
-                return {'token': token}
+                data = self.get(request)
+                data['token'] = token
+                return data
         return HttpResponse('Invalid credentials', status=401)
 
 
