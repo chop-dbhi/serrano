@@ -57,7 +57,6 @@ class FieldParametizer(Parametizer):
     sort = None
     order = 'asc'
     published = None
-    archived = None
     brief = False
     query = ''
     limit = None
@@ -67,9 +66,6 @@ class FieldParametizer(Parametizer):
     page = None
 
     def clean_published(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_archived(self, value):
         return param_cleaners.clean_bool(value)
 
     def clean_brief(self, value):
@@ -129,7 +125,7 @@ class FieldResource(FieldBase):
     def get(self, request, pk):
         instance = request.instance
         usage.log('read', instance=instance, request=request)
-        
+
         # If the field is an orphan then log an error before returning an error
         if self.checks_for_orphans and is_field_orphaned(instance):
             return HttpResponse(status=codes.internal_server_error,
@@ -155,9 +151,6 @@ class FieldsResource(FieldResource):
 
             if params['published'] is not None:
                 filters['published'] = params['published']
-
-            if params['archived'] is not None:
-                filters['archived'] = params['archived']
 
             if filters:
                 queryset = queryset.filter(**filters)

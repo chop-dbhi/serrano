@@ -89,15 +89,15 @@ class SharedQueriesResource(QueryBase):
 
     @check_auth
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         return self.prepare(request, queryset)
 
 
 class QueriesResource(QueryBase):
-    "Resource of active (non-archived) queries"
+    "Resource of queries"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         # Only create a default is a session exists
         if request.session.session_key:
@@ -114,7 +114,7 @@ class QueriesResource(QueryBase):
         form = QueryForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
@@ -125,10 +125,9 @@ class QueriesResource(QueryBase):
 
 
 class QueriesHistoryResource(QueryBase):
-    "Resource of archived (non-active) queries"
+    "Resource of past versions of queries"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=True)
-        return self.prepare(request, queryset)
+        pass
 
 
 class QueryResource(QueryBase):
@@ -164,7 +163,7 @@ class QueryResource(QueryBase):
         form = QueryForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:

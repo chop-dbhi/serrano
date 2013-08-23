@@ -12,7 +12,7 @@ Field = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
         'app_name', 'model_name', 'field_name',
-        'modified', 'published', 'archived', 'operators',
+        'modified', 'published', 'operators',
         'simple_type', 'internal_type', 'data_modified', 'enumerable',
         'searchable', 'unit', 'plural_unit', 'nullable'
     ],
@@ -31,7 +31,7 @@ BriefConcept = {
 Concept = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
-        'category_id', 'order', 'modified', 'published', 'archived',
+        'category_id', 'order', 'modified', 'published',
         'formatter_name', 'queryview', 'sortable'
     ],
     'aliases': {

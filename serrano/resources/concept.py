@@ -80,7 +80,6 @@ class ConceptParametizer(Parametizer):
     sort = None
     order = 'asc'
     published = None
-    archived = None
     embed = False
     brief = False
     query = ''
@@ -93,9 +92,6 @@ class ConceptParametizer(Parametizer):
         return param_cleaners.clean_bool(value)
 
     def clean_published(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_archived(self, value):
         return param_cleaners.clean_bool(value)
 
     def clean_query(self, value):
@@ -227,9 +223,6 @@ class ConceptsResource(ConceptBase):
 
             if params['published'] is not None:
                 filters['published'] = params['published']
-
-            if params['archived'] is not None:
-                filters['archived'] = params['archived']
 
             if filters:
                 queryset = queryset.filter(**filters)

@@ -39,14 +39,14 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
         # DataQuery object from it.
         if request_data:
             query = get_request_query(request, attrs=request_data.get('query'))
-            
+
             # Now that the DataQuery object is built, read the appropriate
             # attribute from it, returning None if the attribute wasn't found.
             # Since `context` and `view` are the keys used in get_request_view
             # and get_request_context respectively, we can use the key directly
             # to access the context and view properties of the DataQuery model.
             key_object = getattr(query, key, None)
-            
+
             # If the property exists and is not None, then read the json from
             # the object as both DataContext and DataView objects will have a
             # json property. This json will be used as the attributes to
@@ -62,11 +62,6 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
     if isinstance(attrs, dict):
         klass.validate(attrs)
         return klass(json=attrs)
-
-    # Ignore archived objects..
-    kwargs = {
-        'archived': False,
-    }
 
     # If an authenticated user made the request, filter by the user or
     # fallback to an active session key.
@@ -115,13 +110,13 @@ def get_request_query(request, attrs=None):
             attrs = request.data.get('query')
         elif request.method == 'GET':
             attrs = request.GET.get('query')
-    
+
     # If the `attrs` could not be derived from the request(meaning no query
     # was explicity defined), try to construct the query by deriving a context
     # and view from the request.
     if attrs is None:
         json = {}
-        
+
         context = get_request_context(request)
         if context:
             json['context'] = context.json
@@ -135,7 +130,7 @@ def get_request_query(request, attrs=None):
     # If `attrs` were derived or supplied then validate them and return a
     # DataQuery based off the `attrs`.
     if isinstance(attrs, dict):
-        # We cannot simply validate and create a DataQuery based off the 
+        # We cannot simply validate and create a DataQuery based off the
         # `attrs` as they are now because the context and or view might not
         # contain json but might instead be a pk or some other value. Use the
         # internal helper methods to construct the context and view objects
@@ -151,11 +146,6 @@ def get_request_query(request, attrs=None):
 
         DataQuery.validate(json)
         return DataQuery(json)
-
-    # Ignore archived objects..
-    kwargs = {
-        'archived': False,
-    }
 
     # If an authenticated user made the request, filter by the user or
     # fallback to an active session key.
@@ -184,8 +174,8 @@ def get_request_query(request, attrs=None):
     default = DataQuery.objects.get_default_template()
     if default:
         instance.json = default.json
-    return instance  
-     
+    return instance
+
 class BaseResource(Resource):
     param_defaults = None
 

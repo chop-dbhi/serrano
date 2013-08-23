@@ -73,9 +73,9 @@ class ViewBase(DataResource):
 
 
 class ViewsResource(ViewBase):
-    "Resource of active (non-archived) views"
+    "Resource of views"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         # Only create a default is a session exists
         if request.session.session_key:
@@ -92,7 +92,7 @@ class ViewsResource(ViewBase):
         form = ViewForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
@@ -103,10 +103,9 @@ class ViewsResource(ViewBase):
 
 
 class ViewsHistoryResource(ViewBase):
-    "Resource of archived (non-active) views"
+    "Resource of past versions of views"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=True)
-        return self.prepare(request, queryset)
+        pass
 
 
 class ViewResource(ViewBase):
@@ -142,7 +141,7 @@ class ViewResource(ViewBase):
         form = ViewForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:

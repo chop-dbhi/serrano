@@ -81,9 +81,9 @@ class ContextBase(DataResource):
 
 
 class ContextsResource(ContextBase):
-    "Resource of active (non-archived) contexts"
+    "Resource of contexts"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         # Only create a default if a session exists
         if request.session.session_key:
@@ -100,7 +100,7 @@ class ContextsResource(ContextBase):
         form = ContextForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
@@ -111,10 +111,9 @@ class ContextsResource(ContextBase):
 
 
 class ContextsHistoryResource(ContextBase):
-    "Resource of archived (non-active) contexts"
+    "Resource of past revisions of contexts"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=True)
-        return self.prepare(request, queryset)
+        pass
 
 
 class ContextResource(ContextBase):
@@ -150,7 +149,7 @@ class ContextResource(ContextBase):
         form = ContextForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
