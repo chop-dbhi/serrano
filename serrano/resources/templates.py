@@ -76,3 +76,8 @@ Query = {
         'shared_users': User,
     }
 }
+
+Revision = {
+    'exclude': ['user', 'session_key'],
+    'allow_missing': True,
+}
