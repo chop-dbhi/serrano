@@ -358,13 +358,8 @@ class HistoryResource(DataResource):
     model = Revision
     template = templates.Revision
 
-    def prepare(self, request, instance, template=None):
-        if template is None:
-            template = self.template
-
-        # TODO: Add posthook?
-        #       posthook = functools.partial(view_posthook, request=request)
-        return serialize(instance, **template)
+    def prepare(self, request, instance):
+        return serialize(instance, **self.template)
 
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session from past revisions."

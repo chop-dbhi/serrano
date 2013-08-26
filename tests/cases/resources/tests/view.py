@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from avocado import history
 from avocado.history.models import Revision
-from avocado.models import DataField, DataView
+from avocado.models import DataView
 from .base import BaseTestCase
 
 

@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 from django.test.utils import override_settings
 from avocado.history.models import Revision
-from avocado.models import DataField, DataQuery
+from avocado.models import DataQuery
 from .base import BaseTestCase
 
 class SharedQueryTestCase(BaseTestCase):
