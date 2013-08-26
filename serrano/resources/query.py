@@ -14,7 +14,7 @@ from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth
 from serrano.forms import QueryForm
-from .base import DataResource
+from .base import DataResource, HistoryResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -123,10 +123,18 @@ class QueriesResource(QueryBase):
         return response
 
 
-class QueriesHistoryResource(QueryBase):
+class QueriesHistoryResource(HistoryResource):
     "Resource of past versions of queries"
+
+    cache_max_age = 0
+    private_cache = True
+
+    object_model = DataQuery
+    object_model_template = templates.Query
+
     def get(self, request):
-        pass
+        queryset = self.get_queryset(request)
+        return self.prepare(request, queryset)
 
 
 class QueryResource(QueryBase):

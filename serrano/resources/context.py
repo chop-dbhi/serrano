@@ -11,7 +11,7 @@ from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import DataResource
+from .base import DataResource, HistoryResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -108,10 +108,18 @@ class ContextsResource(ContextBase):
         return response
 
 
-class ContextsHistoryResource(ContextBase):
-    "Resource of past revisions of contexts"
+class ContextsHistoryResource(HistoryResource):
+    "Resource of past versions of contexts"
+
+    cache_max_age = 0
+    private_cache = True
+
+    object_model = DataContext
+    object_model_template = templates.Context
+
     def get(self, request):
-        pass
+        queryset = self.get_queryset(request)
+        return self.prepare(request, queryset)
 
 
 class ContextResource(ContextBase):

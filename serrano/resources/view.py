@@ -11,7 +11,7 @@ from avocado.models import DataView
 from avocado.conf import settings
 from avocado.events import usage
 from serrano.forms import ViewForm
-from .base import DataResource
+from .base import DataResource, HistoryResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -100,11 +100,18 @@ class ViewsResource(ViewBase):
         return response
 
 
-class ViewsHistoryResource(ViewBase):
+class ViewsHistoryResource(HistoryResource):
     "Resource of past versions of views"
-    def get(self, request):
-        pass
 
+    cache_max_age = 0
+    private_cache = True
+
+    object_model = DataView
+    object_model_template = templates.View
+
+    def get(self, request):
+        queryset = self.get_queryset(request)
+        return self.prepare(request, queryset)
 
 class ViewResource(ViewBase):
     "Resource for accessing a single view"

@@ -2,11 +2,15 @@ import functools
 import re
 from datetime import datetime
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
 from restlib2.resources import Resource
+from avocado.history.models import Revision
 from avocado.models import DataContext, DataView, DataQuery
+from . import templates
 from ..decorators import check_auth
 from .. import cors
 
@@ -347,3 +351,38 @@ class PaginatorResource(Resource):
         return links
 
 
+class HistoryResource(DataResource):
+    object_model = None
+    object_model_template = None
+
+    model = Revision
+    template = templates.Revision
+
+    def prepare(self, request, instance, template=None):
+        if template is None:
+            template = self.template
+
+        # TODO: Add posthook?
+        #       posthook = functools.partial(view_posthook, request=request)
+        return serialize(instance, **template)
+
+    def get_queryset(self, request, **kwargs):
+        "Constructs a QuerySet for this user or session from past revisions."
+
+        if not self.object_model:
+            return self.model.objects.none()
+
+        if hasattr(request, 'user') and request.user.is_authenticated():
+            kwargs['user'] = request.user
+        elif request.session.session_key:
+            kwargs['session_key'] = request.session.session_key
+        else:
+            # The only case where kwargs is empty is for non-authenticated
+            # cookieless agents.. e.g. bots, most non-browser clients since
+            # no session exists yet for the agent.
+            return self.model.objects.none()
+
+        kwargs['content_type'] = ContentType.objects.get_for_model(
+            self.object_model)
+
+        return self.model.objects.filter(**kwargs)

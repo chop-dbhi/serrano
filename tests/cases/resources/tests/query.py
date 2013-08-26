@@ -1,8 +1,10 @@
 import json, time
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 from django.test.utils import override_settings
-from avocado.models import DataQuery
+from avocado.history.models import Revision
+from avocado.models import DataField, DataQuery
 from .base import BaseTestCase
 
 class SharedQueryTestCase(BaseTestCase):
@@ -207,3 +209,18 @@ class EmailTestCase(BaseTestCase):
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to,
             ['share@example.com', '', 'share3@example.com'])
+
+
+class QueryHistoryResourceTestCase(BaseTestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+
+    def test_get(self):
+        query = DataQuery(user=self.user)
+        query.save()
+
+        response = self.client.get('/api/queries/history/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
