@@ -25,6 +25,14 @@ class BaseTestCase(TestCase):
         self.user.save()
 
 
+class AuthenticatedBaseTestCase(BaseTestCase):
+    def setUp(self):
+        super(AuthenticatedBaseTestCase, self).setUp()
+
+        self.user = User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
+
+
 class RootResourceTestCase(TestCase):
     def test_get(self):
         response = self.client.get('/api/',

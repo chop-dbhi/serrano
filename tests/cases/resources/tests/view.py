@@ -5,14 +5,10 @@ from django.test import Client
 from avocado import history
 from avocado.history.models import Revision
 from avocado.models import DataView
-from .base import BaseTestCase
+from .base import AuthenticatedBaseTestCase
 
 
-class ViewResourceTestCase(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
-
+class ViewResourceTestCase(AuthenticatedBaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/views/',
             HTTP_ACCEPT='application/json')
@@ -36,11 +32,7 @@ class ViewResourceTestCase(BaseTestCase):
                 DataView.objects.get(pk=view.pk).accessed)
 
 
-class ViewsRevisionsResourceTestCase(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
-
+class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
         view = DataView(user=self.user)
         view.save()

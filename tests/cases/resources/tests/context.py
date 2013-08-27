@@ -3,14 +3,10 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from avocado.history.models import Revision
 from avocado.models import DataContext
-from .base import BaseTestCase
+from .base import AuthenticatedBaseTestCase
 
 
-class ContextResource(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
-
+class ContextResource(AuthenticatedBaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/contexts/',
             HTTP_ACCEPT='application/json')
@@ -34,11 +30,7 @@ class ContextResource(BaseTestCase):
                 DataContext.objects.get(pk=ctx.pk).accessed)
 
 
-class ContextsRevisionsResourceTestCase(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
-
+class ContextsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
         ctx = DataContext(user=self.user)
         ctx.save()
