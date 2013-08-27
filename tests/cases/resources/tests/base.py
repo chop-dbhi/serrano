@@ -159,11 +159,7 @@ class DataResourceTestCase(BaseTestCase):
             self.assertEqual(response.status_code, 200)
 
 
-class HistoryResourceTestCase(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
-
+class HistoryResourceTestCase(AuthenticatedBaseTestCase):
     def test_no_object_model(self):
         # This will trigger a revision to be created
         view = DataView(user=self.user)
@@ -176,3 +172,18 @@ class HistoryResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 0)
+
+    def test_custom_template(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        response = self.client.get('/api/test/template/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        revision = json.loads(response.content)[0]
+        self.assertEqual(revision['id'], 1)
+        self.assertEqual(revision['object_id'], 1)
+        self.assertTrue('_links' in revision)
+        self.assertFalse('content_type' in revision)
