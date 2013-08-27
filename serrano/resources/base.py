@@ -357,8 +357,13 @@ def history_posthook(instance, data, request, object_uri, object_template,
     uri = request.build_absolute_uri
 
     data['_links'] = {
+        'self': {
+            'href': uri(reverse("{0}:revision_for_object".format(object_uri),
+                args=[instance.object_id, instance.pk])),
+        },
         'object': {
-            'href': uri(reverse(object_uri, args=[instance.object_id])),
+            'href': uri(reverse("{0}:single".format(object_uri),
+                args=[instance.object_id])),
         }
     }
 
@@ -374,7 +379,7 @@ class HistoryResource(DataResource):
 
     object_model = None
     object_model_template = None
-    object_model_uri = None
+    object_model_base_uri = None
 
     model = Revision
     template = templates.Revision
@@ -383,7 +388,7 @@ class HistoryResource(DataResource):
         if template is None:
             template = self.template
         posthook = functools.partial(history_posthook, request=request,
-                object_uri=self.object_model_uri,
+                object_uri=self.object_model_base_uri,
                 object_template=self.object_model_template)
         return serialize(instance, posthook=posthook, **template)
 

@@ -157,7 +157,7 @@ class ViewsRevisionsResource(HistoryResource):
 
     object_model = DataView
     object_model_template = templates.View
-    object_model_uri = 'serrano:views:single'
+    object_model_base_uri = 'serrano:views'
 
 
 class ViewRevisionsResource(HistoryResource):

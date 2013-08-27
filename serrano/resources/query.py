@@ -186,7 +186,7 @@ class QueriesRevisionsResource(HistoryResource):
 
     object_model = DataQuery
     object_model_template = templates.Query
-    object_model_uri = 'serrano:queries:single'
+    object_model_base_uri = 'serrano:queries'
 
 
 class QueryRevisionsResource(HistoryResource):

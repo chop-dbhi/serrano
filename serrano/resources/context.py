@@ -165,7 +165,7 @@ class ContextsRevisionsResource(HistoryResource):
 
     object_model = DataContext
     object_model_template = templates.Context
-    object_model_uri = 'serrano:contexts:single'
+    object_model_base_uri = 'serrano:contexts'
 
 
 class ContextRevisionsResource(HistoryResource):
