@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, param_cleaners
 from restlib2.resources import Resource
@@ -351,15 +352,40 @@ class PaginatorResource(Resource):
         return links
 
 
+def history_posthook(instance, data, request, object_uri, object_template,
+        embed=False):
+    uri = request.build_absolute_uri
+
+    data['_links'] = {
+        'object': {
+            'href': uri(reverse(object_uri, args=[instance.object_id])),
+        }
+    }
+
+    if embed:
+        data['object'] = serialize(instance.content_object, **object_template)
+
+    return data
+
+
 class HistoryResource(DataResource):
+    cache_max_age = 0
+    private_cache = True
+
     object_model = None
     object_model_template = None
+    object_model_uri = None
 
     model = Revision
     template = templates.Revision
 
-    def prepare(self, request, instance):
-        return serialize(instance, **self.template)
+    def prepare(self, request, instance, template=None):
+        if template is None:
+            template = self.template
+        posthook = functools.partial(history_posthook, request=request,
+                object_uri=self.object_model_uri,
+                object_template=self.object_model_template)
+        return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session from past revisions."
@@ -381,3 +407,7 @@ class HistoryResource(DataResource):
             self.object_model)
 
         return self.model.objects.filter(**kwargs)
+
+    def get(self, request):
+        queryset = self.get_queryset(request)
+        return self.prepare(request, queryset)

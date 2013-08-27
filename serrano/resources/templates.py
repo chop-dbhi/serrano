@@ -78,6 +78,6 @@ Query = {
 }
 
 Revision = {
-    'exclude': ['user', 'session_key'],
+    'exclude': ['user', 'session_key', 'data'],
     'allow_missing': True,
 }

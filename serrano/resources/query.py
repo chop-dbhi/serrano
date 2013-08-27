@@ -126,15 +126,9 @@ class QueriesResource(QueryBase):
 class QueriesHistoryResource(HistoryResource):
     "Resource of past versions of queries"
 
-    cache_max_age = 0
-    private_cache = True
-
     object_model = DataQuery
     object_model_template = templates.Query
-
-    def get(self, request):
-        queryset = self.get_queryset(request)
-        return self.prepare(request, queryset)
+    object_model_uri = 'serrano:queries:single'
 
 
 class QueryResource(QueryBase):

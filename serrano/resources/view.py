@@ -103,15 +103,10 @@ class ViewsResource(ViewBase):
 class ViewsHistoryResource(HistoryResource):
     "Resource of past versions of views"
 
-    cache_max_age = 0
-    private_cache = True
-
     object_model = DataView
     object_model_template = templates.View
+    object_model_uri = 'serrano:views:single'
 
-    def get(self, request):
-        queryset = self.get_queryset(request)
-        return self.prepare(request, queryset)
 
 class ViewResource(ViewBase):
     "Resource for accessing a single view"

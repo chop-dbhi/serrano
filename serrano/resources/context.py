@@ -111,15 +111,9 @@ class ContextsResource(ContextBase):
 class ContextsHistoryResource(HistoryResource):
     "Resource of past versions of contexts"
 
-    cache_max_age = 0
-    private_cache = True
-
     object_model = DataContext
     object_model_template = templates.Context
-
-    def get(self, request):
-        queryset = self.get_queryset(request)
-        return self.prepare(request, queryset)
+    object_model_uri = 'serrano:contexts:single'
 
 
 class ContextResource(ContextBase):
