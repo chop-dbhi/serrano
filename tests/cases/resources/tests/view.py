@@ -101,3 +101,40 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 0)
+
+    def test_embedded(self):
+        view = DataView(user=self.user, name='My View',
+            description='This is not a descriptive description')
+        view.save()
+
+        # Retrieve the revisions the normal way and make sure the object
+        # itself is not included.
+        response = self.client.get('/api/views/revisions/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+        no_embed_revision = json.loads(response.content)[0]
+        self.assertFalse('object' in no_embed_revision)
+
+        # Now retrieve the revisiosn with the embed flag enabled and verify
+        # that the object is now included with the revision.
+        response = self.client.get('/api/views/revisions/', {'embed': True},
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+        embed_revision = json.loads(response.content)[0]
+        self.assertTrue('object' in embed_revision)
+
+        # Make sure the included object matches the copy of the object directly
+        # from the object resource itself.
+        response = self.client.get('/api/views/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        revision_view = json.loads(response.content)
+
+        # We can't just compare the objects directly to one another because the
+        # object returned from the call to /api/views/1/ will have '_links'
+        # while the embeded object will not because the link location is
+        # different for Revisions.
+        for key in embed_revision['object']:
+            self.assertEqual(revision_view[key], embed_revision['object'][key])

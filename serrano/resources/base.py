@@ -373,6 +373,16 @@ def history_posthook(instance, data, request, object_uri, object_template,
     return data
 
 
+class HistoryParametizer(Parametizer):
+    """
+    Support params and their defaults for Revision endpoints.
+    """
+    embed = False
+
+    def clean_embed(self, value):
+        return param_cleaners.clean_bool(value)
+
+
 class HistoryResource(DataResource):
     cache_max_age = 0
     private_cache = True
@@ -384,12 +394,14 @@ class HistoryResource(DataResource):
     model = Revision
     template = templates.Revision
 
-    def prepare(self, request, instance, template=None):
+    parametizer = HistoryParametizer
+
+    def prepare(self, request, instance, template=None, embed=False):
         if template is None:
             template = self.template
         posthook = functools.partial(history_posthook, request=request,
                 object_uri=self.object_model_base_uri,
-                object_template=self.object_model_template)
+                object_template=self.object_model_template, embed=embed)
         return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):
@@ -414,5 +426,7 @@ class HistoryResource(DataResource):
         return self.model.objects.filter(**kwargs)
 
     def get(self, request):
+        params = self.get_params(request)
         queryset = self.get_queryset(request)
-        return self.prepare(request, queryset)
+
+        return self.prepare(request, queryset, embed=params['embed'])
