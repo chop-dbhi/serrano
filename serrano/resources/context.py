@@ -108,14 +108,6 @@ class ContextsResource(ContextBase):
         return response
 
 
-class ContextsHistoryResource(HistoryResource):
-    "Resource of past versions of contexts"
-
-    object_model = DataContext
-    object_model_template = templates.Context
-    object_model_uri = 'serrano:contexts:single'
-
-
 class ContextResource(ContextBase):
     "Resource for accessing a single context"
     def get_object(self, request, pk=None, session=None, **kwargs):
@@ -165,16 +157,65 @@ class ContextResource(ContextBase):
         return HttpResponse(status=codes.no_content)
 
 
+class ContextsRevisionsResource(HistoryResource):
+    """
+    Resource for getting all revisions across all contexts for entity making
+    the request.
+    """
+
+    object_model = DataContext
+    object_model_template = templates.Context
+    object_model_uri = 'serrano:contexts:single'
+
+
+class ContextRevisionsResource(HistoryResource):
+    """
+    Resource for retrieving all revisions for a specific context.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
+class ContextRevisionResource(HistoryResource):
+    """
+    Resource for retrieving a specific revision for a specific context.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
+class RevisionContextResource(ContextBase):
+    """
+    Resource for retrieving a context as it existed at a specific revision.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
 single_resource = never_cache(ContextResource())
 active_resource = never_cache(ContextsResource())
-history_resource = never_cache(ContextsHistoryResource())
+revisions_resource = never_cache(ContextsRevisionsResource())
+revisions_for_object_resource = never_cache(ContextRevisionsResource())
+revision_for_object_resource = never_cache(ContextRevisionResource())
+object_at_revision_resource = never_cache(RevisionContextResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', active_resource, name='active'),
-    url(r'^history/$', history_resource, name='history'),
 
     # Endpoints for specific contexts
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Revision related endpoints
+    url(r'^revisions/$', revisions_resource, name='revisions'),
+    url(r'^(?P<pk>\d+)/revisions/$', revisions_for_object_resource,
+        name='revisions_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
+        revision_for_object_resource, name='revision_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/object/$',
+        object_at_revision_resource, name='object_at_revision'),
 )

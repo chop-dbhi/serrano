@@ -100,14 +100,6 @@ class ViewsResource(ViewBase):
         return response
 
 
-class ViewsHistoryResource(HistoryResource):
-    "Resource of past versions of views"
-
-    object_model = DataView
-    object_model_template = templates.View
-    object_model_uri = 'serrano:views:single'
-
-
 class ViewResource(ViewBase):
     "Resource for accessing a single view"
     def get_object(self, request, pk=None, session=None, **kwargs):
@@ -157,16 +149,65 @@ class ViewResource(ViewBase):
         return HttpResponse(status=codes.no_content)
 
 
+class ViewsRevisionsResource(HistoryResource):
+    """
+    Resource for getting all revisions across all views for entity making
+    the request.
+    """
+
+    object_model = DataView
+    object_model_template = templates.View
+    object_model_uri = 'serrano:views:single'
+
+
+class ViewRevisionsResource(HistoryResource):
+    """
+    Resource for retrieving all revisions for a specific view.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
+class ViewRevisionResource(HistoryResource):
+    """
+    Resource for retrieving a specific revision for a specific view.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
+class RevisionViewResource(ViewBase):
+    """
+    Resource for retrieving a view as it existed at a specific revision.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
 single_resource = never_cache(ViewResource())
 active_resource = never_cache(ViewsResource())
-history_resource = never_cache(ViewsHistoryResource())
+revisions_resource = never_cache(ViewsRevisionsResource())
+revisions_for_object_resource = never_cache(ViewRevisionsResource())
+revision_for_object_resource = never_cache(ViewRevisionResource())
+object_at_revision_resource = never_cache(RevisionViewResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', active_resource, name='active'),
-    url(r'^history/$', history_resource, name='history'),
 
     # Endpoints for specific views
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Revision related endpoints
+    url(r'^revisions/$', revisions_resource, name='revisions'),
+    url(r'^(?P<pk>\d+)/revisions/$', revisions_for_object_resource,
+        name='revisions_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
+        revision_for_object_resource, name='revision_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/object/$',
+        object_at_revision_resource, name='object_at_revision'),
 )

@@ -123,14 +123,6 @@ class QueriesResource(QueryBase):
         return response
 
 
-class QueriesHistoryResource(HistoryResource):
-    "Resource of past versions of queries"
-
-    object_model = DataQuery
-    object_model_template = templates.Query
-    object_model_uri = 'serrano:queries:single'
-
-
 class QueryResource(QueryBase):
     "Resource for accessing a single query"
     def get_object(self, request, pk=None, session=None, **kwargs):
@@ -186,18 +178,67 @@ class QueryResource(QueryBase):
         return HttpResponse(status=codes.no_content)
 
 
+class QueriesRevisionsResource(HistoryResource):
+    """
+    Resource for getting all revisions across all queries for the entity
+    making the request.
+    """
+
+    object_model = DataQuery
+    object_model_template = templates.Query
+    object_model_uri = 'serrano:queries:single'
+
+
+class QueryRevisionsResource(HistoryResource):
+    """
+    Resource for retrieving all revisions for a specific query.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
+class QueryRevisionResource(HistoryResource):
+    """
+    Resource for retrieving a specific revision for a specific query.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
+class RevisionQueryResource(QueryBase):
+    """
+    Resource for retrieving a query as it existed at a specific revision.
+    """
+
+    def get(self, request, **kwargs):
+        pass
+
+
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
-history_resource = never_cache(QueriesHistoryResource())
 shared_resource = never_cache(SharedQueriesResource())
+revisions_resource = never_cache(QueriesRevisionsResource())
+revisions_for_object_resource = never_cache(QueryRevisionsResource())
+revision_for_object_resource = never_cache(QueryRevisionResource())
+object_at_revision_resource = never_cache(RevisionQueryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', active_resource, name='active'),
-    url(r'^history/$', history_resource, name='history'),
     url(r'^shared/$', shared_resource, name='shared'),
 
     # Endpoints for specific queries
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Revision related endpoints
+    url(r'^revisions/$', revisions_resource, name='revisions'),
+    url(r'^(?P<pk>\d+)/revisions/$', revisions_for_object_resource,
+        name='revisions_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
+        revision_for_object_resource, name='revision_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/object/$',
+        object_at_revision_resource, name='object_at_revision'),
 )

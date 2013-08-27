@@ -211,7 +211,7 @@ class EmailTestCase(BaseTestCase):
             ['share@example.com', '', 'share3@example.com'])
 
 
-class QueryHistoryResourceTestCase(BaseTestCase):
+class QueriesRevisionsResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -220,7 +220,7 @@ class QueryHistoryResourceTestCase(BaseTestCase):
         query = DataQuery(user=self.user)
         query.save()
 
-        response = self.client.get('/api/queries/history/',
+        response = self.client.get('/api/queries/revisions/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)

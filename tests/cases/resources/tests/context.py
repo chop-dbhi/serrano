@@ -34,7 +34,7 @@ class ContextResource(BaseTestCase):
                 DataContext.objects.get(pk=ctx.pk).accessed)
 
 
-class ContextHistoryResourceTestCase(BaseTestCase):
+class ContextsRevisionsResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -43,7 +43,7 @@ class ContextHistoryResourceTestCase(BaseTestCase):
         ctx = DataContext(user=self.user)
         ctx.save()
 
-        response = self.client.get('/api/contexts/history/',
+        response = self.client.get('/api/contexts/revisions/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)

@@ -36,7 +36,7 @@ class ViewResourceTestCase(BaseTestCase):
                 DataView.objects.get(pk=view.pk).accessed)
 
 
-class ViewHistoryResourceTestCase(BaseTestCase):
+class ViewsRevisionsResourceTestCase(BaseTestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
@@ -45,7 +45,7 @@ class ViewHistoryResourceTestCase(BaseTestCase):
         view = DataView(user=self.user)
         view.save()
 
-        response = self.client.get('/api/views/history/',
+        response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)
@@ -61,7 +61,7 @@ class ViewHistoryResourceTestCase(BaseTestCase):
         self.assertEqual(Revision.objects.filter(
             content_type=ContentType.objects.get_for_model(DataView)).count(), 2)
 
-        response = self.client.get('/api/views/history/',
+        response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)
@@ -87,7 +87,7 @@ class ViewHistoryResourceTestCase(BaseTestCase):
         self.assertEqual(Revision.objects.filter(
             content_type=ContentType.objects.get_for_model(DataView)).count(), 2)
 
-        response = self.client.get('/api/views/history/',
+        response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)
@@ -105,7 +105,7 @@ class ViewHistoryResourceTestCase(BaseTestCase):
         # We want this request to come from an anonymous user
         self.client.logout()
 
-        response = self.client.get('/api/views/history/',
+        response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 0)
