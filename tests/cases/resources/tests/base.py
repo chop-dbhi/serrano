@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sessions.backends.db import SessionStore
 from django.core import management
-from django.test import Client, TestCase
+from django.test import TestCase
 from django.test.utils import override_settings
 from avocado.history.models import Revision
 from avocado.models import DataField, DataView
