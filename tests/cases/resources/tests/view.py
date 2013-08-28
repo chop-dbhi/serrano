@@ -145,9 +145,73 @@ class ViewRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         view = DataView(user=self.user)
         view.save()
 
+        view.name = "Fake name"
+        view.save()
+
+        view.description = "Terribly vague description"
+        view.save()
+
         url = '/api/views/{0}/revisions/'.format(view.id)
 
         response = self.client.get(url,
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(json.loads(response.content)), 1)
+        self.assertEqual(len(json.loads(response.content)), 3)
+
+
+class ViewRevisionResourceTestCase(AuthenticatedBaseTestCase):
+    def test_get(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        view.name = "Fake name"
+        view.save()
+
+        target_revision_id = Revision.objects.all().count()
+
+        view.description = "Terribly vague description"
+        view.save()
+
+        url = '/api/views/{0}/revisions/{1}/'.format(view.id, target_revision_id)
+
+        response = self.client.get(url,
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.content)
+
+        revision = json.loads(response.content)
+        self.assertEqual(revision['changes'], {
+            'name': {
+                'old_value': None,
+                'new_value': 'Fake name'
+             }
+        })
+        self.assertFalse("description" in revision['changes'])
+
+    def test_non_existent_object(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        view.name = "Fake name"
+        view.save()
+
+        target_revision_id = Revision.objects.all().count()
+
+        url = '/api/views/{0}/revisions/{1}/'.format(123456789, target_revision_id)
+
+        response = self.client.get(url,
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
+    def test_non_existent_revision(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        view.name = "Fake name"
+        view.save()
+
+        url = '/api/views/{0}/revisions/{1}/'.format(view.id, 123456789)
+
+        response = self.client.get(url,
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)

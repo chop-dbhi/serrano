@@ -180,9 +180,31 @@ class ViewRevisionResource(RevisionResource):
     """
     Resource for retrieving a specific revision for a specific view.
     """
+    object_model = DataView
+    object_model_template = templates.View
+    object_model_base_uri = 'serrano:views'
+
+    def get_object(self, request, object_pk=None, revision_pk=None, **kwargs):
+        if not object_pk:
+            raise ValueError('An object model id must be supplied for the lookup')
+        if not revision_pk:
+            raise ValueError('A Revision id must be supplied for the lookup')
+
+        queryset = self.get_queryset(request, **kwargs)
+
+        try:
+            return queryset.get(pk=revision_pk, object_id=object_pk)
+        except self.model.DoesNotExist:
+            pass
+
+    def is_not_found(self, request, response, **kwargs):
+        instance = self.get_object(request, **kwargs)
+        if instance is None:
+            return True
+        request.instance = instance
 
     def get(self, request, **kwargs):
-        pass
+        return self.prepare(request, request.instance)
 
 
 class RevisionViewResource(ViewBase):
