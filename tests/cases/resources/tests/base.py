@@ -187,3 +187,19 @@ class RevisionResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(revision['object_id'], 1)
         self.assertTrue('_links' in revision)
         self.assertFalse('content_type' in revision)
+
+
+class ObjectRevisionResourceTestCase(AuthenticatedBaseTestCase):
+    def test_bad_urls(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        target_revision_id = Revision.objects.all().count()
+
+        url = '/api/test/revisions/{0}/'.format(target_revision_id)
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
+        url = '/api/test/{0}/revisions/'.format(view.id)
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)

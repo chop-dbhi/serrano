@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url, include
 from django.views.decorators.cache import never_cache
 from avocado.models import DataView
 from serrano.resources import templates
-from serrano.resources.base import RevisionsResource
+from serrano.resources.base import RevisionsResource, ObjectRevisionResource
 from .templates import BriefRevisionTemplate
 
 
@@ -31,10 +31,23 @@ class CustomTemplateRevisionResource(RevisionsResource):
         return self.prepare(request, queryset, template=BriefRevisionTemplate)
 
 
+class BadObjectRevisionUrlResource(ObjectRevisionResource):
+    object_model = DataView
+    object_model_template = templates.View
+    object_model_base_uri = 'serrano:views'
+
+
+
 no_object_model_resource = never_cache(NoObjectModelRevisionResource())
 template_resource = never_cache(CustomTemplateRevisionResource())
+bad_object_revision_url_resource = never_cache(BadObjectRevisionUrlResource())
+
 
 urlpatterns = patterns('',
     url(r'^no_model/$', no_object_model_resource, name='no_model'),
     url(r'^template/$', template_resource, name='template'),
+    url(r'^revisions/(?P<revision_pk>\d+)/$', bad_object_revision_url_resource,
+        name='no_object_id'),
+    url(r'^(?P<object_pk>\d+)/revisions/$', bad_object_revision_url_resource,
+        name='no_revision_id')
 )

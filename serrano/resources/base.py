@@ -460,7 +460,11 @@ class ObjectRevisionResource(RevisionsResource):
             pass
 
     def is_not_found(self, request, response, **kwargs):
-        instance = self.get_object(request, **kwargs)
+        try:
+            instance = self.get_object(request, **kwargs)
+        except ValueError:
+            return True
+
         if instance is None:
             return True
         request.instance = instance
