@@ -207,21 +207,11 @@ class ViewRevisionResource(RevisionResource):
         return self.prepare(request, request.instance)
 
 
-class RevisionViewResource(ViewBase):
-    """
-    Resource for retrieving a view as it existed at a specific revision.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
 single_resource = never_cache(ViewResource())
 active_resource = never_cache(ViewsResource())
 revisions_resource = never_cache(ViewsRevisionsResource())
 revisions_for_object_resource = never_cache(ViewRevisionsResource())
 revision_for_object_resource = never_cache(ViewRevisionResource())
-object_at_revision_resource = never_cache(RevisionViewResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
@@ -237,6 +227,4 @@ urlpatterns = patterns('',
         name='revisions_for_object'),
     url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
         revision_for_object_resource, name='revision_for_object'),
-    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/object/$',
-        object_at_revision_resource, name='object_at_revision'),
 )

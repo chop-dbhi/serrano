@@ -186,21 +186,11 @@ class ContextRevisionResource(RevisionResource):
         pass
 
 
-class RevisionContextResource(ContextBase):
-    """
-    Resource for retrieving a context as it existed at a specific revision.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
 single_resource = never_cache(ContextResource())
 active_resource = never_cache(ContextsResource())
 revisions_resource = never_cache(ContextsRevisionsResource())
 revisions_for_object_resource = never_cache(ContextRevisionsResource())
 revision_for_object_resource = never_cache(ContextRevisionResource())
-object_at_revision_resource = never_cache(RevisionContextResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
@@ -216,6 +206,4 @@ urlpatterns = patterns('',
         name='revisions_for_object'),
     url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
         revision_for_object_resource, name='revision_for_object'),
-    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/object/$',
-        object_at_revision_resource, name='object_at_revision'),
 )

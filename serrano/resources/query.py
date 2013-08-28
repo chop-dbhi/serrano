@@ -207,22 +207,12 @@ class QueryRevisionResource(RevisionResource):
         pass
 
 
-class RevisionQueryResource(QueryBase):
-    """
-    Resource for retrieving a query as it existed at a specific revision.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 shared_resource = never_cache(SharedQueriesResource())
 revisions_resource = never_cache(QueriesRevisionsResource())
 revisions_for_object_resource = never_cache(QueryRevisionsResource())
 revision_for_object_resource = never_cache(QueryRevisionResource())
-object_at_revision_resource = never_cache(RevisionQueryResource())
 
 # Resource endpoints
 urlpatterns = patterns('',
@@ -239,6 +229,4 @@ urlpatterns = patterns('',
         name='revisions_for_object'),
     url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
         revision_for_object_resource, name='revision_for_object'),
-    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/object/$',
-        object_at_revision_resource, name='object_at_revision'),
 )
