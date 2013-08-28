@@ -1,15 +1,13 @@
 import json, time
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 from django.test.utils import override_settings
+from avocado.history.models import Revision
 from avocado.models import DataQuery
-from .base import BaseTestCase
+from .base import AuthenticatedBaseTestCase, BaseTestCase
 
-class SharedQueryTestCase(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
-
+class SharedQueryTestCase(AuthenticatedBaseTestCase):
     def test_only_owner(self):
         query = DataQuery(user=self.user)
         query.save()
@@ -74,11 +72,8 @@ class SharedQueryTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 401)
 
-class QueryResourceTestCase(BaseTestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='test', password='test')
-        self.client.login(username='test', password='test')
 
+class QueryResourceTestCase(AuthenticatedBaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
@@ -111,10 +106,10 @@ class QueryResourceTestCase(BaseTestCase):
         response = self.client.get('/api/queries/1/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(json.loads(response.content)['shared_users'][0], {
-            'id': 2,
-            'username': 'sharee',
-            'name': 'Shared User',
-            'email': 'share@example.com',
+            'id': sharee.id,
+            'username': sharee.username,
+            'name': sharee.get_full_name(),
+            'email': sharee.email,
         })
 
     def test_delete(self):
@@ -207,3 +202,14 @@ class EmailTestCase(BaseTestCase):
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to,
             ['share@example.com', '', 'share3@example.com'])
+
+
+class QueriesRevisionsResourceTestCase(AuthenticatedBaseTestCase):
+    def test_get(self):
+        query = DataQuery(user=self.user)
+        query.save()
+
+        response = self.client.get('/api/queries/revisions/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)

@@ -14,12 +14,12 @@ from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth
 from serrano.forms import QueryForm
-from .base import DataResource
+from .base import DataResource, RevisionsResource, ObjectRevisionsResource, \
+    ObjectRevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
 
-HISTORY_ENABLED = settings.HISTORY_ENABLED
 DELETE_QUERY_EMAIL_TITLE = "'{0}' has been deleted"
 DELETE_QUERY_EMAIL_BODY = """The query named '{0}' has been deleted. You are
  being notified because this query was shared with you. This query is no
@@ -89,15 +89,15 @@ class SharedQueriesResource(QueryBase):
 
     @check_auth
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         return self.prepare(request, queryset)
 
 
 class QueriesResource(QueryBase):
-    "Resource of active (non-archived) queries"
+    "Resource of queries"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         # Only create a default is a session exists
         if request.session.session_key:
@@ -114,7 +114,7 @@ class QueriesResource(QueryBase):
         form = QueryForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
@@ -122,13 +122,6 @@ class QueriesResource(QueryBase):
             response = self.render(request, dict(form.errors),
                 status=codes.unprocessable_entity)
         return response
-
-
-class QueriesHistoryResource(QueryBase):
-    "Resource of archived (non-active) queries"
-    def get(self, request):
-        queryset = self.get_queryset(request, archived=True)
-        return self.prepare(request, queryset)
 
 
 class QueryResource(QueryBase):
@@ -164,7 +157,7 @@ class QueryResource(QueryBase):
         form = QueryForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
@@ -188,16 +181,30 @@ class QueryResource(QueryBase):
 
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
-history_resource = never_cache(QueriesHistoryResource())
 shared_resource = never_cache(SharedQueriesResource())
+revisions_resource = never_cache(RevisionsResource(
+    object_model=DataQuery, object_model_template = templates.Query,
+    object_model_base_uri = 'serrano:queries'))
+revisions_for_object_resource = never_cache(ObjectRevisionsResource(
+    object_model=DataQuery, object_model_template = templates.Query,
+    object_model_base_uri = 'serrano:queries'))
+revision_for_object_resource = never_cache(ObjectRevisionResource(
+    object_model=DataQuery, object_model_template = templates.Query,
+    object_model_base_uri = 'serrano:queries'))
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', active_resource, name='active'),
-    url(r'^history/$', history_resource, name='history'),
     url(r'^shared/$', shared_resource, name='shared'),
 
     # Endpoints for specific queries
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Revision related endpoints
+    url(r'^revisions/$', revisions_resource, name='revisions'),
+    url(r'^(?P<pk>\d+)/revisions/$', revisions_for_object_resource,
+        name='revisions_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
+        revision_for_object_resource, name='revision_for_object'),
 )

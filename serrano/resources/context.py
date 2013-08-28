@@ -11,12 +11,11 @@ from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import DataResource
+from .base import DataResource, RevisionsResource, ObjectRevisionsResource, \
+    ObjectRevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
-
-HISTORY_ENABLED = settings.HISTORY_ENABLED
 
 def context_posthook(instance, data, request):
     uri = request.build_absolute_uri
@@ -81,9 +80,9 @@ class ContextBase(DataResource):
 
 
 class ContextsResource(ContextBase):
-    "Resource of active (non-archived) contexts"
+    "Resource of contexts"
     def get(self, request):
-        queryset = self.get_queryset(request, archived=False)
+        queryset = self.get_queryset(request)
 
         # Only create a default if a session exists
         if request.session.session_key:
@@ -100,7 +99,7 @@ class ContextsResource(ContextBase):
         form = ContextForm(request, request.data)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
                 status=codes.created)
@@ -108,13 +107,6 @@ class ContextsResource(ContextBase):
             response = self.render(request, dict(form.errors),
                 status=codes.unprocessable_entity)
         return response
-
-
-class ContextsHistoryResource(ContextBase):
-    "Resource of archived (non-active) contexts"
-    def get(self, request):
-        queryset = self.get_queryset(request, archived=True)
-        return self.prepare(request, queryset)
 
 
 class ContextResource(ContextBase):
@@ -150,7 +142,7 @@ class ContextResource(ContextBase):
         form = ContextForm(request, request.data, instance=instance)
 
         if form.is_valid():
-            instance = form.save(archive=HISTORY_ENABLED)
+            instance = form.save()
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
@@ -168,14 +160,28 @@ class ContextResource(ContextBase):
 
 single_resource = never_cache(ContextResource())
 active_resource = never_cache(ContextsResource())
-history_resource = never_cache(ContextsHistoryResource())
+revisions_resource = never_cache(RevisionsResource(
+    object_model=DataContext, object_model_template = templates.Context,
+    object_model_base_uri = 'serrano:contexts'))
+revisions_for_object_resource = never_cache(ObjectRevisionsResource(
+    object_model=DataContext, object_model_template = templates.Context,
+    object_model_base_uri = 'serrano:contexts'))
+revision_for_object_resource = never_cache(ObjectRevisionResource(
+    object_model=DataContext, object_model_template = templates.Context,
+    object_model_base_uri = 'serrano:contexts'))
 
 # Resource endpoints
 urlpatterns = patterns('',
     url(r'^$', active_resource, name='active'),
-    url(r'^history/$', history_resource, name='history'),
 
     # Endpoints for specific contexts
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Revision related endpoints
+    url(r'^revisions/$', revisions_resource, name='revisions'),
+    url(r'^(?P<pk>\d+)/revisions/$', revisions_for_object_resource,
+        name='revisions_for_object'),
+    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
+        revision_for_object_resource, name='revision_for_object'),
 )

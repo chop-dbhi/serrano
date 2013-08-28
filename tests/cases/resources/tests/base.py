@@ -1,10 +1,13 @@
 import json
 import time
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.sessions.backends.db import SessionStore
 from django.core import management
 from django.test import TestCase
 from django.test.utils import override_settings
-from avocado.models import DataField
+from avocado.history.models import Revision
+from avocado.models import DataField, DataView
 from restlib2.http import codes
 from serrano.resources import API_VERSION
 
@@ -20,6 +23,14 @@ class BaseTestCase(TestCase):
             password='password')
         self.user.is_superuser = True
         self.user.save()
+
+
+class AuthenticatedBaseTestCase(BaseTestCase):
+    def setUp(self):
+        super(AuthenticatedBaseTestCase, self).setUp()
+
+        self.user = User.objects.create_user(username='test', password='test')
+        self.client.login(username='test', password='test')
 
 
 class RootResourceTestCase(TestCase):
@@ -146,3 +157,49 @@ class DataResourceTestCase(BaseTestCase):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, 200)
+
+
+class RevisionResourceTestCase(AuthenticatedBaseTestCase):
+    def test_no_object_model(self):
+        # This will trigger a revision to be created
+        view = DataView(user=self.user)
+        view.save()
+
+        # Make sure we have a revision for this user
+        self.assertEqual(Revision.objects.filter(user=self.user).count(), 1)
+
+        response = self.client.get('/api/test/no_model/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 0)
+
+    def test_custom_template(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        response = self.client.get('/api/test/template/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        revision = json.loads(response.content)[0]
+        self.assertEqual(revision['id'], 1)
+        self.assertEqual(revision['object_id'], 1)
+        self.assertTrue('_links' in revision)
+        self.assertFalse('content_type' in revision)
+
+
+class ObjectRevisionResourceTestCase(AuthenticatedBaseTestCase):
+    def test_bad_urls(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        target_revision_id = Revision.objects.all().count()
+
+        url = '/api/test/revisions/{0}/'.format(target_revision_id)
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
+        url = '/api/test/{0}/revisions/'.format(view.id)
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
