@@ -11,7 +11,7 @@ from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import DataResource, HistoryResource
+from .base import DataResource, RevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -157,7 +157,7 @@ class ContextResource(ContextBase):
         return HttpResponse(status=codes.no_content)
 
 
-class ContextsRevisionsResource(HistoryResource):
+class ContextsRevisionsResource(RevisionResource):
     """
     Resource for getting all revisions across all contexts for entity making
     the request.
@@ -168,7 +168,7 @@ class ContextsRevisionsResource(HistoryResource):
     object_model_base_uri = 'serrano:contexts'
 
 
-class ContextRevisionsResource(HistoryResource):
+class ContextRevisionsResource(RevisionResource):
     """
     Resource for retrieving all revisions for a specific context.
     """
@@ -177,7 +177,7 @@ class ContextRevisionsResource(HistoryResource):
         pass
 
 
-class ContextRevisionResource(HistoryResource):
+class ContextRevisionResource(RevisionResource):
     """
     Resource for retrieving a specific revision for a specific context.
     """

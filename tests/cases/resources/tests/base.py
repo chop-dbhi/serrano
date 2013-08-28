@@ -159,7 +159,7 @@ class DataResourceTestCase(BaseTestCase):
             self.assertEqual(response.status_code, 200)
 
 
-class HistoryResourceTestCase(AuthenticatedBaseTestCase):
+class RevisionResourceTestCase(AuthenticatedBaseTestCase):
     def test_no_object_model(self):
         # This will trigger a revision to be created
         view = DataView(user=self.user)

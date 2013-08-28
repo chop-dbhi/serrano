@@ -352,7 +352,7 @@ class PaginatorResource(Resource):
         return links
 
 
-def history_posthook(instance, data, request, object_uri, object_template,
+def revision_posthook(instance, data, request, object_uri, object_template,
         embed=False):
     uri = request.build_absolute_uri
 
@@ -373,7 +373,7 @@ def history_posthook(instance, data, request, object_uri, object_template,
     return data
 
 
-class HistoryParametizer(Parametizer):
+class RevisionParametizer(Parametizer):
     """
     Support params and their defaults for Revision endpoints.
     """
@@ -383,7 +383,7 @@ class HistoryParametizer(Parametizer):
         return param_cleaners.clean_bool(value)
 
 
-class HistoryResource(DataResource):
+class RevisionResource(DataResource):
     cache_max_age = 0
     private_cache = True
 
@@ -394,12 +394,12 @@ class HistoryResource(DataResource):
     model = Revision
     template = templates.Revision
 
-    parametizer = HistoryParametizer
+    parametizer = RevisionParametizer
 
     def prepare(self, request, instance, template=None, embed=False):
         if template is None:
             template = self.template
-        posthook = functools.partial(history_posthook, request=request,
+        posthook = functools.partial(revision_posthook, request=request,
                 object_uri=self.object_model_base_uri,
                 object_template=self.object_model_template, embed=embed)
         return serialize(instance, posthook=posthook, **template)

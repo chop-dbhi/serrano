@@ -14,7 +14,7 @@ from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth
 from serrano.forms import QueryForm
-from .base import DataResource, HistoryResource
+from .base import DataResource, RevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -178,7 +178,7 @@ class QueryResource(QueryBase):
         return HttpResponse(status=codes.no_content)
 
 
-class QueriesRevisionsResource(HistoryResource):
+class QueriesRevisionsResource(RevisionResource):
     """
     Resource for getting all revisions across all queries for the entity
     making the request.
@@ -189,7 +189,7 @@ class QueriesRevisionsResource(HistoryResource):
     object_model_base_uri = 'serrano:queries'
 
 
-class QueryRevisionsResource(HistoryResource):
+class QueryRevisionsResource(RevisionResource):
     """
     Resource for retrieving all revisions for a specific query.
     """
@@ -198,7 +198,7 @@ class QueryRevisionsResource(HistoryResource):
         pass
 
 
-class QueryRevisionResource(HistoryResource):
+class QueryRevisionResource(RevisionResource):
     """
     Resource for retrieving a specific revision for a specific query.
     """

@@ -11,7 +11,7 @@ from avocado.models import DataView
 from avocado.conf import settings
 from avocado.events import usage
 from serrano.forms import ViewForm
-from .base import DataResource, HistoryResource
+from .base import DataResource, RevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -149,7 +149,7 @@ class ViewResource(ViewBase):
         return HttpResponse(status=codes.no_content)
 
 
-class ViewsRevisionsResource(HistoryResource):
+class ViewsRevisionsResource(RevisionResource):
     """
     Resource for getting all revisions across all views for entity making
     the request.
@@ -159,7 +159,7 @@ class ViewsRevisionsResource(HistoryResource):
     object_model_base_uri = 'serrano:views'
 
 
-class ViewRevisionsResource(HistoryResource):
+class ViewRevisionsResource(RevisionResource):
     """
     Resource for retrieving all revisions for a specific view.
     """
@@ -176,7 +176,7 @@ class ViewRevisionsResource(HistoryResource):
         return self.prepare(request, queryset, embed=params['embed'])
 
 
-class ViewRevisionResource(HistoryResource):
+class ViewRevisionResource(RevisionResource):
     """
     Resource for retrieving a specific revision for a specific view.
     """
