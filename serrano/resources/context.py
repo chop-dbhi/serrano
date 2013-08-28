@@ -11,7 +11,8 @@ from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import DataResource, RevisionResource
+from .base import DataResource, RevisionsResource, ObjectRevisionsResource, \
+    ObjectRevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -157,40 +158,17 @@ class ContextResource(ContextBase):
         return HttpResponse(status=codes.no_content)
 
 
-class ContextsRevisionsResource(RevisionResource):
-    """
-    Resource for getting all revisions across all contexts for entity making
-    the request.
-    """
-
-    object_model = DataContext
-    object_model_template = templates.Context
-    object_model_base_uri = 'serrano:contexts'
-
-
-class ContextRevisionsResource(RevisionResource):
-    """
-    Resource for retrieving all revisions for a specific context.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
-class ContextRevisionResource(RevisionResource):
-    """
-    Resource for retrieving a specific revision for a specific context.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
 single_resource = never_cache(ContextResource())
 active_resource = never_cache(ContextsResource())
-revisions_resource = never_cache(ContextsRevisionsResource())
-revisions_for_object_resource = never_cache(ContextRevisionsResource())
-revision_for_object_resource = never_cache(ContextRevisionResource())
+revisions_resource = never_cache(RevisionsResource(
+    object_model=DataContext, object_model_template = templates.Context,
+    object_model_base_uri = 'serrano:contexts'))
+revisions_for_object_resource = never_cache(ObjectRevisionsResource(
+    object_model=DataContext, object_model_template = templates.Context,
+    object_model_base_uri = 'serrano:contexts'))
+revision_for_object_resource = never_cache(ObjectRevisionResource(
+    object_model=DataContext, object_model_template = templates.Context,
+    object_model_base_uri = 'serrano:contexts'))
 
 # Resource endpoints
 urlpatterns = patterns('',

@@ -383,7 +383,7 @@ class RevisionParametizer(Parametizer):
         return param_cleaners.clean_bool(value)
 
 
-class RevisionResource(DataResource):
+class RevisionsResource(DataResource):
     cache_max_age = 0
     private_cache = True
 
@@ -429,3 +429,41 @@ class RevisionResource(DataResource):
         queryset = self.get_queryset(request)
 
         return self.prepare(request, queryset, embed=params['embed'])
+
+class ObjectRevisionsResource(RevisionsResource):
+    """
+    Resource for retrieving all revisions of an object model.
+    """
+    def get(self, request, **kwargs):
+        query_kwargs = {'object_id': int(kwargs['pk'])}
+
+        params = self.get_params(request)
+        queryset = self.get_queryset(request, **query_kwargs)
+
+        return self.prepare(request, queryset, embed=params['embed'])
+
+class ObjectRevisionResource(RevisionsResource):
+    """
+    Resource for retrieving a single revision related to a single object model.
+    """
+    def get_object(self, request, object_pk=None, revision_pk=None, **kwargs):
+        if not object_pk:
+            raise ValueError('An object model id must be supplied for the lookup')
+        if not revision_pk:
+            raise ValueError('A Revision id must be supplied for the lookup')
+
+        queryset = self.get_queryset(request, **kwargs)
+
+        try:
+            return queryset.get(pk=revision_pk, object_id=object_pk)
+        except self.model.DoesNotExist:
+            pass
+
+    def is_not_found(self, request, response, **kwargs):
+        instance = self.get_object(request, **kwargs)
+        if instance is None:
+            return True
+        request.instance = instance
+
+    def get(self, request, **kwargs):
+        return self.prepare(request, request.instance)

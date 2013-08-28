@@ -14,7 +14,8 @@ from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth
 from serrano.forms import QueryForm
-from .base import DataResource, RevisionResource
+from .base import DataResource, RevisionsResource, ObjectRevisionsResource, \
+    ObjectRevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -178,41 +179,18 @@ class QueryResource(QueryBase):
         return HttpResponse(status=codes.no_content)
 
 
-class QueriesRevisionsResource(RevisionResource):
-    """
-    Resource for getting all revisions across all queries for the entity
-    making the request.
-    """
-
-    object_model = DataQuery
-    object_model_template = templates.Query
-    object_model_base_uri = 'serrano:queries'
-
-
-class QueryRevisionsResource(RevisionResource):
-    """
-    Resource for retrieving all revisions for a specific query.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
-class QueryRevisionResource(RevisionResource):
-    """
-    Resource for retrieving a specific revision for a specific query.
-    """
-
-    def get(self, request, **kwargs):
-        pass
-
-
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 shared_resource = never_cache(SharedQueriesResource())
-revisions_resource = never_cache(QueriesRevisionsResource())
-revisions_for_object_resource = never_cache(QueryRevisionsResource())
-revision_for_object_resource = never_cache(QueryRevisionResource())
+revisions_resource = never_cache(RevisionsResource(
+    object_model=DataQuery, object_model_template = templates.Query,
+    object_model_base_uri = 'serrano:queries'))
+revisions_for_object_resource = never_cache(ObjectRevisionsResource(
+    object_model=DataQuery, object_model_template = templates.Query,
+    object_model_base_uri = 'serrano:queries'))
+revision_for_object_resource = never_cache(ObjectRevisionResource(
+    object_model=DataQuery, object_model_template = templates.Query,
+    object_model_base_uri = 'serrano:queries'))
 
 # Resource endpoints
 urlpatterns = patterns('',

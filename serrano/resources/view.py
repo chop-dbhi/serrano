@@ -11,7 +11,8 @@ from avocado.models import DataView
 from avocado.conf import settings
 from avocado.events import usage
 from serrano.forms import ViewForm
-from .base import DataResource, RevisionResource
+from .base import DataResource, RevisionsResource, ObjectRevisionsResource, \
+    ObjectRevisionResource
 from . import templates
 
 log = logging.getLogger(__name__)
@@ -149,69 +150,17 @@ class ViewResource(ViewBase):
         return HttpResponse(status=codes.no_content)
 
 
-class ViewsRevisionsResource(RevisionResource):
-    """
-    Resource for getting all revisions across all views for entity making
-    the request.
-    """
-    object_model = DataView
-    object_model_template = templates.View
-    object_model_base_uri = 'serrano:views'
-
-
-class ViewRevisionsResource(RevisionResource):
-    """
-    Resource for retrieving all revisions for a specific view.
-    """
-    object_model = DataView
-    object_model_template = templates.View
-    object_model_base_uri = 'serrano:views'
-
-    def get(self, request, **kwargs):
-        query_kwargs = {'object_id': int(kwargs['pk'])}
-
-        params = self.get_params(request)
-        queryset = self.get_queryset(request, **query_kwargs)
-
-        return self.prepare(request, queryset, embed=params['embed'])
-
-
-class ViewRevisionResource(RevisionResource):
-    """
-    Resource for retrieving a specific revision for a specific view.
-    """
-    object_model = DataView
-    object_model_template = templates.View
-    object_model_base_uri = 'serrano:views'
-
-    def get_object(self, request, object_pk=None, revision_pk=None, **kwargs):
-        if not object_pk:
-            raise ValueError('An object model id must be supplied for the lookup')
-        if not revision_pk:
-            raise ValueError('A Revision id must be supplied for the lookup')
-
-        queryset = self.get_queryset(request, **kwargs)
-
-        try:
-            return queryset.get(pk=revision_pk, object_id=object_pk)
-        except self.model.DoesNotExist:
-            pass
-
-    def is_not_found(self, request, response, **kwargs):
-        instance = self.get_object(request, **kwargs)
-        if instance is None:
-            return True
-        request.instance = instance
-
-    def get(self, request, **kwargs):
-        return self.prepare(request, request.instance)
-
-
 single_resource = never_cache(ViewResource())
 active_resource = never_cache(ViewsResource())
-revisions_resource = never_cache(ViewsRevisionsResource())
-revisions_for_object_resource = never_cache(ViewRevisionsResource())
-revision_for_object_resource = never_cache(ViewRevisionResource())
+revisions_resource = never_cache(RevisionsResource(
+    object_model=DataView, object_model_template = templates.View,
+    object_model_base_uri = 'serrano:views'))
+revisions_for_object_resource = never_cache(ObjectRevisionsResource(
+    object_model=DataView, object_model_template = templates.View,
+    object_model_base_uri = 'serrano:views'))
+revision_for_object_resource = never_cache(ObjectRevisionResource(
+    object_model=DataView, object_model_template = templates.View,
+    object_model_base_uri = 'serrano:views'))
 
 # Resource endpoints
 urlpatterns = patterns('',
