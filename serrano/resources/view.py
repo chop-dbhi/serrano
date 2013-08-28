@@ -154,7 +154,6 @@ class ViewsRevisionsResource(HistoryResource):
     Resource for getting all revisions across all views for entity making
     the request.
     """
-
     object_model = DataView
     object_model_template = templates.View
     object_model_base_uri = 'serrano:views'
@@ -164,9 +163,17 @@ class ViewRevisionsResource(HistoryResource):
     """
     Resource for retrieving all revisions for a specific view.
     """
+    object_model = DataView
+    object_model_template = templates.View
+    object_model_base_uri = 'serrano:views'
 
     def get(self, request, **kwargs):
-        pass
+        query_kwargs = {'object_id': int(kwargs['pk'])}
+
+        params = self.get_params(request)
+        queryset = self.get_queryset(request, **query_kwargs)
+
+        return self.prepare(request, queryset, embed=params['embed'])
 
 
 class ViewRevisionResource(HistoryResource):

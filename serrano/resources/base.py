@@ -406,7 +406,6 @@ class HistoryResource(DataResource):
 
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session from past revisions."
-
         if not self.object_model:
             return self.model.objects.none()
 

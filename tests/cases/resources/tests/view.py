@@ -138,3 +138,16 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         # different for Revisions.
         for key in embed_revision['object']:
             self.assertEqual(revision_view[key], embed_revision['object'][key])
+
+
+class ViewRevisionsResourceTestCase(AuthenticatedBaseTestCase):
+    def test_get(self):
+        view = DataView(user=self.user)
+        view.save()
+
+        url = '/api/views/{0}/revisions/'.format(view.id)
+
+        response = self.client.get(url,
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
