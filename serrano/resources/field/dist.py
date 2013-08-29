@@ -4,7 +4,7 @@ from collections import defaultdict
 from django.db.models import Q
 from django.http import HttpResponse
 from restlib2.http import codes
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.models import DataField
 from avocado.stats import kmeans
@@ -17,36 +17,12 @@ MAXIMUM_OBSERVATIONS = 50000
 
 
 class FieldDistParametizer(Parametizer):
-    tree = MODELTREE_DEFAULT_ALIAS
-    aware = False
-    nulls = False
-    sort = None
-    cluster = True
-    n = None
-
-    # Not implemented
-    aggregates = None
-    relative = None
-
-    def clean_tree(self, value):
-        if value not in trees:
-            return MODELTREE_DEFAULT_ALIAS
-        return value
-
-    def clean_aware(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_nulls(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_sort(self, value):
-        return param_cleaners.clean_string(value)
-
-    def clean_cluster(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_n(self, value):
-        return param_cleaners.clean_int(value)
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
+    aware = BoolParam(False)
+    nulls = BoolParam(False)
+    sort = StrParam()
+    cluster = BoolParam(True)
+    n = IntParam()
 
 
 class FieldDistribution(FieldBase):

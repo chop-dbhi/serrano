@@ -4,7 +4,7 @@ from django.http import HttpResponse, Http404
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from restlib2 import resources
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, IntParam, StrParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
 from avocado.query import pipeline
@@ -39,16 +39,8 @@ class ExporterRootResource(resources.Resource):
 
 
 class ExporterParametizer(Parametizer):
-    limit = 50
-    tree = MODELTREE_DEFAULT_ALIAS
-
-    def clean_limit(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_tree(self, value):
-        if value not in trees:
-            return MODELTREE_DEFAULT_ALIAS
-        return value
+    limit = IntParam(50)
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
 class ExporterResource(BaseResource):

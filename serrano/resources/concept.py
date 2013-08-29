@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from preserialize.serialize import serialize
 from restlib2.http import codes
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, BoolParam, StrParam, IntParam
 from avocado.events import usage
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
@@ -77,28 +77,13 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
 class ConceptParametizer(Parametizer):
     "Supported params and their defaults for Concept endpoints."
 
-    sort = None
-    order = 'asc'
-    published = None
-    embed = False
-    brief = False
-    query = ''
-    limit = None
-
-    def clean_embed(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_brief(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_published(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_query(self, value):
-        return param_cleaners.clean_string(value)
-
-    def clean_limit(self, value):
-        return param_cleaners.clean_int(value)
+    sort = StrParam()
+    order = StrParam('asc')
+    published = BoolParam()
+    embed = BoolParam(False)
+    brief = BoolParam(False)
+    query = StrParam()
+    limit = IntParam()
 
 
 class ConceptBase(DataResource):
