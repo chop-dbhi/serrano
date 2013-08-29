@@ -68,6 +68,8 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
         klass.validate(attrs)
         return klass(json=attrs)
 
+    kwargs = {}
+
     # If an authenticated user made the request, filter by the user or
     # fallback to an active session key.
     if hasattr(request, 'user') and request.user.is_authenticated():
