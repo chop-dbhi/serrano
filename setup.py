@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     'avocado>=2.1a,<2.2',
-    'restlib2>=0.3.7,<0.4',
+    'restlib2>=0.3.9,<0.4',
     'django-preserialize>=1.0.4,<1.1',
 ]
 

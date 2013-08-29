@@ -2,31 +2,18 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.http import codes
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, StrParam, IntParam, BoolParam
 from avocado.conf import OPTIONAL_DEPS
 from avocado.events import usage
 from ..base import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
 
 
-MAXIMUM_RANDOM = 100
-
-
 class FieldValuesParametizer(PaginatorParametizer):
-    limit = 10
-    aware = False
-    query = None
-    random = None
-
-    def clean_aware(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_query(self, value):
-        return param_cleaners.clean_string(value)
-
-    def clean_random(self, value):
-        value = param_cleaners.clean_int(value)
-        return min(value, MAXIMUM_RANDOM)
+    limit = IntParam(10)
+    aware = BoolParam(False)
+    query = StrParam()
+    random = IntParam()
 
 
 class FieldValues(FieldBase, PaginatorResource):

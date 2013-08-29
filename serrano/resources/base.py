@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, BoolParam, IntParam
 from restlib2.resources import Resource
 from avocado.history.models import Revision
 from avocado.models import DataContext, DataView, DataQuery
@@ -288,14 +288,8 @@ class DataResource(BaseResource):
 
 
 class PaginatorParametizer(Parametizer):
-    page = 1
-    limit = 20
-
-    def clean_page(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_limit(self, value):
-        return param_cleaners.clean_int(value)
+    page = IntParam(1)
+    limit = IntParam(20)
 
 
 class PaginatorResource(Resource):
@@ -377,10 +371,7 @@ class RevisionParametizer(Parametizer):
     """
     Support params and their defaults for Revision endpoints.
     """
-    embed = False
-
-    def clean_embed(self, value):
-        return param_cleaners.clean_bool(value)
+    embed = BoolParam(False)
 
 
 class RevisionsResource(DataResource):

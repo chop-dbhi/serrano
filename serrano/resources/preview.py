@@ -8,17 +8,12 @@ from django.core.urlresolvers import reverse
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.query import pipeline
 from avocado.export import HTMLExporter
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, StrParam
 from .base import BaseResource, PaginatorResource, PaginatorParametizer
 
 
 class PreviewParametizer(PaginatorParametizer):
-    tree = MODELTREE_DEFAULT_ALIAS
-
-    def clean_tree(self, value):
-        if value not in trees:
-            return MODELTREE_DEFAULT_ALIAS
-        return value
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
 class PreviewResource(BaseResource, PaginatorResource):

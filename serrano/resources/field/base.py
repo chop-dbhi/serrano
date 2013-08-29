@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.http import codes
-from restlib2.params import Parametizer, param_cleaners
+from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from avocado.models import DataField
 from avocado.events import usage
 from ..base import DataResource
@@ -54,34 +54,16 @@ def field_posthook(instance, data, request):
 class FieldParametizer(Parametizer):
     "Supported params and their defaults for Field endpoints."
 
-    sort = None
-    order = 'asc'
-    published = None
-    brief = False
-    query = ''
-    limit = None
+    sort = StrParam()
+    order = StrParam('asc')
+    published = BoolParam()
+    brief = BoolParam(False)
+    query = StrParam()
+    limit = IntParam()
 
     # Not implemented
-    offset = None
-    page = None
-
-    def clean_published(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_brief(self, value):
-        return param_cleaners.clean_bool(value)
-
-    def clean_query(self, value):
-        return param_cleaners.clean_string(value)
-
-    def clean_limit(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_offset(self, value):
-        return param_cleaners.clean_int(value)
-
-    def clean_page(self, value):
-        return param_cleaners.clean_int(value)
+    offset = IntParam()
+    page = IntParam()
 
 
 class FieldBase(DataResource):
