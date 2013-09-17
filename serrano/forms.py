@@ -64,19 +64,7 @@ class ContextForm(forms.ModelForm):
 class ViewForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
-        self.count_needs_update = kwargs.pop('force_count', None)
         super(ViewForm, self).__init__(*args, **kwargs)
-
-    def clean_json(self):
-        json = self.cleaned_data.get('json')
-
-        if self.count_needs_update is None:
-            existing = self.instance.json
-            if existing or json and existing != json or json and self.instance.count is None:
-                self.count_needs_update = True
-            else:
-                self.count_needs_update = False
-        return json
 
     def save(self, commit=True):
         instance = super(ViewForm, self).save(commit=False)

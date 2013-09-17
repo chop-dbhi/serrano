@@ -89,11 +89,9 @@ class ViewFormTestCase(BaseTestCase):
 
         form = ViewForm(self.request, {})
         self.assertTrue(form.is_valid())
-        self.assertFalse(form.count_needs_update)
         instance = form.save()
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
-        self.assertEqual(instance.count, None)
 
     def test_json(self):
         previous_view_count = DataView.objects.count()
@@ -103,10 +101,6 @@ class ViewFormTestCase(BaseTestCase):
 
         instance = form.save()
         self.assertEqual(previous_view_count + 1, DataView.objects.count())
-
-    def test_force_count(self):
-        form = ViewForm(self.request, {}, force_count=True)
-        self.assertTrue(form.is_valid())
 
     def test_no_commit(self):
         previous_view_count = DataView.objects.count()
