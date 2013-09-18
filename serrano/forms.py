@@ -3,7 +3,6 @@ from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.forms.models import fields_for_model
 from avocado.models import DataContext, DataView, DataQuery
 from serrano import utils
 

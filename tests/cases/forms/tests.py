@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.http import HttpRequest
 from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
-from avocado.models import DataConcept, DataConceptField, DataContext, DataField, DataQuery, DataView
+from avocado.models import DataConcept, DataConceptField, DataContext, DataField, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
 from ...models import Employee
 
@@ -99,7 +99,7 @@ class ViewFormTestCase(BaseTestCase):
         form = ViewForm(self.request, {'json': {'columns': [1]}})
         self.assertTrue(form.is_valid())
 
-        instance = form.save()
+        form.save()
         self.assertEqual(previous_view_count + 1, DataView.objects.count())
 
     def test_no_commit(self):

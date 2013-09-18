@@ -1,4 +1,3 @@
-import json
 try:
     from collections import OrderedDict
 except ImportError:
@@ -8,7 +7,7 @@ from django.core.urlresolvers import reverse
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.query import pipeline
 from avocado.export import HTMLExporter
-from restlib2.params import Parametizer, StrParam
+from restlib2.params import StrParam
 from .base import BaseResource
 from .pagination import PaginatorResource, PaginatorParametizer
 

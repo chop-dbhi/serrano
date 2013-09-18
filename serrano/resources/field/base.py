@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
+from avocado.conf import OPTIONAL_DEPS
 from avocado.models import DataField
 from avocado.events import usage
 from ..base import ThrottledResource

@@ -1,7 +1,4 @@
 import json
-from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
-from avocado.history.models import Revision
 from avocado.models import DataContext
 from .base import AuthenticatedBaseTestCase
 

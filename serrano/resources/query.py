@@ -9,7 +9,6 @@ from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataQuery
-from avocado.conf import settings
 from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth

@@ -9,7 +9,6 @@ from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.events import usage
 from avocado.models import DataContext
-from avocado.conf import settings
 from serrano.forms import ContextForm
 from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
@@ -155,7 +154,7 @@ class ContextResource(ContextBase):
         if request.instance.session:
             return HttpResponse(status=codes.bad_request)
         request.instance.delete()
-        usage.log('delete', instance=instance, request=request)
+        usage.log('delete', instance=request.instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 

@@ -1,9 +1,7 @@
 import json, time
 from django.contrib.auth.models import User
-from django.contrib.contenttypes.models import ContentType
 from django.core import mail
 from django.test.utils import override_settings
-from avocado.history.models import Revision
 from avocado.models import DataQuery
 from .base import AuthenticatedBaseTestCase, BaseTestCase
 

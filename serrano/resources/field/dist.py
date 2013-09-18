@@ -1,6 +1,5 @@
 import json
 from decimal import Decimal
-from collections import defaultdict
 from django.db.models import Q
 from django.http import HttpResponse
 from restlib2.http import codes

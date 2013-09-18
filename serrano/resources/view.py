@@ -8,7 +8,6 @@ from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from preserialize.serialize import serialize
 from avocado.models import DataView
-from avocado.conf import settings
 from avocado.events import usage
 from serrano.forms import ViewForm
 from .base import ThrottledResource
@@ -147,7 +146,7 @@ class ViewResource(ViewBase):
         if request.instance.session:
             return HttpResponse(status=codes.bad_request)
         request.instance.delete()
-        usage.log('delete', instance=instance, request=request)
+        usage.log('delete', instance=request.instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 

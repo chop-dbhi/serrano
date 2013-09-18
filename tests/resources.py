@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import patterns, url
 from django.views.decorators.cache import never_cache
 from avocado.models import DataView
 from serrano.resources import templates

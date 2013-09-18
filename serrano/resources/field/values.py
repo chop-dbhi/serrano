@@ -1,9 +1,7 @@
 from django.http import HttpResponse
 from django.core.urlresolvers import reverse
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from restlib2.http import codes
-from restlib2.params import Parametizer, StrParam, IntParam, BoolParam
-from avocado.conf import OPTIONAL_DEPS
+from restlib2.params import StrParam, IntParam, BoolParam
 from avocado.events import usage
 from ..pagination import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
@@ -121,7 +119,7 @@ class FieldValues(FieldBase, PaginatorResource):
 
         try:
             values = map(lambda x: x['value'], array)
-        except (KeyError, TypeError) as e:
+        except (KeyError, TypeError):
             return HttpResponse('Error parsing value',
                 status=codes.unprocessable_entity)
 
