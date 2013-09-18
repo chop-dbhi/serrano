@@ -2,7 +2,7 @@ from django.conf.urls import patterns, url, include
 from django.views.decorators.cache import never_cache
 from avocado.models import DataView
 from serrano.resources import templates
-from serrano.resources.base import RevisionsResource, ObjectRevisionResource
+from serrano.resources.history import RevisionsResource, ObjectRevisionResource
 from .templates import BriefRevisionTemplate
 
 

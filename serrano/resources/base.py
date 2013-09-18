@@ -1,19 +1,14 @@
 import functools
-import re
 from datetime import datetime
 from django.conf import settings
-from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.urlresolvers import reverse
-from preserialize.serialize import serialize
-from restlib2.params import Parametizer, BoolParam, IntParam
+from restlib2.params import Parametizer
 from restlib2.resources import Resource
-from avocado.history.models import Revision
 from avocado.models import DataContext, DataView, DataQuery
-from . import templates
 from ..decorators import check_auth
 from .. import cors
+
+__all__ = ('BaseResource', 'DataResource')
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -185,6 +180,7 @@ def get_request_query(request, attrs=None):
         instance.json = default.json
     return instance
 
+
 class BaseResource(Resource):
     param_defaults = None
 
@@ -289,180 +285,3 @@ class DataResource(BaseResource):
             # exceeded the request limit or not and return the result of the
             # comparison.
             return new_count > limit_count
-
-
-class PaginatorParametizer(Parametizer):
-    page = IntParam(1)
-    limit = IntParam(20)
-
-
-class PaginatorResource(Resource):
-    parametizer = PaginatorParametizer
-
-    def get_paginator(self, queryset, limit):
-        return Paginator(queryset, per_page=limit)
-
-    def get_page_links(self, request, path, page, extra=None):
-        "Returns the page links."
-        uri = request.build_absolute_uri
-
-        # format string will be expanded below
-        params = {
-            'page': '{0}',
-            'limit': '{1}',
-        }
-
-        if extra:
-            for key, value in extra.items():
-                # Use the original GET parameter if supplied and if the
-                # cleaned value is valid
-                if key in request.GET and value is not None and value != '':
-                    params.setdefault(key, request.GET.get(key))
-
-        # Stringify parameters. Since these are the original GET params,
-        # they do not need to be encoded
-        pairs = sorted(['{0}={1}'.format(k, v) for k, v in params.items()])
-
-        # Create path string
-        path_format = '{0}?{1}'.format(path, '&'.join(pairs))
-
-        limit = page.paginator.per_page
-
-        links = {
-            'self': {
-                'href': uri(path_format.format(page.number, limit)),
-            },
-            'base': {
-                'href': uri(path),
-            }
-        }
-
-        if page.has_previous():
-            links['prev'] = {
-                'href': uri(path_format.format(page.previous_page_number(), limit)),
-            }
-
-        if page.has_next():
-            links['next'] = {
-                'href': uri(path_format.format(page.next_page_number(), limit)),
-            }
-
-        return links
-
-
-def revision_posthook(instance, data, request, object_uri, object_template,
-        embed=False):
-    uri = request.build_absolute_uri
-
-    data['_links'] = {
-        'self': {
-            'href': uri(reverse("{0}:revision_for_object".format(object_uri),
-                args=[instance.object_id, instance.pk])),
-        },
-        'object': {
-            'href': uri(reverse("{0}:single".format(object_uri),
-                args=[instance.object_id])),
-        }
-    }
-
-    if embed:
-        data['object'] = serialize(instance.content_object, **object_template)
-
-    return data
-
-
-class RevisionParametizer(Parametizer):
-    """
-    Support params and their defaults for Revision endpoints.
-    """
-    embed = BoolParam(False)
-
-
-class RevisionsResource(DataResource):
-    cache_max_age = 0
-    private_cache = True
-
-    object_model = None
-    object_model_template = None
-    object_model_base_uri = None
-
-    model = Revision
-    template = templates.Revision
-
-    parametizer = RevisionParametizer
-
-    def prepare(self, request, instance, template=None, embed=False):
-        if template is None:
-            template = self.template
-        posthook = functools.partial(revision_posthook, request=request,
-                object_uri=self.object_model_base_uri,
-                object_template=self.object_model_template, embed=embed)
-        return serialize(instance, posthook=posthook, **template)
-
-    def get_queryset(self, request, **kwargs):
-        "Constructs a QuerySet for this user or session from past revisions."
-        if not self.object_model:
-            return self.model.objects.none()
-
-        if hasattr(request, 'user') and request.user.is_authenticated():
-            kwargs['user'] = request.user
-        elif request.session.session_key:
-            kwargs['session_key'] = request.session.session_key
-        else:
-            # The only case where kwargs is empty is for non-authenticated
-            # cookieless agents.. e.g. bots, most non-browser clients since
-            # no session exists yet for the agent.
-            return self.model.objects.none()
-
-        kwargs['content_type'] = ContentType.objects.get_for_model(
-            self.object_model)
-
-        return self.model.objects.filter(**kwargs)
-
-    def get(self, request):
-        params = self.get_params(request)
-        queryset = self.get_queryset(request)
-
-        return self.prepare(request, queryset, embed=params['embed'])
-
-class ObjectRevisionsResource(RevisionsResource):
-    """
-    Resource for retrieving all revisions of an object model.
-    """
-    def get(self, request, **kwargs):
-        query_kwargs = {'object_id': int(kwargs['pk'])}
-
-        params = self.get_params(request)
-        queryset = self.get_queryset(request, **query_kwargs)
-
-        return self.prepare(request, queryset, embed=params['embed'])
-
-class ObjectRevisionResource(RevisionsResource):
-    """
-    Resource for retrieving a single revision related to a single object model.
-    """
-    def get_object(self, request, object_pk=None, revision_pk=None, **kwargs):
-        if not object_pk:
-            raise ValueError('An object model id must be supplied for the lookup')
-        if not revision_pk:
-            raise ValueError('A Revision id must be supplied for the lookup')
-
-        queryset = self.get_queryset(request, **kwargs)
-
-        try:
-            return queryset.get(pk=revision_pk, object_id=object_pk)
-        except self.model.DoesNotExist:
-            pass
-
-    def is_not_found(self, request, response, **kwargs):
-        try:
-            instance = self.get_object(request, **kwargs)
-        except ValueError:
-            return True
-
-        if instance is None:
-            return True
-        request.instance = instance
-
-    def get(self, request, **kwargs):
-        return self.prepare(request, request.instance)

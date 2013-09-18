@@ -14,7 +14,8 @@ from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth
 from serrano.forms import QueryForm
-from .base import DataResource, RevisionsResource, ObjectRevisionsResource, \
+from .base import DataResource
+from .history import RevisionsResource, ObjectRevisionsResource, \
     ObjectRevisionResource
 from . import templates
 

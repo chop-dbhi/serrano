@@ -9,7 +9,8 @@ from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.query import pipeline
 from avocado.export import HTMLExporter
 from restlib2.params import Parametizer, StrParam
-from .base import BaseResource, PaginatorResource, PaginatorParametizer
+from .base import BaseResource
+from .pagination import PaginatorResource, PaginatorParametizer
 
 
 class PreviewParametizer(PaginatorParametizer):

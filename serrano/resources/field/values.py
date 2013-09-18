@@ -5,7 +5,7 @@ from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, IntParam, BoolParam
 from avocado.conf import OPTIONAL_DEPS
 from avocado.events import usage
-from ..base import PaginatorResource, PaginatorParametizer
+from ..pagination import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
 
 
