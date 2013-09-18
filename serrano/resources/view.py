@@ -11,7 +11,7 @@ from avocado.models import DataView
 from avocado.conf import settings
 from avocado.events import usage
 from serrano.forms import ViewForm
-from .base import DataResource
+from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
     ObjectRevisionResource
 from . import templates
@@ -28,7 +28,7 @@ def view_posthook(instance, data, request):
     return data
 
 
-class ViewBase(DataResource):
+class ViewBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
 

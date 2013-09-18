@@ -74,7 +74,7 @@ class RootResourceTestCase(TestCase):
 
 
 @override_settings(SERRANO_RATE_LIMIT_COUNT=None)
-class DataResourceTestCase(BaseTestCase):
+class ThrottledResourceTestCase(BaseTestCase):
     def test_too_many_auth_requests(self):
         self.client.login(username='root', password='password')
 

@@ -11,7 +11,7 @@ from avocado.events import usage
 from avocado.models import DataContext
 from avocado.conf import settings
 from serrano.forms import ContextForm
-from .base import DataResource
+from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
     ObjectRevisionResource
 from . import templates
@@ -36,7 +36,7 @@ def context_posthook(instance, data, request):
     return data
 
 
-class ContextBase(DataResource):
+class ContextBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
 

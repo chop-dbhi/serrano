@@ -8,7 +8,7 @@ from avocado.models import DataContext, DataView, DataQuery
 from ..decorators import check_auth
 from .. import cors
 
-__all__ = ('BaseResource', 'DataResource')
+__all__ = ('BaseResource', 'ThrottledResource')
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
@@ -216,7 +216,7 @@ class BaseResource(Resource):
         return getattr(settings, 'SERRANO_CHECK_ORPHANED_FIELDS', True)
 
 
-class DataResource(BaseResource):
+class ThrottledResource(BaseResource):
     def __init__(self, **kwargs):
         self.rate_limit_count = getattr(settings, 'SERRANO_RATE_LIMIT_COUNT',
             self.rate_limit_count)
@@ -228,7 +228,7 @@ class DataResource(BaseResource):
         self.auth_rate_limit_seconds = getattr(settings,
             'SERRANO_AUTH_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
 
-        return super(DataResource, self).__init__(**kwargs)
+        return super(ThrottledResource, self).__init__(**kwargs)
 
     def is_too_many_requests(self, request, *arg, **kwargs):
         limit_count = self.rate_limit_count

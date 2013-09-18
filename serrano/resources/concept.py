@@ -10,7 +10,7 @@ from avocado.events import usage
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from serrano.resources.field import FieldResource
-from .base import DataResource, SAFE_METHODS
+from .base import ThrottledResource, SAFE_METHODS
 from . import templates
 from .field import base as FieldResources
 
@@ -86,7 +86,7 @@ class ConceptParametizer(Parametizer):
     limit = IntParam()
 
 
-class ConceptBase(DataResource):
+class ConceptBase(ThrottledResource):
     "Base resource for Concept-related data."
 
     model = DataConcept

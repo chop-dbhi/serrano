@@ -7,7 +7,7 @@ from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from avocado.models import DataField
 from avocado.events import usage
-from ..base import DataResource
+from ..base import ThrottledResource
 from .. import templates
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
@@ -66,7 +66,7 @@ class FieldParametizer(Parametizer):
     page = IntParam()
 
 
-class FieldBase(DataResource):
+class FieldBase(ThrottledResource):
     model = DataField
 
     parametizer = FieldParametizer

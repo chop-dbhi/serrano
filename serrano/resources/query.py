@@ -14,7 +14,7 @@ from avocado.events import usage
 from serrano import utils
 from serrano.decorators import check_auth
 from serrano.forms import QueryForm
-from .base import DataResource
+from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
     ObjectRevisionResource
 from . import templates
@@ -35,7 +35,7 @@ def query_posthook(instance, data, request):
     }
     return data
 
-class QueryBase(DataResource):
+class QueryBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
 

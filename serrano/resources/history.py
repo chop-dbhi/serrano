@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, BoolParam
 from avocado.history.models import Revision
-from .base import DataResource
+from .base import ThrottledResource
 from . import templates
 
 __all__ = ('RevisionParametizer', 'RevisionsResource',
@@ -39,7 +39,7 @@ class RevisionParametizer(Parametizer):
     embed = BoolParam(False)
 
 
-class RevisionsResource(DataResource):
+class RevisionsResource(ThrottledResource):
     cache_max_age = 0
     private_cache = True
 
