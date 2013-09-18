@@ -154,6 +154,8 @@ def get_request_query(request, attrs=None):
         DataQuery.validate(json)
         return DataQuery(json)
 
+    kwargs = {}
+
     # If an authenticated user made the request, filter by the user or
     # fallback to an active session key.
     if hasattr(request, 'user') and request.user.is_authenticated():
