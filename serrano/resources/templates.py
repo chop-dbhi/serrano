@@ -77,6 +77,14 @@ Query = {
     }
 }
 
+SharedQuery = {
+    'fields': [':pk', 'accessed', 'name', 'description', 'user', 'shared_users'],
+    'related': {
+        'user': User,
+        'shared_users': User,
+    }
+}
+
 Revision = {
     'exclude': ['user', 'session_key', 'data'],
     'allow_missing': True,
