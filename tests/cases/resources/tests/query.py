@@ -23,6 +23,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
 
         shared_query = json.loads(response.content)[0]
         self.assertTrue(shared_query['is_owner'])
+        self.assertTrue('shared_users' in shared_query)
 
     def test_owner_and_shared(self):
         # Create a query this user owns
@@ -97,6 +98,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
 
         shared_query = json.loads(response.content)[0]
         self.assertFalse(shared_query['is_owner'])
+        self.assertFalse('shared_users' in shared_query)
 
     @override_settings(SERRANO_AUTH_REQUIRED=True)
     def test_require_login(self):
