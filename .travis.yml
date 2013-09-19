@@ -9,6 +9,9 @@ install:
     - pip install -q coveralls Django==$DJANGO --use-mirrors
     - pip install git+https://github.com/cbmi/avocado.git@2.1
     - pip install -r requirements.txt
+    - pip install pyflakes
+before-script:
+    pyflakes serrano
 script:
     - coverage run test_suite.py
 after_success:
