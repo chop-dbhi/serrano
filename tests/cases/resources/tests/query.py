@@ -1,4 +1,5 @@
 import json, time
+from datetime import datetime
 from django.contrib.auth.models import User
 from django.core import mail
 from django.test.utils import override_settings
@@ -24,23 +25,55 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         self.assertTrue(shared_query['is_owner'])
 
     def test_owner_and_shared(self):
-        query = DataQuery()
-        query.save()
-        query.shared_users.add(self.user)
+        # Create a query this user owns
+        query = DataQuery(user=self.user)
         query.save()
 
+        # Create a query owned by and shared with no one
         query2 = DataQuery()
         query2.save()
 
-        query3 = DataQuery(user=self.user)
+        # Create a query with no owner but shared with this user
+        query3 = DataQuery()
+        query3.save()
+        query3.shared_users.add(self.user)
         query3.save()
 
         self.assertEqual(DataQuery.objects.count(), 3)
 
+        # Retrieve the queries shared with and owned by this user, the count
+        # should be 2 since this user owns one and is the sharee on another.
         response = self.client.get('/api/queries/shared/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
+        # Verify that the order is descending based on accessed time. The 3rd
+        # query was created most recently so it should be first in the list
+        # over the 1st query.
+        shared_queries = json.loads(response.content)
+        self.assertEqual(shared_queries[0]['id'], query3.pk)
+        self.assertEqual(shared_queries[1]['id'], query.pk)
+
+        # Access the 1st query. This should make its accessed time update thus
+        # making the 1st query the most recent of this users' shared queries.
+        response = self.client.get('/api/queries/{0}/'.format(query.pk),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        # Retrieve the queries shared with and owned by this user once again
+        # to make sure the order has changed.
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+        # Since the 1st query was just accessed, it should now be the first
+        # query in the result followed by the 3rd query.
+        shared_queries = json.loads(response.content)
+        self.assertEqual(shared_queries[0]['id'], query.pk)
+        self.assertEqual(shared_queries[1]['id'], query3.pk)
+
+        # If we logout and submit the request without a user, there should
+        # be 0 shared queries returned.
         self.client.logout()
         response = self.client.get('/api/queries/shared/',
             HTTP_ACCEPT='application/json')

@@ -96,7 +96,7 @@ class SharedQueriesResource(QueryBase):
     def get_queryset(self, request, **kwargs):
         if hasattr(request, 'user') and request.user.is_authenticated():
             f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
-            return self.model.objects.filter(**kwargs).filter(f)
+            return self.model.objects.filter(**kwargs).filter(f).order_by('-accessed')
         else:
             return self.model.objects.none()
 
