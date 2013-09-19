@@ -34,6 +34,11 @@ def query_posthook(instance, data, request):
     }
     return data
 
+def shared_query_posthook(instance, data, request):
+    data = query_posthook(instance, data, request)
+    data['is_owner'] = instance.user == request.user
+    return data
+
 class QueryBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
@@ -80,6 +85,14 @@ class QueryBase(ThrottledResource):
 
 class SharedQueriesResource(QueryBase):
     "Resource of shared queries"
+    template = templates.SharedQuery
+
+    def prepare(self, request, instance, template=None):
+        if template is None:
+            template = self.template
+        posthook = functools.partial(shared_query_posthook, request=request)
+        return serialize(instance, posthook=posthook, **template)
+
     def get_queryset(self, request, **kwargs):
         if hasattr(request, 'user') and request.user.is_authenticated():
             f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
