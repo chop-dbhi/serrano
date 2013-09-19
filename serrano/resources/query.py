@@ -37,6 +37,13 @@ def query_posthook(instance, data, request):
 def shared_query_posthook(instance, data, request):
     data = query_posthook(instance, data, request)
     data['is_owner'] = instance.user == request.user
+
+    # If this user is not the owner then the shared users are not included
+    # because this sort of data should not be exposed to anyone who isn't the
+    # owner of the original query.
+    if not data['is_owner']:
+        del data['shared_users']
+
     return data
 
 class QueryBase(ThrottledResource):
