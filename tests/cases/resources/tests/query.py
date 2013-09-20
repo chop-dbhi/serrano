@@ -7,6 +7,42 @@ from avocado.models import DataQuery
 from .base import AuthenticatedBaseTestCase, BaseTestCase
 
 class SharedQueryTestCase(AuthenticatedBaseTestCase):
+    def test_shared_users_count(self):
+        u1 = User(username='user1', email='user1@email.com')
+        u1.save()
+        u2 = User(username='user2', email='user2@email.com')
+        u2.save()
+
+        query = DataQuery(user=self.user)
+        query.save()
+        query.shared_users.add(u1)
+        query.shared_users.add(u2)
+        query.save()
+
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        shared_query = json.loads(response.content)[0]
+        self.assertEqual(len(shared_query['shared_users']), 2)
+
+        u3 = User(username='user3', email='user3@email.com')
+        u3.save()
+        u4 = User(username='user4', email='user4@email.com')
+        u4.save()
+
+        query.shared_users.remove(u1)
+        query.shared_users.add(u3)
+        query.shared_users.add(u4)
+        query.save()
+
+        response = self.client.get('/api/queries/shared/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        shared_query = json.loads(response.content)[0]
+        self.assertEqual(len(shared_query['shared_users']), 3)
+
     def test_only_owner(self):
         query = DataQuery(user=self.user)
         query.save()
