@@ -17,6 +17,7 @@ from . import templates
 
 log = logging.getLogger(__name__)
 
+
 def view_posthook(instance, data, request):
     uri = request.build_absolute_uri
     data['_links'] = {
@@ -94,10 +95,10 @@ class ViewsResource(ViewBase):
             instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
-                status=codes.created)
+                                   status=codes.created)
         else:
             response = self.render(request, dict(form.errors),
-                status=codes.unprocessable_entity)
+                                   status=codes.unprocessable_entity)
         return response
 
 
@@ -126,7 +127,7 @@ class ViewResource(ViewBase):
     def get(self, request, **kwargs):
         usage.log('read', instance=request.instance, request=request)
         self.model.objects.filter(pk=request.instance.pk).update(
-                accessed = datetime.now())
+            accessed=datetime.now())
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
@@ -139,7 +140,7 @@ class ViewResource(ViewBase):
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),
-                status=codes.unprocessable_entity)
+                                   status=codes.unprocessable_entity)
         return response
 
     def delete(self, request, **kwargs):
@@ -153,17 +154,18 @@ class ViewResource(ViewBase):
 single_resource = never_cache(ViewResource())
 active_resource = never_cache(ViewsResource())
 revisions_resource = never_cache(RevisionsResource(
-    object_model=DataView, object_model_template = templates.View,
-    object_model_base_uri = 'serrano:views'))
+    object_model=DataView, object_model_template=templates.View,
+    object_model_base_uri='serrano:views'))
 revisions_for_object_resource = never_cache(ObjectRevisionsResource(
-    object_model=DataView, object_model_template = templates.View,
-    object_model_base_uri = 'serrano:views'))
+    object_model=DataView, object_model_template=templates.View,
+    object_model_base_uri='serrano:views'))
 revision_for_object_resource = never_cache(ObjectRevisionResource(
-    object_model=DataView, object_model_template = templates.View,
-    object_model_base_uri = 'serrano:views'))
+    object_model=DataView, object_model_template=templates.View,
+    object_model_base_uri='serrano:views'))
 
 # Resource endpoints
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^$', active_resource, name='active'),
 
     # Endpoints for specific views
