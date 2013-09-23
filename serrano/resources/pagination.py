@@ -53,12 +53,14 @@ class PaginatorResource(Resource):
 
         if page.has_previous():
             links['prev'] = {
-                'href': uri(path_format.format(page.previous_page_number(), limit)),
+                'href': uri(
+                    path_format.format(page.previous_page_number(), limit)),
             }
 
         if page.has_next():
             links['next'] = {
-                'href': uri(path_format.format(page.next_page_number(), limit)),
+                'href': uri(
+                    path_format.format(page.next_page_number(), limit)),
             }
 
         return links
