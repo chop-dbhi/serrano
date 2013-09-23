@@ -11,31 +11,50 @@ class TokenGenerator(object):
         Computes the number of seconds in a datetime.timedelta object.
 
         Ideally, this is done just using the built in total seconds method
-        but if the python version we are running on is < 2.7 we manually 
-        compute the number of seconds in the delta and return that. The 
+        but if the python version we are running on is < 2.7 we manually
+        compute the number of seconds in the delta and return that. The
         manual computation method comes from the Python docs here:
 
-            http://docs.python.org/2/library/datetime.html#datetime.timedelta.total_seconds
-        
+        http://docs.python.org/2/library/datetime.html#datetime.timedelta.total_seconds  # noqa
+
         NOTE: Manual computation opens us up to possible loss of precision but
         it's the best we can do in Python < 2.7.
         """
+        # The number of seconds in a day
+        SEC_PER_DAY = 24 * 3600
+        # The number of microseconds in a second
+        MICROSEC_PER_SEC = 10**6
+
         timedelta = (dt - datetime(2001, 1, 1))
-        
+
         if sys.version_info >= (2, 7):
             return int(timedelta.total_seconds())
         else:
-            return int((timedelta.microseconds + (timedelta.seconds + timedelta.days * 24 * 3600) * 10**6) / 10**6)
+            # Get the microseconds from the timedelta itself.
+            microseconds = timedelta.microseconds
+
+            # Add the microseconds contribution from the seconds of the
+            # timedelta.
+            microseconds += timedelta.seconds * MICROSEC_PER_SEC
+
+            # Add the microseconds contribution from the days property of the
+            # timedelta.
+            microseconds += timedelta.days * SEC_PER_DAY * MICROSEC_PER_SEC
+
+            # Convert the microseconds to seconds
+            return int(microseconds / MICROSEC_PER_SEC)
 
     def _make(self, user, timestamp):
         ts_b36 = int_to_base36(timestamp)
-        digest = hashlib.sha1(settings.SECRET_KEY + unicode(user.pk) + \
-            user.password + unicode(timestamp)).hexdigest()[::2]
+        total = (settings.SECRET_KEY + unicode(user.pk) + user.password +
+                 unicode(timestamp))
+        digest = hashlib.sha1(total).hexdigest()[::2]
         return '{0}-{1}-{2}'.format(user.pk, ts_b36, digest)
 
     @property
     def timeout(self):
-        return getattr(settings, 'SERRANO_TOKEN_TIMEOUT', settings.SESSION_COOKIE_AGE)
+        return getattr(settings, 'SERRANO_TOKEN_TIMEOUT',
+                       settings.SESSION_COOKIE_AGE)
 
     def split(self, token):
         try:

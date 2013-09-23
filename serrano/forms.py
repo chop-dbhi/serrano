@@ -1,5 +1,5 @@
 import logging
-from django import forms
+from django.forms import CharField, ModelForm, Textarea
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -13,7 +13,7 @@ SHARE_QUERY_EMAIL_BODY = """The query named '{0}' has been shared with you.
  You will be notified if this query is later removed."""
 
 
-class ContextForm(forms.ModelForm):
+class ContextForm(ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
         self.count_needs_update = kwargs.pop('force_count', None)
@@ -25,7 +25,8 @@ class ContextForm(forms.ModelForm):
         if self.count_needs_update is None and self.instance:
             existing = self.instance.json
 
-            if existing or json and existing != json or json and self.instance.count is None:
+            if (existing or json and existing != json or json and
+                    self.instance.count is None):
                 self.count_needs_update = True
             else:
                 self.count_needs_update = False
@@ -60,7 +61,7 @@ class ContextForm(forms.ModelForm):
         fields = ('name', 'description', 'keywords', 'json', 'session')
 
 
-class ViewForm(forms.ModelForm):
+class ViewForm(ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
         super(ViewForm, self).__init__(*args, **kwargs)
@@ -83,12 +84,12 @@ class ViewForm(forms.ModelForm):
         model = DataView
         fields = ('name', 'description', 'keywords', 'json', 'session')
 
-class QueryForm(forms.ModelForm):
+
+class QueryForm(ModelForm):
     # A list of the usernames or email addresses of the User's who the query
     # should be shared with. This is a string where each email/username is
     # separated by a '|'.
-    usernames_or_emails = forms.CharField(widget=forms.Textarea,
-        required=False)
+    usernames_or_emails = CharField(widget=Textarea, required=False)
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
@@ -100,7 +101,8 @@ class QueryForm(forms.ModelForm):
         json = self.cleaned_data.get('context_json')
         if self.count_needs_update_context is None:
             existing = self.instance.context_json
-            if existing or json and existing != json or json and self.instance.count is None:
+            if (existing or json and existing != json or json and
+                    self.instance.count is None):
                 self.count_needs_update_context = True
             else:
                 self.count_needs_update_context = False
@@ -110,7 +112,8 @@ class QueryForm(forms.ModelForm):
         json = self.cleaned_data.get('view_json')
         if self.count_needs_update_view is None:
             existing = self.instance.view_json
-            if existing or json and existing != json or json and self.instance.count is None:
+            if (existing or json and existing != json or json and
+                    self.instance.count is None):
                 self.count_needs_update_view = True
             else:
                 self.count_needs_update_view = False
@@ -196,7 +199,8 @@ class QueryForm(forms.ModelForm):
             new_emails = all_emails - existing_emails
 
             # Email and register all the new email addresses
-            utils.send_mail(new_emails,
+            utils.send_mail(
+                new_emails,
                 SHARE_QUERY_EMAIL_TITLE.format(instance.name),
                 SHARE_QUERY_EMAIL_BODY.format(instance.name))
             for email in new_emails:
@@ -214,4 +218,4 @@ class QueryForm(forms.ModelForm):
     class Meta(object):
         model = DataQuery
         fields = ('name', 'description', 'keywords', 'context_json',
-                'view_json', 'session')
+                  'view_json', 'session')

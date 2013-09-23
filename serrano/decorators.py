@@ -3,8 +3,10 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login
 
+
 def get_token(request):
     return request.REQUEST.get('token', '')
+
 
 def check_auth(func):
     @wraps(func)
