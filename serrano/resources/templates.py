@@ -78,7 +78,8 @@ Query = {
 }
 
 SharedQuery = {
-    'fields': [':pk', 'accessed', 'name', 'description', 'user', 'shared_users'],
+    'fields': [':pk', 'accessed', 'name', 'description', 'user',
+               'shared_users'],
     'related': {
         'user': User,
         'shared_users': User,
