@@ -44,8 +44,11 @@ class FieldValues(FieldBase, PaginatorResource):
         return results
 
     def get_search_values(self, request, instance, query):
-        """Performs a search on the underlying data for a field.
-        This method can be overridden to use an alternate search implementation.
+        """
+        Performs a search on the underlying data for a field.
+
+        This method can be overridden to use an alternate search
+        implementation.
         """
         results = []
         for value in instance.search(query):
@@ -121,7 +124,7 @@ class FieldValues(FieldBase, PaginatorResource):
             values = map(lambda x: x['value'], array)
         except (KeyError, TypeError):
             return HttpResponse('Error parsing value',
-                status=codes.unprocessable_entity)
+                                status=codes.unprocessable_entity)
 
         field_name = instance.field_name
 
@@ -130,8 +133,8 @@ class FieldValues(FieldBase, PaginatorResource):
         queryset = self.get_base_values(request, instance, params)
         lookup = {'{0}__in'.format(field_name): values}
 
-        results = set(queryset.filter(**lookup)\
-            .values_list(field_name, flat=True))
+        results = set(queryset.filter(**lookup)
+                      .values_list(field_name, flat=True))
 
         for datum in array:
             datum['label'] = instance.get_label(datum['value'])

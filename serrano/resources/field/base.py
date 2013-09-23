@@ -15,11 +15,13 @@ can_change_field = lambda u: u.has_perm('avocado.change_datafield')
 stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
 log = logging.getLogger(__name__)
 
+
 def is_field_orphaned(instance):
     if instance.model is None or instance.field is None:
         log.error("Field is an orphan.", extra={'field': instance.pk})
         return True
     return False
+
 
 def field_posthook(instance, data, request):
     """Field serialization post-hook for augmenting per-instance data.
@@ -46,7 +48,8 @@ def field_posthook(instance, data, request):
             'href': uri(reverse('serrano:field-stats', args=[instance.pk])),
         }
         data['_links']['distribution'] = {
-            'href': uri(reverse('serrano:field-distribution', args=[instance.pk])),
+            'href': uri(
+                reverse('serrano:field-distribution', args=[instance.pk])),
         }
 
     return data
@@ -111,8 +114,9 @@ class FieldResource(FieldBase):
 
         # If the field is an orphan then log an error before returning an error
         if self.checks_for_orphans and is_field_orphaned(instance):
-            return HttpResponse(status=codes.internal_server_error,
-                    content="Error occurred when retrieving orphaned field")
+            return HttpResponse(
+                status=codes.internal_server_error,
+                content="Error occurred when retrieving orphaned field")
 
         return self.prepare(request, instance)
 
@@ -145,9 +149,9 @@ class FieldsResource(FieldResource):
             usage.log('search', model=self.model, request=request, data={
                 'query': params['query'],
             })
-            results = self.model.objects.search(params['query'],
-                queryset=queryset, max_results=params['limit'],
-                partial=True)
+            results = self.model.objects.search(
+                params['query'], queryset=queryset,
+                max_results=params['limit'], partial=True)
             objects = (x.object for x in results)
         else:
             if params['sort'] == 'name':
