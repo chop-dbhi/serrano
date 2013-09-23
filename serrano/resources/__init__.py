@@ -8,6 +8,7 @@ from .base import BaseResource
 
 API_VERSION = '{major}.{minor}.{micro}'.format(**serrano.__version_info__)
 
+
 class Root(BaseResource):
     # Override to allow a POST to not be checked for authorization since
     # this is the only way to authorize.
@@ -67,9 +68,6 @@ class Root(BaseResource):
         return HttpResponse('Invalid credentials', status=401)
 
 
-
 root_resource = Root()
 
-urlpatterns = patterns('',
-    url(r'^$', root_resource, name='root')
-)
+urlpatterns = patterns('', url(r'^$', root_resource, name='root'))
