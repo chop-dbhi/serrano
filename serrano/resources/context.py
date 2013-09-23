@@ -17,6 +17,7 @@ from . import templates
 
 log = logging.getLogger(__name__)
 
+
 def context_posthook(instance, data, request):
     uri = request.build_absolute_uri
 
@@ -29,7 +30,8 @@ def context_posthook(instance, data, request):
 
     data['_links'] = {
         'self': {
-            'href': uri(reverse('serrano:contexts:single', args=[instance.pk])),
+            'href': uri(
+                reverse('serrano:contexts:single', args=[instance.pk])),
         }
     }
     return data
@@ -102,10 +104,10 @@ class ContextsResource(ContextBase):
             instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
-                status=codes.created)
+                                   status=codes.created)
         else:
             response = self.render(request, dict(form.errors),
-                status=codes.unprocessable_entity)
+                                   status=codes.unprocessable_entity)
         return response
 
 
@@ -134,7 +136,7 @@ class ContextResource(ContextBase):
     def get(self, request, **kwargs):
         usage.log('read', instance=request.instance, request=request)
         self.model.objects.filter(pk=request.instance.pk).update(
-                accessed = datetime.now())
+            accessed=datetime.now())
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
@@ -147,7 +149,7 @@ class ContextResource(ContextBase):
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),
-                status=codes.unprocessable_entity)
+                                   status=codes.unprocessable_entity)
         return response
 
     def delete(self, request, **kwargs):
@@ -161,17 +163,18 @@ class ContextResource(ContextBase):
 single_resource = never_cache(ContextResource())
 active_resource = never_cache(ContextsResource())
 revisions_resource = never_cache(RevisionsResource(
-    object_model=DataContext, object_model_template = templates.Context,
-    object_model_base_uri = 'serrano:contexts'))
+    object_model=DataContext, object_model_template=templates.Context,
+    object_model_base_uri='serrano:contexts'))
 revisions_for_object_resource = never_cache(ObjectRevisionsResource(
-    object_model=DataContext, object_model_template = templates.Context,
-    object_model_base_uri = 'serrano:contexts'))
+    object_model=DataContext, object_model_template=templates.Context,
+    object_model_base_uri='serrano:contexts'))
 revision_for_object_resource = never_cache(ObjectRevisionResource(
-    object_model=DataContext, object_model_template = templates.Context,
-    object_model_base_uri = 'serrano:contexts'))
+    object_model=DataContext, object_model_template=templates.Context,
+    object_model_base_uri='serrano:contexts'))
 
 # Resource endpoints
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^$', active_resource, name='active'),
 
     # Endpoints for specific contexts
