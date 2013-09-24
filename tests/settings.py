@@ -16,9 +16,9 @@ INSTALLED_APPS = (
     'avocado',
     'serrano',
     'tests',
+    'tests.cases.base',
     'tests.cases.resources',
     'tests.cases.forms',
-    'tests.cases.tokens',
 )
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

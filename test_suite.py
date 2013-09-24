@@ -11,7 +11,7 @@ if not apps:
     apps = [
         'resources',
         'forms',
-        'tokens',
+        'base',
     ]
 
 management.call_command('test', *apps, interactive=False)
