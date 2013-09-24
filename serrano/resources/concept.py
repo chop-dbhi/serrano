@@ -17,16 +17,19 @@ from .field import base as FieldResources
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 log = logging.getLogger(__name__)
 
+
 def has_orphaned_field(instance):
     has_orphan = False
     for field in instance.fields.iterator():
         if FieldResources.is_field_orphaned(field):
-            log.error('Concept has orphaned field.', extra={
-                'concept': instance.pk,
-                'field': field.pk
-                })
-            has_orphan =  True
+            log.error('Concept has orphaned field.',
+                      extra={
+                          'concept': instance.pk,
+                          'field': field.pk
+                      })
+            has_orphan = True
     return has_orphan
+
 
 def concept_posthook(instance, data, request, embed, brief, categories=None):
     """Concept serialization post-hook for augmenting per-instance data.
@@ -41,18 +44,19 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
         categories = {}
 
     if 'category_id' in data:
-        # This relies on categories being passed in as a dict with the key being
-        # the primary key. This makes it must faster since the categories are
-        # pre-cached
+        # This relies on categories being passed in as a dict with the key
+        # being the primary key. This makes it must faster since the
+        # categories are pre-cached.
         category = categories.get(data.pop('category_id'))
         data['category'] = serialize(category, **templates.Category)
 
         if data['category']:
             parent = categories.get(data['category'].pop('parent_id'))
-            data['category']['parent'] = serialize(parent, **templates.Category)
+            data['category']['parent'] = serialize(
+                parent, **templates.Category)
 
-            # Embed first parent as well, but no others since this is the bound
-            # in Avocado's DataCategory parent field.
+            # Embed first parent as well, but no others since this is the
+            # bound in Avocado's DataCategory parent field.
             if data['category']['parent']:
                 data['category']['parent'].pop('parent_id')
 
@@ -62,7 +66,8 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
                 'href': uri(reverse('serrano:concept', args=[instance.pk])),
             },
             'fields': {
-                'href': uri(reverse('serrano:concept-fields', args=[instance.pk])),
+                'href': uri(
+                    reverse('serrano:concept-fields', args=[instance.pk])),
             }
         }
 
@@ -119,7 +124,7 @@ class ConceptBase(ThrottledResource):
         return dict((x.pk, x) for x in list(DataCategory.objects.all()))
 
     def prepare(self, request, objects, template=None, embed=False,
-            brief=False, **params):
+                brief=False, **params):
 
         if template is None:
             template = templates.BriefConcept if brief else self.template
@@ -129,14 +134,16 @@ class ConceptBase(ThrottledResource):
         else:
             categories = self._get_categories(request, objects)
 
-        posthook = functools.partial(concept_posthook, request=request,
-            embed=embed, brief=brief, categories=categories)
+        posthook = functools.partial(
+            concept_posthook, request=request, embed=embed, brief=brief,
+            categories=categories)
 
         return serialize(objects, posthook=posthook, **template)
 
     def is_forbidden(self, request, response, *args, **kwargs):
         "Ensure non-privileged users cannot make any changes."
-        if request.method not in SAFE_METHODS and not can_change_concept(request.user):
+        if (request.method not in SAFE_METHODS and
+                not can_change_concept(request.user)):
             return True
 
     def is_not_found(self, request, response, pk, *args, **kwargs):
@@ -155,9 +162,10 @@ class ConceptResource(ConceptBase):
 
         if (self.checks_for_orphans and params['embed'] and
                 has_orphaned_field(instance)):
-            return HttpResponse(status=codes.internal_server_error,
+            return HttpResponse(
+                status=codes.internal_server_error,
                 content="Could not get concept because it has one or more "
-                    "orphaned fields.")
+                        "orphaned fields.")
 
         usage.log('read', instance=instance, request=request)
         return self.prepare(request, instance, embed=params['embed'])
@@ -173,15 +181,16 @@ class ConceptFieldsResource(ConceptBase):
         resource = FieldResource()
 
         if self.checks_for_orphans and has_orphaned_field(instance):
-            return HttpResponse(status=codes.internal_server_error,
+            return HttpResponse(
+                status=codes.internal_server_error,
                 content="Could not get concept fields because one or more are "
-                    "linked to orphaned fields.")
+                        "linked to orphaned fields.")
 
-        for cfield in instance.concept_fields.select_related('field').iterator():
-            field = resource.prepare(request, cfield.field)
+        for cf in instance.concept_fields.select_related('field').iterator():
+            field = resource.prepare(request, cf.field)
             # Add the alternate name specific to the relationship between the
             # concept and the field.
-            field.update(serialize(cfield, **template))
+            field.update(serialize(cf, **template))
             fields.append(field)
 
         return fields
@@ -219,9 +228,9 @@ class ConceptsResource(ConceptBase):
             usage.log('search', model=self.model, request=request, data={
                 'query': params['query'],
             })
-            results = self.model.objects.search(params['query'],
-                queryset=queryset, max_results=params['limit'],
-                partial=True)
+            results = self.model.objects.search(
+                params['query'], queryset=queryset,
+                max_results=params['limit'], partial=True)
             objects = (x.object for x in results)
         else:
             if params['sort'] == 'name':
@@ -248,8 +257,10 @@ concept_fields_resource = ConceptFieldsResource()
 concepts_resource = ConceptsResource()
 
 # Resource endpoints
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^$', concepts_resource, name='concepts'),
     url(r'^(?P<pk>\d+)/$', concept_resource, name='concept'),
-    url(r'^(?P<pk>\d+)/fields/$', concept_fields_resource, name='concept-fields'),
+    url(r'^(?P<pk>\d+)/fields/$',
+        concept_fields_resource, name='concept-fields'),
 )

@@ -12,6 +12,7 @@ __all__ = ('BaseResource', 'ThrottledResource')
 
 SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
 
+
 def _get_request_object(request, attrs=None, klass=None, key=None):
     """Resolves the appropriate object for use from the request.
 
@@ -97,10 +98,11 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
 
 # Partially applied functions for DataView and DataContext. These functions
 # only require the request object and an optional `attrs` dict
-get_request_view = functools.partial(_get_request_object,
-    klass=DataView, key='view')
-get_request_context = functools.partial(_get_request_object,
-    klass=DataContext, key='context')
+get_request_view = functools.partial(
+    _get_request_object, klass=DataView, key='view')
+get_request_context = functools.partial(
+    _get_request_object, klass=DataContext, key='context')
+
 
 def get_request_query(request, attrs=None):
     """
@@ -191,7 +193,8 @@ class BaseResource(Resource):
         return super(BaseResource, self).__call__(request, **kwargs)
 
     def process_response(self, request, response):
-        response = super(BaseResource, self).process_response(request, response)
+        response = super(BaseResource, self).process_response(
+            request, response)
         response = cors.patch_response(request, response, self.allowed_methods)
         return response
 
@@ -218,15 +221,16 @@ class BaseResource(Resource):
 
 class ThrottledResource(BaseResource):
     def __init__(self, **kwargs):
-        self.rate_limit_count = getattr(settings, 'SERRANO_RATE_LIMIT_COUNT',
-            self.rate_limit_count)
-        self.rate_limit_seconds = getattr(settings,
-            'SERRANO_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
+        self.rate_limit_count = getattr(
+            settings, 'SERRANO_RATE_LIMIT_COUNT', self.rate_limit_count)
+        self.rate_limit_seconds = getattr(
+            settings, 'SERRANO_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
 
-        self.auth_rate_limit_count = getattr(settings,
-            'SERRANO_AUTH_RATE_LIMIT_COUNT', self.rate_limit_count)
-        self.auth_rate_limit_seconds = getattr(settings,
-            'SERRANO_AUTH_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
+        self.auth_rate_limit_count = getattr(
+            settings, 'SERRANO_AUTH_RATE_LIMIT_COUNT', self.rate_limit_count)
+        self.auth_rate_limit_seconds = getattr(
+            settings, 'SERRANO_AUTH_RATE_LIMIT_SECONDS',
+            self.rate_limit_seconds)
 
         return super(ThrottledResource, self).__init__(**kwargs)
 

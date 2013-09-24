@@ -111,6 +111,4 @@ class PreviewResource(BaseResource, PaginatorResource):
 preview_resource = PreviewResource()
 
 # Resource endpoints
-urlpatterns = patterns('',
-    url(r'^$', preview_resource, name='preview'),
-)
+urlpatterns = patterns('', url(r'^$', preview_resource, name='preview'), )

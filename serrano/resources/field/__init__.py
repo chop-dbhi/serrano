@@ -11,10 +11,12 @@ field_stats_resource = FieldStats()
 field_dist_resource = FieldDistribution()
 
 # Resource endpoints
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^$', fields_resource, name='fields'),
     url(r'^(?P<pk>\d+)/$', field_resource, name='field'),
     url(r'^(?P<pk>\d+)/values/$', field_values_resource, name='field-values'),
     url(r'^(?P<pk>\d+)/stats/$', field_stats_resource, name='field-stats'),
-    url(r'^(?P<pk>\d+)/dist/$', field_dist_resource, name='field-distribution'),
+    url(r'^(?P<pk>\d+)/dist/$', field_dist_resource,
+        name='field-distribution'),
 )

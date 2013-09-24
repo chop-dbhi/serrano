@@ -35,8 +35,9 @@ class FieldDistribution(FieldBase):
 
         tree = trees[params.get('tree')]
         opts = tree.root_model._meta
-        tree_field = DataField(app_name=opts.app_label,
-            model_name=opts.module_name, field_name=opts.pk.name)
+        tree_field = DataField(
+            app_name=opts.app_label, model_name=opts.module_name,
+            field_name=opts.pk.name)
 
         # This will eventually make it's way in the parametizer, but lists
         # are not supported
@@ -106,12 +107,13 @@ class FieldDistribution(FieldBase):
 
         if length > MAXIMUM_OBSERVATIONS:
             return HttpResponse(json.dumps({'error': 'Data too large'}),
-                status=codes.unprocessable_entity)
+                                status=codes.unprocessable_entity)
 
         # Apply ordering. If any of the fields are enumerable, ordering should
         # be relative to those fields. For continuous data, the ordering is
         # relative to the count of each group
-        if any([d.enumerable for d in fields]) and not params['sort'] == 'count':
+        if (any([d.enumerable for d in fields]) and
+                not params['sort'] == 'count'):
             stats = stats.order_by(*groupby)
         else:
             stats = stats.order_by('-count')
@@ -138,7 +140,8 @@ class FieldDistribution(FieldBase):
                 clustered = True
 
                 counts = [p['count'] for p in points]
-                points, outliers = kmeans.weighted_counts(obs, counts, params['n'])
+                points, outliers = kmeans.weighted_counts(
+                    obs, counts, params['n'])
             else:
                 indexes = kmeans.find_outliers(obs, normalized=False)
 

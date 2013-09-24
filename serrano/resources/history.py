@@ -8,21 +8,21 @@ from .base import ThrottledResource
 from . import templates
 
 __all__ = ('RevisionParametizer', 'RevisionsResource',
-    'ObjectRevisionResource', 'ObjectRevisionsResource')
+           'ObjectRevisionResource', 'ObjectRevisionsResource')
 
 
 def revision_posthook(instance, data, request, object_uri, object_template,
-        embed=False):
+                      embed=False):
     uri = request.build_absolute_uri
 
     data['_links'] = {
         'self': {
             'href': uri(reverse("{0}:revision_for_object".format(object_uri),
-                args=[instance.object_id, instance.pk])),
+                                args=[instance.object_id, instance.pk])),
         },
         'object': {
             'href': uri(reverse("{0}:single".format(object_uri),
-                args=[instance.object_id])),
+                                args=[instance.object_id])),
         }
     }
 
@@ -55,9 +55,10 @@ class RevisionsResource(ThrottledResource):
     def prepare(self, request, instance, template=None, embed=False):
         if template is None:
             template = self.template
-        posthook = functools.partial(revision_posthook, request=request,
-                object_uri=self.object_model_base_uri,
-                object_template=self.object_model_template, embed=embed)
+        posthook = functools.partial(
+            revision_posthook, request=request,
+            object_uri=self.object_model_base_uri,
+            object_template=self.object_model_template, embed=embed)
         return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):
@@ -106,7 +107,8 @@ class ObjectRevisionResource(RevisionsResource):
     """
     def get_object(self, request, object_pk=None, revision_pk=None, **kwargs):
         if not object_pk:
-            raise ValueError('An object model id must be supplied for the lookup')
+            raise ValueError("An object model id must be supplied for "
+                             "the lookup")
         if not revision_pk:
             raise ValueError('A Revision id must be supplied for the lookup')
 

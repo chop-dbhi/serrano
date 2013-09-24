@@ -25,6 +25,7 @@ DELETE_QUERY_EMAIL_BODY = """The query named '{0}' has been deleted. You are
  being notified because this query was shared with you. This query is no
  longer available."""
 
+
 def query_posthook(instance, data, request):
     uri = request.build_absolute_uri
     data['_links'] = {
@@ -33,6 +34,7 @@ def query_posthook(instance, data, request):
         }
     }
     return data
+
 
 def shared_query_posthook(instance, data, request):
     data = query_posthook(instance, data, request)
@@ -45,6 +47,7 @@ def shared_query_posthook(instance, data, request):
         del data['shared_users']
 
     return data
+
 
 class QueryBase(ThrottledResource):
     cache_max_age = 0
@@ -103,7 +106,8 @@ class SharedQueriesResource(QueryBase):
     def get_queryset(self, request, **kwargs):
         if hasattr(request, 'user') and request.user.is_authenticated():
             f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
-            return self.model.objects.filter(**kwargs).filter(f).order_by('-accessed').distinct()
+            return self.model.objects.filter(**kwargs).filter(f).order_by(
+                '-accessed').distinct()
         else:
             return self.model.objects.none()
 
@@ -136,10 +140,10 @@ class QueriesResource(QueryBase):
             instance = form.save()
             usage.log('create', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance),
-                status=codes.created)
+                                   status=codes.created)
         else:
             response = self.render(request, dict(form.errors),
-                status=codes.unprocessable_entity)
+                                   status=codes.unprocessable_entity)
         return response
 
 
@@ -168,7 +172,7 @@ class QueryResource(QueryBase):
     def get(self, request, **kwargs):
         usage.log('read', instance=request.instance, request=request)
         self.model.objects.filter(pk=request.instance.pk).update(
-                accessed = datetime.now())
+            accessed=datetime.now())
         return self.prepare(request, request.instance)
 
     def put(self, request, **kwargs):
@@ -181,7 +185,7 @@ class QueryResource(QueryBase):
             response = self.render(request, self.prepare(request, instance))
         else:
             response = self.render(request, dict(form.errors),
-                status=codes.unprocessable_entity)
+                                   status=codes.unprocessable_entity)
         return response
 
     def delete(self, request, **kwargs):
@@ -202,17 +206,18 @@ single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 shared_resource = never_cache(SharedQueriesResource())
 revisions_resource = never_cache(RevisionsResource(
-    object_model=DataQuery, object_model_template = templates.Query,
-    object_model_base_uri = 'serrano:queries'))
+    object_model=DataQuery, object_model_template=templates.Query,
+    object_model_base_uri='serrano:queries'))
 revisions_for_object_resource = never_cache(ObjectRevisionsResource(
-    object_model=DataQuery, object_model_template = templates.Query,
-    object_model_base_uri = 'serrano:queries'))
+    object_model=DataQuery, object_model_template=templates.Query,
+    object_model_base_uri='serrano:queries'))
 revision_for_object_resource = never_cache(ObjectRevisionResource(
-    object_model=DataQuery, object_model_template = templates.Query,
-    object_model_base_uri = 'serrano:queries'))
+    object_model=DataQuery, object_model_template=templates.Query,
+    object_model_base_uri='serrano:queries'))
 
 # Resource endpoints
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^$', active_resource, name='active'),
     url(r'^shared/$', shared_resource, name='shared'),
 

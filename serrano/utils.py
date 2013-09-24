@@ -2,8 +2,10 @@ from threading import Thread
 from django.conf import settings
 from django.core import mail
 
+
 def _send_mail(subject, message, sender, recipient_list, fail_silently):
     mail.send_mail(subject, message, sender, recipient_list, fail_silently)
+
 
 def send_mail(emails, subject, message, async=True, fail_silently=True):
     """Send email built from 'email_title' and 'email_body' to all 'emails'
@@ -23,8 +25,9 @@ def send_mail(emails, subject, message, async=True, fail_silently=True):
         # obtaining the the list of emails from a QuerySet of Django User
         # objects. It's easier to pass a copy here than worrying about it
         # when calling this utility method.
-        Thread(target=_send_mail, args=(subject, message,
-            settings.DEFAULT_FROM_EMAIL, list(emails), fail_silently)).start()
+        Thread(target=_send_mail,
+               args=(subject, message, settings.DEFAULT_FROM_EMAIL,
+                     list(emails), fail_silently)).start()
     else:
         _send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, emails,
-            fail_silently)
+                   fail_silently)

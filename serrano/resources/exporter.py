@@ -14,6 +14,7 @@ from .base import BaseResource
 # Single list of all registered exporters
 EXPORT_TYPES = zip(*exporters.choices)[0]
 
+
 class ExporterRootResource(resources.Resource):
     def get(self, request):
         uri = request.build_absolute_uri
@@ -31,7 +32,7 @@ class ExporterRootResource(resources.Resource):
         for export_type in EXPORT_TYPES:
             resp['_links'][export_type] = {
                 'href': uri(reverse('serrano:data:exporter',
-                    kwargs={'export_type': export_type})),
+                                    kwargs={'export_type': export_type})),
                 'title': exporters.get(export_type).short_name,
                 'description': exporters.get(export_type).long_name,
             }
@@ -94,8 +95,8 @@ class ExporterResource(BaseResource):
             file_tag = 'all'
 
         QueryProcessor = pipeline.query_processors.default
-        processor = QueryProcessor(context=context, view=view,
-            tree=tree, include_pk=False)
+        processor = QueryProcessor(context=context, view=view, tree=tree,
+                                   include_pk=False)
 
         exporter = processor.get_exporter(exporters[export_type])
         iterable = processor.get_iterable(offset=offset, limit=limit)
@@ -103,11 +104,13 @@ class ExporterResource(BaseResource):
         # Write the data to the response
         exporter.write(iterable, resp, request=request)
 
-        filename = '{0}-{1}-data.{2}'.format(file_tag, datetime.now(),
-            exporter.file_extension)
+        filename = '{0}-{1}-data.{2}'.format(
+            file_tag, datetime.now(), exporter.file_extension)
 
-        resp.set_cookie('export-type-{}'.format(exporter.short_name.lower()), 'complete')
-        resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(filename)
+        resp.set_cookie('export-type-{}'.format(
+            exporter.short_name.lower()), 'complete')
+        resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(
+            filename)
         resp['Content-Type'] = exporter.content_type
 
         usage.log('export', request=request, data={
@@ -133,9 +136,12 @@ exporter_resource = ExporterResource()
 exporter_root_resource = ExporterRootResource()
 
 # Resource endpoints
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^$', exporter_root_resource, name='exporter'),
     url(r'^(?P<export_type>\w+)/$', exporter_resource, name='exporter'),
-    url(r'^(?P<export_type>\w+)/(?P<page>\d+)/$', exporter_resource, name='exporter'),
-    url(r'^(?P<export_type>\w+)/(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$', exporter_resource, name='exporter'),
+    url(r'^(?P<export_type>\w+)/(?P<page>\d+)/$', exporter_resource,
+        name='exporter'),
+    url(r'^(?P<export_type>\w+)/(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$',
+        exporter_resource, name='exporter'),
 )
