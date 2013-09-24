@@ -1,5 +1,5 @@
 import logging
-from django.forms import CharField, ModelForm, Textarea
+from django import forms
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -13,7 +13,7 @@ SHARE_QUERY_EMAIL_BODY = """The query named '{0}' has been shared with you.
  You will be notified if this query is later removed."""
 
 
-class ContextForm(ModelForm):
+class ContextForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
         self.count_needs_update = kwargs.pop('force_count', None)
@@ -61,7 +61,7 @@ class ContextForm(ModelForm):
         fields = ('name', 'description', 'keywords', 'json', 'session')
 
 
-class ViewForm(ModelForm):
+class ViewForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
         super(ViewForm, self).__init__(*args, **kwargs)
@@ -85,11 +85,12 @@ class ViewForm(ModelForm):
         fields = ('name', 'description', 'keywords', 'json', 'session')
 
 
-class QueryForm(ModelForm):
+class QueryForm(forms.ModelForm):
     # A list of the usernames or email addresses of the User's who the query
     # should be shared with. This is a string where each email/username is
     # separated by a '|'.
-    usernames_or_emails = CharField(widget=Textarea, required=False)
+    usernames_or_emails = forms.CharField(widget=forms.Textarea,
+                                          required=False)
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
