@@ -65,6 +65,9 @@ class TokenTestCase(TestCase):
         user1.set_password('new')
         self.assertFalse(token_generator.check(user1, token1))
 
+    def test_non_string_token_split(self):
+        self.assertEqual(token_generator.split(12345), (None, 12345))
+
     def test_unsplitable_token_check(self):
         user1 = User.objects.create_user(username='foo', password='bar')
         token1 = token_generator.make(user1)
