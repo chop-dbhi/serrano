@@ -59,7 +59,7 @@ class TokenGenerator(object):
     def split(self, token):
         try:
             return token.split('-', 1)[0], token
-        except ValueError:
+        except AttributeError:
             return None, token
 
     def make(self, user):

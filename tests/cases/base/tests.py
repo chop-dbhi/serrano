@@ -4,7 +4,34 @@ from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+import serrano
 from serrano.tokens import token_generator
+
+
+class VersionTestCase(TestCase):
+    def test_version(self):
+        self.assertEqual(serrano.get_version(), '2.1.0b1')
+
+        # When short is enabled, the release level and serial should be left
+        # off of the version.
+        self.assertEqual(serrano.get_version(short=True), '2.1.0')
+
+class FinalVersionTestCase(TestCase):
+    def setUp(self):
+        self.original_release_level = serrano.__version_info__['releaselevel']
+        serrano.__version_info__['releaselevel'] = 'final'
+
+    def tearDown(self):
+        serrano.__version_info__['releaselevel'] = self.original_release_level
+
+    def test_final_release_level(self):
+        # When the release level is final, the release level and serial should
+        # be left off of the version.
+        self.assertEqual(serrano.get_version(), '2.1.0')
+
+        # Combining short with a release level of final should not have any
+        # affect on the version.
+        self.assertEqual(serrano.get_version(), '2.1.0')
 
 
 class TokenTestCase(TestCase):
@@ -36,6 +63,24 @@ class TokenTestCase(TestCase):
 
         self.assertTrue(token_generator.check(user1, token1))
         user1.set_password('new')
+        self.assertFalse(token_generator.check(user1, token1))
+
+    def test_non_string_token_split(self):
+        self.assertEqual(token_generator.split(12345), (None, 12345))
+
+    def test_unsplitable_token_check(self):
+        user1 = User.objects.create_user(username='foo', password='bar')
+        token1 = token_generator.make(user1)
+        token1 = token1.replace('-', '')
+
+        self.assertFalse(token_generator.check(user1, token1))
+
+    def test_long_base_36_check(self):
+        user1 = User.objects.create_user(username='foo', password='bar')
+        token1 = token_generator.make(user1)
+        pk, ts_b36, hash = token1.split('-')
+        token1 = "{0}-{1}{2}{3}-{4}".format(pk, ts_b36, ts_b36, ts_b36, hash)
+
         self.assertFalse(token_generator.check(user1, token1))
 
 
