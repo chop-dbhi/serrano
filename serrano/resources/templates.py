@@ -79,7 +79,7 @@ Query = {
 
 SharedQuery = {
     'fields': [':pk', 'accessed', 'name', 'description', 'user',
-               'shared_users'],
+               'shared_users', 'context_json', 'view_json'],
     'related': {
         'user': User,
         'shared_users': User,
