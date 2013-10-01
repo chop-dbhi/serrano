@@ -12,6 +12,10 @@ class FieldStats(FieldBase):
 
         if instance.simple_type == 'number':
             stats = instance.max().min().avg()
+        elif (instance.simple_type == 'date' or
+              instance.simple_type == 'time' or
+              instance.simple_type == 'datetime'):
+            stats = instance.max().min()
         else:
             stats = instance.count(distinct=True)
 

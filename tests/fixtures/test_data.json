@@ -134,5 +134,35 @@
             "office": 1,
             "title": 6
         }
+    },
+    {
+        "pk": 1,
+        "model": "tests.project",
+        "fields": {
+            "name": "Project 1",
+            "employees": [2, 3],
+            "manager": 1,
+            "due_date": "2000-01-01"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "tests.project",
+        "fields": {
+            "name": "Project 2",
+            "employees": [2, 3],
+            "manager": 4,
+            "due_date": "2009-01-01"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "tests.project",
+        "fields": {
+            "name": "Project 3",
+            "employees": [2, 3],
+            "manager": 5,
+            "due_date": "2010-01-01"
+        }
     }
 ]
