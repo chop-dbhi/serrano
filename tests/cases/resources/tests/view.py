@@ -41,6 +41,11 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)
 
+        # Make sure that accessing a non-existent view returns a 404
+        response = self.client.get('/api/viewss/999/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
     def test_user(self):
         view = DataView(user=self.user)
         view.save()

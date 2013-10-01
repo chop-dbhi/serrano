@@ -26,6 +26,11 @@ class ContextResource(AuthenticatedBaseTestCase):
         self.assertLess(ctx.accessed,
                 DataContext.objects.get(pk=ctx.pk).accessed)
 
+        # Make sure that accessing a non-existent context returns a 404
+        response = self.client.get('/api/contexts/999/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
 
 class ContextsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
