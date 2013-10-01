@@ -171,6 +171,11 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertLess(query.accessed,
                 DataQuery.objects.get(pk=query.pk).accessed)
 
+        # Make sure we get a 404 when accessing a query that doesn't exist
+        response = self.client.get('/api/queries/123456/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 404)
+
     def test_shared_user(self):
         query = DataQuery(user=self.user)
         query.save()
