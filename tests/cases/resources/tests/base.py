@@ -16,7 +16,7 @@ class BaseTestCase(TestCase):
     def setUp(self):
         management.call_command('avocado', 'init', 'tests', quiet=True)
         # Only publish some of them..
-        DataField.objects.filter(model_name='title').update(published=True)
+        DataField.objects.filter(model_name__in=['project', 'title']).update(published=True)
         self.user = User.objects.create_user(username='root',
             password='password')
         self.user.is_superuser = True

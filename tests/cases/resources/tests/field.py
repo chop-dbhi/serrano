@@ -2,14 +2,14 @@ import json
 from django.test.utils import override_settings
 from avocado.models import DataField, Log
 from .base import BaseTestCase
-
+from tests.models import Project, Title
 
 class FieldResourceTestCase(BaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/fields/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(json.loads(response.content)), 3)
+        self.assertEqual(len(json.loads(response.content)), 5)
 
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to retrieve
@@ -18,7 +18,7 @@ class FieldResourceTestCase(BaseTestCase):
         response = self.client.get('/api/fields/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(json.loads(response.content)), 2)
+        self.assertEqual(len(json.loads(response.content)), 4)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
     def test_get_all_orphan_check_off(self):
@@ -158,7 +158,15 @@ class FieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 422)
 
+    @override_settings(AVOCADO_DATA_CACHE_ENABLED=False)
     def test_stats(self):
+        """
+        There is a bug in the CacheProxy in Avocado so we need to disable the
+        data cache for these tests. See the following for more info:
+
+            https://github.com/cbmi/avocado/issues/136
+        """
+
         # title.name
         response = self.client.get('/api/fields/2/stats/',
             HTTP_ACCEPT='application/json')
@@ -172,6 +180,18 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='stats', object_id=3).exists())
+
+        # project.due_date
+        response = self.client.get('/api/fields/11/stats/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+
+        stats = json.loads(response.content)
+
+        self.assertTrue(stats)
+        self.assertTrue(Log.objects.filter(event='stats', object_id=11).exists())
+        self.assertEqual(stats['min'], '2000-01-01')
+        self.assertEqual(stats['max'], '2010-01-01')
 
     def test_dist(self):
         # title.salary
