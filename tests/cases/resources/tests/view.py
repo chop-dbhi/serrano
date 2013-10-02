@@ -37,6 +37,22 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
+    def test_get_session(self):
+        view = DataView(user=self.user, name='Session View', session=True)
+        view.save()
+
+        response = self.client.get('/api/views/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        view.session = False
+        view.save()
+
+        response = self.client.get('/api/views/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
     def test_put(self):
         # Add a view so we can try to update it later
         view = DataView(user=self.user, name='Initial Name')
