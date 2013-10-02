@@ -2,6 +2,7 @@ import json
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.test import Client
+from restlib2.http import codes
 from avocado.history.models import Revision
 from avocado.models import DataView
 from .base import AuthenticatedBaseTestCase
@@ -25,7 +26,7 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
         view.save()
         response = self.client.get('/api/views/1/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertLess(view.accessed,
                 DataView.objects.get(pk=view.pk).accessed)
@@ -38,13 +39,13 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        # Make sure that accessing a non-existent view returns a 404
+        # Make sure that accessing a non-existent view returns a codes.not_found
         response = self.client.get('/api/viewss/999/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_user(self):
         view = DataView(user=self.user)
@@ -59,7 +60,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_session(self):
@@ -85,7 +86,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_no_identifier(self):
@@ -103,7 +104,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 0)
 
     def test_embedded(self):
@@ -115,7 +116,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         # itself is not included.
         response = self.client.get('/api/views/revisions/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
         no_embed_revision = json.loads(response.content)[0]
         self.assertFalse('object' in no_embed_revision)
@@ -124,7 +125,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         # that the object is now included with the revision.
         response = self.client.get('/api/views/revisions/', {'embed': True},
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
         embed_revision = json.loads(response.content)[0]
         self.assertTrue('object' in embed_revision)
@@ -133,7 +134,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         # from the object resource itself.
         response = self.client.get('/api/views/1/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         revision_view = json.loads(response.content)
 
         # We can't just compare the objects directly to one another because the
@@ -159,7 +160,7 @@ class ViewRevisionsResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get(url,
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 3)
 
 
@@ -180,7 +181,7 @@ class ViewRevisionResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get(url,
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
 
         revision = json.loads(response.content)
@@ -205,7 +206,7 @@ class ViewRevisionResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get(url,
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_non_existent_revision(self):
         view = DataView(user=self.user)
@@ -218,4 +219,4 @@ class ViewRevisionResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get(url,
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
