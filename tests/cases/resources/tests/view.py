@@ -31,6 +31,68 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
         self.assertLess(view.accessed,
                 DataView.objects.get(pk=view.pk).accessed)
 
+        # Make sure that accessing a non-existent view returns a 404 error
+        # indicating that it wasn't found.
+        response = self.client.get('/api/views/999/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+    def test_put(self):
+        # Add a view so we can try to update it later
+        view = DataView(user=self.user, name='Initial Name')
+        view.save()
+        response = self.client.get('/api/views/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        # Attempt to update the name via a PUT request
+        response = self.client.put('/api/views/1/',
+            data=u'{"name":"New Name"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.no_content)
+
+        # Make sure our changes from the PUT request are persisted
+        response = self.client.get('/api/views/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(json.loads(response.content)['name'], 'New Name')
+
+        # Make a PUT request with invalid JSON and make sure we get an
+        # unprocessable status code back.
+        response = self.client.put('/api/views/1/',
+            data=u'{"json":"]]]"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.unprocessable_entity)
+
+    def test_delete(self):
+        view = DataView(user=self.user, name='View 1')
+        view.save()
+        view = DataView(user=self.user, name='View 2')
+        view.save()
+        view = DataView(user=self.user, name='View 3', session=True)
+        view.save()
+
+        response = self.client.get('/api/views/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 3)
+
+        response = self.client.delete('/api/views/1/')
+        self.assertEqual(response.status_code, codes.no_content)
+
+        response = self.client.get('/api/views/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+        response = self.client.delete('/api/views/3/')
+        self.assertEqual(response.status_code, codes.bad_request)
+
+        response = self.client.get('/api/views/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
 
 class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
