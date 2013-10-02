@@ -33,6 +33,22 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
+    def test_get_session(self):
+        context = DataContext(user=self.user, name='Session Context', session=True)
+        context.save()
+
+        response = self.client.get('/api/contexts/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        context.session = False
+        context.save()
+
+        response = self.client.get('/api/contexts/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
     def test_put(self):
         # Add a context so we can try to update it later
         ctx = DataContext(user=self.user, name='Context 1')
