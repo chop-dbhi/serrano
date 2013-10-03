@@ -3,6 +3,7 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from django.core import mail
 from django.test.utils import override_settings
+from restlib2.http import codes
 from avocado.models import DataQuery
 from .base import AuthenticatedBaseTestCase, BaseTestCase
 
@@ -95,7 +96,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         # making the 1st query the most recent of this users' shared queries.
         response = self.client.get('/api/queries/{0}/'.format(query.pk),
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
         # Retrieve the queries shared with and owned by this user once again
         # to make sure the order has changed.
@@ -140,7 +141,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
     def test_require_login(self):
         response = self.client.get('/api/queries/shared/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
         self.client.logout()
         response = self.client.get('/api/queries/shared/',
@@ -166,15 +167,15 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
         response = self.client.get('/api/queries/1/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertLess(query.accessed,
                 DataQuery.objects.get(pk=query.pk).accessed)
 
-        # Make sure we get a 404 when accessing a query that doesn't exist
+        # Make sure we get a codes.not_found when accessing a query that doesn't exist
         response = self.client.get('/api/queries/123456/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_shared_user(self):
         query = DataQuery(user=self.user)
@@ -192,9 +193,38 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
             'email': sharee.email,
         })
 
+    def test_put(self):
+        # Add a query so we can try to update it later
+        query = DataQuery(user=self.user, name='Query 1')
+        query.save()
+        response = self.client.get('/api/queries/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        # Attempt to update the name via a PUT request
+        response = self.client.put('/api/queries/1/',
+            data=u'{"name":"New Name"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.no_content)
+
+        # Make sure our changes from the PUT request are persisted
+        response = self.client.get('/api/queries/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(json.loads(response.content)['name'], 'New Name')
+
+        # Make a PUT request with invalid JSON and make sure we get an
+        # unprocessable status code back.
+        response = self.client.put('/api/queries/1/',
+            data=u'{"view_json":"[~][~]"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.unprocessable_entity)
+
     def test_delete(self):
         query = DataQuery(user=self.user, name="TestQuery")
         query.save()
+        session_query = DataQuery(user=self.user, name="SessionQuery", session=True)
+        session_query.save()
 
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
@@ -211,11 +241,11 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(len(json.loads(response.content)), 1)
+        self.assertEqual(len(json.loads(response.content)), 2)
 
         response = self.client.delete('/api/queries/1/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, codes.no_content)
 
         # Since the delete handler send email asyncronously, wait for a while
         # while the mail goes through.
@@ -232,8 +262,15 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(len(json.loads(response.content)), 0)
+        self.assertEqual(len(json.loads(response.content)), 1)
 
+        # Make sure that we cannot delete the session query
+        response = self.client.delete('/api/queries/2/')
+        self.assertEqual(response.status_code, codes.bad_request)
+
+        response = self.client.get('/api/queries/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 1)
 
 class EmailTestCase(BaseTestCase):
     subject = 'Email_Subject'
@@ -291,5 +328,5 @@ class QueriesRevisionsResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/queries/revisions/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
