@@ -209,6 +209,25 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
             'email': sharee.email,
         })
 
+    def test_post(self):
+        # Attempt to create a new query using a POST request
+        response = self.client.post('/api/queries/',
+            data=u'{"name":"POST Query"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.created)
+
+        # Make sure the changes from the POST request are persisted
+        response = self.client.get('/api/queries/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(json.loads(response.content)['name'], 'POST Query')
+
+        # Make a POST request with invalid JSON and make sure we get an
+        # unprocessable status code back.
+        response = self.client.post('/api/queries/',
+            data=u'{"view_json":"[~][~]"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.unprocessable_entity)
+
     def test_put(self):
         # Add a query so we can try to update it later
         query = DataQuery(user=self.user, name='Query 1')

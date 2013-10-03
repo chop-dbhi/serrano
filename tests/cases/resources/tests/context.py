@@ -49,6 +49,25 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
+    def test_post(self):
+        # Attempt to create a new context using a POST request
+        response = self.client.post('/api/contexts/',
+            data=u'{"name":"POST Context"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.created)
+
+        # Make sure the changes from the POST request are persisted
+        response = self.client.get('/api/contexts/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(json.loads(response.content)['name'], 'POST Context')
+
+        # Make a POST request with invalid JSON and make sure we get an
+        # unprocessable status code back.
+        response = self.client.post('/api/contexts/',
+            data=u'{"json":"[~][~]"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.unprocessable_entity)
+
     def test_put(self):
         # Add a context so we can try to update it later
         ctx = DataContext(user=self.user, name='Context 1')

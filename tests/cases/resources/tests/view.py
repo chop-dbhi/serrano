@@ -53,6 +53,25 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
+    def test_post(self):
+        # Attempt to create a new view using a POST request
+        response = self.client.post('/api/views/',
+            data=u'{"name":"POST View"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.created)
+
+        # Make sure the changes from the POST request are persisted
+        response = self.client.get('/api/views/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(json.loads(response.content)['name'], 'POST View')
+
+        # Make a POST request with invalid JSON and make sure we get an
+        # unprocessable status code back.
+        response = self.client.post('/api/views/',
+            data=u'{"json":"[~][~]"}', content_type='application/json')
+        self.assertEqual(response.status_code, codes.unprocessable_entity)
+
     def test_put(self):
         # Add a view so we can try to update it later
         view = DataView(user=self.user, name='Initial Name')
