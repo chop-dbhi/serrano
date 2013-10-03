@@ -177,6 +177,22 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
+    def test_get_session(self):
+        query = DataQuery(user=self.user, name='Query', session=True)
+        query.save()
+
+        response = self.client.get('/api/queries/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        query.session = False
+        query.save()
+
+        response = self.client.get('/api/queries/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
     def test_shared_user(self):
         query = DataQuery(user=self.user)
         query.save()
