@@ -4,9 +4,9 @@ from django.contrib.auth.models import User
 from django.core import management
 from django.test import TestCase
 from django.test.utils import override_settings
+from restlib2.http import codes
 from avocado.history.models import Revision
 from avocado.models import DataField, DataView
-from restlib2.http import codes
 from serrano.resources import API_VERSION
 
 
@@ -35,7 +35,7 @@ class RootResourceTestCase(TestCase):
     def test_get(self):
         response = self.client.get('/api/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
             'title': 'Serrano Hypermedia API',
@@ -59,7 +59,7 @@ class RootResourceTestCase(TestCase):
         response = self.client.post('/api/',
             content_type='application/json',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, codes.unauthorized)
         self.assertEqual(response.content, 'Invalid credentials')
 
         response = self.client.post('/api/',
@@ -67,9 +67,16 @@ class RootResourceTestCase(TestCase):
             content_type='application/json',
             HTTP_ACCEPT='application/json')
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue('token' in json.loads(response.content))
 
+        # Confirm that passing an invalid username/password returns a status
+        # code of codes.unauthorized -- unauthorized.
+        response = self.client.post('/api/',
+            json.dumps({'username': 'root', 'password': 'NOT_THE_PASSWORD'}),
+            content_type='application/json')
+
+        self.assertEqual(response.status_code, codes.unauthorized)
 
 @override_settings(SERRANO_RATE_LIMIT_COUNT=None)
 class ThrottledResourceTestCase(BaseTestCase):
@@ -83,7 +90,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         for _ in range(20):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, codes.ok)
 
         # Wait a little while but stay in the interval
         time.sleep(3)
@@ -92,7 +99,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         for _ in range(20):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, codes.ok)
 
         # These 10 requests should fail as we've exceeded the limit
         for _ in range(10):
@@ -107,7 +114,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         for _ in range(5):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, codes.ok)
 
 
     def test_too_many_requests(self):
@@ -121,7 +128,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         # a request via the client?
         response = self.client.get('/api/fields/2/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
         # Be certain we are clear of the current interval
         time.sleep(5)
@@ -130,7 +137,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         for _ in range(10):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, codes.ok)
 
         # Wait a little while but stay in the interval
         time.sleep(1)
@@ -139,7 +146,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         for _ in range(10):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, codes.ok)
 
         # These 10 requests should fail as we've exceeded the limit
         for _ in range(10):
@@ -154,7 +161,7 @@ class ThrottledResourceTestCase(BaseTestCase):
         for _ in range(5):
             response = self.client.get('/api/fields/2/',
                 HTTP_ACCEPT='application/json')
-            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, codes.ok)
 
 
 class RevisionResourceTestCase(AuthenticatedBaseTestCase):
@@ -168,7 +175,7 @@ class RevisionResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/test/no_model/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 0)
 
     def test_custom_template(self):
@@ -177,7 +184,7 @@ class RevisionResourceTestCase(AuthenticatedBaseTestCase):
 
         response = self.client.get('/api/test/template/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
         revision = json.loads(response.content)[0]
@@ -196,8 +203,8 @@ class ObjectRevisionResourceTestCase(AuthenticatedBaseTestCase):
 
         url = '/api/test/revisions/{0}/'.format(target_revision_id)
         response = self.client.get(url, HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
 
         url = '/api/test/{0}/revisions/'.format(view.id)
         response = self.client.get(url, HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
