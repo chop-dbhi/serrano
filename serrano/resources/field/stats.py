@@ -22,7 +22,10 @@ class FieldStats(FieldBase):
         if stats is None:
             resp = {}
         else:
-            resp = next(iter(stats))
+            try:
+                resp = next(iter(stats))
+            except StopIteration:
+                resp = {}
 
         resp['_links'] = {
             'self': {
