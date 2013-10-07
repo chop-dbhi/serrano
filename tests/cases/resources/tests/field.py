@@ -198,7 +198,6 @@ class FieldResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/fields/2/stats/',
             HTTP_ACCEPT='application/json')
-        print(response)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='stats', object_id=2).exists())
