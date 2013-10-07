@@ -1,3 +1,4 @@
+import logging
 import time
 from django.core import mail, management
 from django.test import TestCase
@@ -6,7 +7,7 @@ from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
 from avocado.models import DataConcept, DataConceptField, DataContext, DataField, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
-from ...models import Employee
+from ...models import Employee, MockHandler
 
 
 class BaseTestCase(TestCase):
@@ -113,6 +114,15 @@ class ViewFormTestCase(BaseTestCase):
 
 
 class QueryFormTestCase(BaseTestCase):
+    def setUp(self):
+        super(QueryFormTestCase, self).setUp()
+
+        from serrano import forms
+        # Setup a mock handler
+        self.logger = logging.getLogger(forms.__name__)
+        self.mock_handler = MockHandler()
+        self.logger.addHandler(self.mock_handler)
+
     def test_session(self):
         form = QueryForm(self.request, {})
         self.assertTrue(form.is_valid())
@@ -214,6 +224,28 @@ class QueryFormTestCase(BaseTestCase):
 
         # Make sure no email was generated as a result
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_clean_user_email_logging(self):
+        user = User.objects.create_user(username='user_1',
+            email='user_1@email.com')
+        user.save()
+
+        initial_warning_count = len(self.mock_handler.messages['warning'])
+
+        form = QueryForm(self.request, {'usernames_or_emails': ""})
+        instance = form.save()
+        self.assertEqual(instance.shared_users.count(), 0)
+        self.assertEqual(len(self.mock_handler.messages['warning']),
+            initial_warning_count)
+
+        initial_warning_count = len(self.mock_handler.messages['warning'])
+
+        form = QueryForm(self.request, {'usernames_or_emails': 'user_1, \
+            valid@email.com, ~~invalid_username~~, ~~invalid@email~~'})
+        instance = form.save()
+        self.assertEqual(instance.shared_users.count(), 2)
+        self.assertEqual(len(self.mock_handler.messages['warning']),
+            initial_warning_count + 2)
 
     def test_view_json(self):
         expected_count = Employee.objects.count()
