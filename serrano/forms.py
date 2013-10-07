@@ -88,7 +88,7 @@ class ViewForm(forms.ModelForm):
 class QueryForm(forms.ModelForm):
     # A list of the usernames or email addresses of the User's who the query
     # should be shared with. This is a string where each email/username is
-    # separated by a '|'.
+    # separated by a ','.
     usernames_or_emails = forms.CharField(widget=forms.Textarea,
                                           required=False)
 
@@ -149,8 +149,8 @@ class QueryForm(forms.ModelForm):
                     user = User.objects.only('email').get(username=label)
                     emails.add(user.email)
                 except User.DoesNotExist:
-                    log.warning("Unable to share query with '{0}'. It is not \
-                        a valid email or username.")
+                    log.warning("Unable to share query with '{0}'. It is not "
+                                "a valid email or username.".format(label))
 
         return emails
 
