@@ -136,6 +136,9 @@ class QueryForm(forms.ModelForm):
             #       http://docs.python.org/2/library/stdtypes.html#str.split
             label = "".join(label.split())
 
+            if not label:
+                continue
+
             try:
                 validate_email(label)
                 emails.add(label)
