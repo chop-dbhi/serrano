@@ -193,6 +193,16 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(stats['min'], '2000-01-01')
         self.assertEqual(stats['max'], '2010-01-01')
 
+    def test_empty_stats(self):
+        Title.objects.all().delete()
+
+        response = self.client.get('/api/fields/2/stats/',
+            HTTP_ACCEPT='application/json')
+        print(response)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content))
+        self.assertTrue(Log.objects.filter(event='stats', object_id=2).exists())
+
     def test_dist(self):
         # title.salary
         response = self.client.get('/api/fields/3/dist/',
