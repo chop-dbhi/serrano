@@ -47,9 +47,6 @@ class Root(BaseResource):
                 },
                 'exporter': {
                     'href': uri(reverse('serrano:data:exporter')),
-                },
-                'shared_queries': {
-                    'href': uri(reverse('serrano:queries:shared')),
                 }
             }
         }

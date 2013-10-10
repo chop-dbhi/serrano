@@ -11,7 +11,6 @@ from preserialize.serialize import serialize
 from avocado.models import DataQuery
 from avocado.events import usage
 from serrano import utils
-from serrano.decorators import check_auth
 from serrano.forms import QueryForm
 from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
@@ -33,11 +32,7 @@ def query_posthook(instance, data, request):
             'href': uri(reverse('serrano:queries:single', args=[instance.pk])),
         }
     }
-    return data
 
-
-def shared_query_posthook(instance, data, request):
-    data = query_posthook(instance, data, request)
     data['is_owner'] = instance.user == request.user
 
     # If this user is not the owner then the shared users are not included
@@ -77,30 +72,15 @@ class QueryBase(ThrottledResource):
 
         return self.model.objects.filter(**kwargs)
 
-    def get_default(self, request):
-        default = self.model.objects.get_default_template()
 
-        if not default:
-            log.warning('No default template for query objects')
-            return
-
-        form = QueryForm(request, {'json': default.json, 'session': True})
-
-        if form.is_valid():
-            instance = form.save()
-            return instance
-
-        log.error('Error creating default query', extra=dict(form.errors))
-
-
-class SharedQueriesResource(QueryBase):
-    "Resource of shared queries"
-    template = templates.SharedQuery
+class QueriesResource(QueryBase):
+    "Resource for accessing the queries a shared with or owned by a user"
+    template = templates.Query
 
     def prepare(self, request, instance, template=None):
         if template is None:
             template = self.template
-        posthook = functools.partial(shared_query_posthook, request=request)
+        posthook = functools.partial(query_posthook, request=request)
         return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):
@@ -111,26 +91,8 @@ class SharedQueriesResource(QueryBase):
         else:
             return self.model.objects.none()
 
-    @check_auth
     def get(self, request):
         queryset = self.get_queryset(request)
-        return self.prepare(request, queryset)
-
-
-class QueriesResource(QueryBase):
-    "Resource of queries"
-    def get(self, request):
-        queryset = self.get_queryset(request)
-
-        # Only create a default is a session exists
-        if request.session.session_key:
-            queryset = list(queryset)
-
-            if not len(queryset):
-                default = self.get_default(request)
-                if default:
-                    queryset.append(default)
-
         return self.prepare(request, queryset)
 
     def post(self, request):
@@ -204,7 +166,6 @@ class QueryResource(QueryBase):
 
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
-shared_resource = never_cache(SharedQueriesResource())
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataQuery, object_model_template=templates.Query,
     object_model_base_uri='serrano:queries'))
@@ -219,7 +180,6 @@ revision_for_object_resource = never_cache(ObjectRevisionResource(
 urlpatterns = patterns(
     '',
     url(r'^$', active_resource, name='active'),
-    url(r'^shared/$', shared_resource, name='shared'),
 
     # Endpoints for specific queries
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
