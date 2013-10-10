@@ -69,15 +69,6 @@ User = {
 }
 
 Query = {
-    'exclude': ['session_key'],
-    'allow_missing': True,
-    'related': {
-        'user': User,
-        'shared_users': User,
-    }
-}
-
-SharedQuery = {
     'fields': [':pk', 'accessed', 'name', 'description', 'user',
                'shared_users', 'context_json', 'view_json'],
     'related': {

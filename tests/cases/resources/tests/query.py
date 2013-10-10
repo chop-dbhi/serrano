@@ -7,7 +7,7 @@ from restlib2.http import codes
 from avocado.models import DataQuery
 from .base import AuthenticatedBaseTestCase, BaseTestCase
 
-class SharedQueryTestCase(AuthenticatedBaseTestCase):
+class QueriesResourceTestCase(AuthenticatedBaseTestCase):
     def test_shared_users_count(self):
         u1 = User(username='user1', email='user1@email.com')
         u1.save()
@@ -20,7 +20,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         query.shared_users.add(u2)
         query.save()
 
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
@@ -37,7 +37,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         query.shared_users.add(u4)
         query.save()
 
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
@@ -54,7 +54,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         # Ensure that there are 2 queries to start
         self.assertEqual(DataQuery.objects.count(), 2)
 
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
@@ -81,7 +81,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
 
         # Retrieve the queries shared with and owned by this user, the count
         # should be 2 since this user owns one and is the sharee on another.
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
@@ -100,7 +100,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
 
         # Retrieve the queries shared with and owned by this user once again
         # to make sure the order has changed.
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
@@ -113,7 +113,7 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         # If we logout and submit the request without a user, there should
         # be 0 shared queries returned.
         self.client.logout()
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 0)
 
@@ -129,85 +129,13 @@ class SharedQueryTestCase(AuthenticatedBaseTestCase):
         # Ensure that there are 2 queries to start
         self.assertEqual(DataQuery.objects.count(), 2)
 
-        response = self.client.get('/api/queries/shared/',
+        response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
         shared_query = json.loads(response.content)[0]
         self.assertFalse(shared_query['is_owner'])
         self.assertFalse('shared_users' in shared_query)
-
-    @override_settings(SERRANO_AUTH_REQUIRED=True)
-    def test_require_login(self):
-        response = self.client.get('/api/queries/shared/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.ok)
-
-        self.client.logout()
-        response = self.client.get('/api/queries/shared/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 401)
-
-
-class QueryResourceTestCase(AuthenticatedBaseTestCase):
-    def test_get_all(self):
-        response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
-        self.assertFalse(json.loads(response.content))
-
-    def test_get_all_default(self):
-        query = DataQuery(template=True, default=True, json={})
-        query.save()
-        response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(len(json.loads(response.content)), 1)
-
-    def test_get(self):
-        query = DataQuery(user=self.user)
-        query.save()
-        response = self.client.get('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.ok)
-        self.assertTrue(response.content)
-        self.assertLess(query.accessed,
-                DataQuery.objects.get(pk=query.pk).accessed)
-
-        # Make sure we get a codes.not_found when accessing a query that doesn't exist
-        response = self.client.get('/api/queries/123456/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.not_found)
-
-    def test_get_session(self):
-        query = DataQuery(user=self.user, name='Query', session=True)
-        query.save()
-
-        response = self.client.get('/api/queries/session/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.ok)
-        self.assertTrue(response.content)
-
-        query.session = False
-        query.save()
-
-        response = self.client.get('/api/queries/session/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.not_found)
-
-    def test_shared_user(self):
-        query = DataQuery(user=self.user)
-        query.save()
-        sharee = User(username='sharee', first_name='Shared',
-            last_name='User', email='share@example.com')
-        sharee.save()
-        query.shared_users.add(sharee)
-        response = self.client.get('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(json.loads(response.content)['shared_users'][0], {
-            'id': sharee.id,
-            'username': sharee.username,
-            'name': sharee.get_full_name(),
-            'email': sharee.email,
-        })
 
     def test_post(self):
         # Attempt to create a new query using a POST request
@@ -227,6 +155,40 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         response = self.client.post('/api/queries/',
             data=u'{"view_json":"[~][~]"}', content_type='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
+
+
+class QueryResourceTestCase(AuthenticatedBaseTestCase):
+    def test_get(self):
+        query = DataQuery(user=self.user)
+        query.save()
+        response = self.client.get('/api/queries/1/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertLess(query.accessed,
+                DataQuery.objects.get(pk=query.pk).accessed)
+
+        # Make sure we get a codes.not_found when accessing a query that
+        # doesn't exist
+        response = self.client.get('/api/queries/123456/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+    def test_get_session(self):
+        query = DataQuery(user=self.user, name='Query', session=True)
+        query.save()
+
+        response = self.client.get('/api/queries/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        query.session = False
+        query.save()
+
+        response = self.client.get('/api/queries/session/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_put(self):
         # Add a query so we can try to update it later
@@ -306,6 +268,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         response = self.client.get('/api/queries/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
+
 
 class EmailTestCase(BaseTestCase):
     subject = 'Email_Subject'
