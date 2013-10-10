@@ -59,8 +59,10 @@ class ConceptResourceTestCase(BaseTestCase):
         # are about to retrieve.
         DataField.objects.filter(pk=2).update(field_name='XXX')
 
-        self.assertRaises(AttributeError, self.client.get, '/api/concepts/',
-            {'embed': True}, HTTP_ACCEPT='application/json')
+        response = self.client.get('/api/concepts/', {'embed': True},
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 2)
 
         # If we aren't embedding the fields, then none of the concepts
         # should be filtered out.
@@ -98,8 +100,9 @@ class ConceptResourceTestCase(BaseTestCase):
         # Orphan one of the fields on the concept before we retrieve it
         DataField.objects.filter(pk=2).update(model_name="XXX")
 
-        self.assertRaises(AttributeError, self.client.get, '/api/concepts/1/',
-            {'embed': True}, HTTP_ACCEPT='application/json')
+        response = self.client.get('/api/concepts/1/', {'embed': True},
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
 
         # If we aren't embedding the fields, there should not be a server error
         response = self.client.get('/api/concepts/1/',
@@ -145,5 +148,6 @@ class ConceptFieldResourceTestCase(BaseTestCase):
         # the fields for.
         DataField.objects.filter(pk=2).update(field_name="XXX")
 
-        self.assertRaises(AttributeError, self.client.get,
-            '/api/concepts/1/fields/', HTTP_ACCEPT='application/json')
+        response = self.client.get('/api/concepts/1/fields/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
