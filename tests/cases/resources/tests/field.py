@@ -25,8 +25,10 @@ class FieldResourceTestCase(BaseTestCase):
         # Orphan one of the fields we are about to retrieve
         DataField.objects.filter(pk=2).update(field_name="XXX")
 
-        self.assertRaises(AttributeError, self.client.get, '/api/fields/',
+        response = self.client.get('/api/fields/',
             HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 5)
 
     def test_get_one(self):
         # Not allowed to see
@@ -53,8 +55,9 @@ class FieldResourceTestCase(BaseTestCase):
         # Orphan one of the fields we are about to retrieve
         DataField.objects.filter(pk=2).update(field_name="XXX")
 
-        self.assertRaises(AttributeError, self.client.get, '/api/fields/2/',
+        response = self.client.get('/api/fields/2/',
             HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
 
     def test_get_privileged(self):
         # Superuser sees everything

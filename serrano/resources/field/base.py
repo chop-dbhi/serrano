@@ -12,7 +12,7 @@ from ..base import ThrottledResource
 from .. import templates
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
-stats_capable = lambda x: not x.searchable and not x.internal_type == 'auto'
+stats_capable = lambda x: not x.searchable
 log = logging.getLogger(__name__)
 
 
@@ -36,21 +36,30 @@ def field_posthook(instance, data, request):
     # Augment the links
     data['_links'] = {
         'self': {
-            'href': uri(reverse('serrano:field', args=[instance.pk])),
-        },
-        'values': {
-            'href': uri(reverse('serrano:field-values', args=[instance.pk])),
-        },
+            'href': uri(reverse('serrano:field',
+                        args=[instance.pk])),
+        }
     }
 
-    if stats_capable(instance):
-        data['_links']['stats'] = {
-            'href': uri(reverse('serrano:field-stats', args=[instance.pk])),
+    # Add flag denoting the field is orphaned, otherwise add links to
+    # supplementary resources.
+    if is_field_orphaned(instance):
+        data['orphaned'] = True
+    else:
+        data['_links']['values'] = {
+            'href': uri(reverse('serrano:field-values',
+                        args=[instance.pk])),
         }
         data['_links']['distribution'] = {
-            'href': uri(
-                reverse('serrano:field-distribution', args=[instance.pk])),
+            'href': uri(reverse('serrano:field-distribution',
+                        args=[instance.pk])),
         }
+
+        if stats_capable(instance):
+            data['_links']['stats'] = {
+                'href': uri(reverse('serrano:field-stats',
+                            args=[instance.pk])),
+            }
 
     return data
 
