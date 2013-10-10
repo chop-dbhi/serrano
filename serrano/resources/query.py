@@ -85,16 +85,11 @@ class QueriesResource(QueryBase):
 
     def get_queryset(self, request, **kwargs):
         if hasattr(request, 'user') and request.user.is_authenticated():
-            super_queryset = super(QueriesResource, self).get_queryset(
-                request, **kwargs)
-
             f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
-            local_queryset = self.model.objects.filter(**kwargs).filter(f) \
-                .order_by('-accessed')
-
-            return (super_queryset | local_queryset).distinct()
+            return self.model.objects.filter(**kwargs).filter(f) \
+                .order_by('-accessed').distinct()
         else:
-            return self.model.objects.none()
+            return super(QueriesResource, self).get_queryset(request, **kwargs)
 
     def get(self, request):
         queryset = self.get_queryset(request)
