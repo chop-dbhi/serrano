@@ -3,7 +3,6 @@ from datetime import datetime
 from django.http import HttpResponse, Http404
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
-from restlib2 import resources
 from restlib2.params import Parametizer, IntParam, StrParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
@@ -15,7 +14,7 @@ from .base import BaseResource
 EXPORT_TYPES = zip(*exporters.choices)[0]
 
 
-class ExporterRootResource(resources.Resource):
+class ExporterRootResource(BaseResource):
     def get(self, request):
         uri = request.build_absolute_uri
 
