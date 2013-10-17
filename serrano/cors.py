@@ -14,7 +14,7 @@ def patch_response(request, response, methods):
 
         origin = request.META.get('HTTP_ORIGIN')
 
-        if not allowed_origins or origin and origin in allowed_origins:
+        if not allowed_origins or origin in allowed_origins:
             # The origin must be explicitly listed when used with the
             # Access-Control-Allow-Credentials header
             # See https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS#Access-Control-Allow-Origin # noqa
