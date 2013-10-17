@@ -8,6 +8,7 @@ from restlib2.http import codes
 from avocado.history.models import Revision
 from avocado.models import DataField, DataView
 from serrano.resources import API_VERSION
+from serrano.models import ApiToken
 
 
 class BaseTestCase(TestCase):
@@ -77,6 +78,25 @@ class RootResourceTestCase(TestCase):
             content_type='application/json')
 
         self.assertEqual(response.status_code, codes.unauthorized)
+
+    @override_settings(SERRANO_AUTH_REQUIRED=True)
+    def test_api_token_access(self):
+        response = self.client.get('/api/',
+                                   content_type='application/json',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.unauthorized)
+
+        # Create user token
+        user = User.objects.create_user(username='root', password='password')
+        api_token = ApiToken.objects.create(user=user)
+        self.assertTrue(api_token.token)
+
+        response = self.client.get('/api/',
+                                   data={'token': api_token.token},
+                                   content_type='application/json',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+
 
 @override_settings(SERRANO_RATE_LIMIT_COUNT=None)
 class ThrottledResourceTestCase(BaseTestCase):

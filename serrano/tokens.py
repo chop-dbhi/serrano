@@ -1,8 +1,27 @@
-import hashlib
 import sys
+import string
+import hashlib
 from datetime import datetime
+from random import SystemRandom
 from django.conf import settings
 from django.utils.http import int_to_base36, base36_to_int
+
+# Hex characters
+HEX_CHARS = string.lowercase[:6] + string.digits
+
+# System-level random generator
+random = SystemRandom()
+
+
+def generate_random_token(size=32, max_attempts=100, test=None):
+    """Generates a random token that can be tested for uniqueness before
+    returning.
+    """
+    for _ in xrange(max_attempts):
+        key = ''.join(random.choice(HEX_CHARS) for i in xrange(size))
+        if not test or test(key):
+            return key
+    raise ValueError('Maximum attempts made to generate key.')
 
 
 class TokenGenerator(object):
