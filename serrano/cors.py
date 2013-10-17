@@ -1,33 +1,28 @@
-import re
+from warnings import warn
 from django.conf import settings
 
-http_header = re.compile(r'^HTTP_(.+)')
 
-
-def _clean_header(s):
-    return s.lower().replace('_', '-')
-
-
-def _request_headers(request):
-    if 'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' in request.META:
-        return request.META['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']
-
-    headers = []
-    if 'CONTENT_LENGTH' in request.META:
-        headers.append(_clean_header('CONTENT_LENGTH'))
-    if 'CONTENT_TYPE' in request.META:
-        headers.append(_clean_header('CONTENT_TYPE'))
-    for key in request.META:
-        match = http_header.match(key)
-        if match:
-            headers.append(_clean_header(match.groups()[0]))
-    return ', '.join(headers)
-
-
-def patch_response(request, response, allowed_methods):
+def patch_response(request, response, methods):
     if getattr(settings, 'SERRANO_CORS_ENABLED', False):
-        response['Access-Control-Allow-Origin'] = getattr(
-            settings, 'SERRANO_CORS_ORIGIN', '*')
-        response['Access-Control-Allow-Methods'] = ', '.join(allowed_methods)
-        response['Access-Control-Allow-Headers'] = _request_headers(request)
+        if hasattr(settings, 'SERRANO_CORS_ORIGIN'):
+            warn('SERRANO_CORS_ORIGIN has been deprecated in favor '
+                 'of SERRANO_CORS_ORIGINS', DeprecationWarning)
+            allowed_origins = [s.strip() for s in
+                               settings.SERRANO_CORS_ORIGIN.split(',')]
+        else:
+            allowed_origins = getattr(settings, 'SERRANO_CORS_ORIGINS', ())
+
+        origin = request.META.get('HTTP_ORIGIN')
+
+        if not allowed_origins or origin and origin in allowed_origins:
+            # The origin must be explicitly listed when used with the
+            # Access-Control-Allow-Credentials header
+            # See https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS#Access-Control-Allow-Origin # noqa
+            response['Access-Control-Allow-Origin'] = origin
+            if request.method == 'OPTIONS':
+                response['Access-Control-Allow-Credentials'] = 'true'
+                response['Access-Control-Allow-Methods'] = ', '.join(methods)
+                headers = request.META.get('HTTP_ACCESS_CONTROL_REQUEST_HEADERS')  # noqa
+                if headers:
+                    response['Access-Control-Allow-Headers'] = headers
     return response
