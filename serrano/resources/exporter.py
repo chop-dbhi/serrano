@@ -68,19 +68,19 @@ class ExporterResource(BaseResource):
         if page:
             page = int(page)
 
-            # params are 1-based
+            # Pages are 1-based
             if page < 1:
                 raise Http404
 
             file_tag = 'p{0}'.format(page)
 
-            # change to 0-base
+            # Change to 0-base for calculating offset
             offset = limit * (page - 1)
 
             if stop_page:
                 stop_page = int(stop_page)
 
-                # cannot have a lower index than page
+                # Cannot have a lower index than page
                 if stop_page < page:
                     raise Http404
 
@@ -91,6 +91,8 @@ class ExporterResource(BaseResource):
                     limit = limit * stop_page
 
         else:
+            # When no page or range is specified, the limit does not apply.
+            limit = None
             file_tag = 'all'
 
         QueryProcessor = pipeline.query_processors.default
