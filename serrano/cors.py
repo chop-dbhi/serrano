@@ -19,8 +19,8 @@ def patch_response(request, response, methods):
             # Access-Control-Allow-Credentials header
             # See https://developer.mozilla.org/en-US/docs/HTTP/Access_control_CORS#Access-Control-Allow-Origin # noqa
             response['Access-Control-Allow-Origin'] = origin
+            response['Access-Control-Allow-Credentials'] = 'true'
             if request.method == 'OPTIONS':
-                response['Access-Control-Allow-Credentials'] = 'true'
                 response['Access-Control-Allow-Methods'] = ', '.join(methods)
                 headers = request.META.get('HTTP_ACCESS_CONTROL_REQUEST_HEADERS')  # noqa
                 if headers:
