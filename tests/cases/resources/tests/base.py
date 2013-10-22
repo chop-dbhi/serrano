@@ -14,7 +14,7 @@ class BaseTestCase(TestCase):
     fixtures = ['test_data.json']
 
     def setUp(self):
-        management.call_command('avocado', 'init', 'tests', quiet=True)
+        management.call_command('avocado', 'init', 'tests', quiet=True, publish=False, concepts=False)
         # Only publish some of them..
         DataField.objects.filter(model_name__in=['project', 'title']).update(published=True)
         self.user = User.objects.create_user(username='root',
