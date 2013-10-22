@@ -76,6 +76,11 @@ BriefQuery = {
     }
 }
 
+ForkedQuery = {
+    'fields': [':pk', 'parent'],
+    'allow_missing': True,
+}
+
 Query = {
     'fields': [':pk', 'accessed', 'name', 'description', 'user',
                'shared_users', 'context_json', 'view_json'],
