@@ -157,6 +157,26 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
 
+class PublicQueriesResourceTestCase(BaseTestCase):
+    def test_get(self):
+        query = DataQuery(name='Q1', public=True)
+        query.save()
+
+        query = DataQuery(name='Q2', public=True)
+        query.save()
+
+        query = DataQuery(name='Q3')
+        query.save()
+
+        self.assertEqual(DataQuery.objects.distinct().count(), 3)
+
+        response = self.client.get('/api/queries/public/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+
 class QueryResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
         query = DataQuery(user=self.user)
