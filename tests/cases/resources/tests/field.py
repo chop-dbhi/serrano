@@ -161,15 +161,7 @@ class FieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 422)
 
-    @override_settings(AVOCADO_DATA_CACHE_ENABLED=False)
     def test_stats(self):
-        """
-        There is a bug in the CacheProxy in Avocado so we need to disable the
-        data cache for these tests. See the following for more info:
-
-            https://github.com/cbmi/avocado/issues/136
-        """
-
         # title.name
         response = self.client.get('/api/fields/2/stats/',
             HTTP_ACCEPT='application/json')
