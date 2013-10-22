@@ -109,6 +109,28 @@ class QueriesResource(QueryBase):
         return response
 
 
+class PublicQueriesResource(QueryBase):
+    "Resource for accessing public queries"
+    template = templates.BriefQuery
+
+    def prepare(self, request, instance, template=None):
+        if template is None:
+            template = self.template
+
+        posthook = functools.partial(query_posthook, request=request)
+        return serialize(instance, posthook=posthook, **template)
+
+    def get_queryset(self, request, **kwargs):
+        kwargs['public'] = True
+
+        return self.model.objects.filter(**kwargs).order_by('-accessed') \
+            .distinct()
+
+    def get(self, request):
+        queryset = self.get_queryset(request)
+        return self.prepare(request, queryset)
+
+
 class QueryResource(QueryBase):
     "Resource for accessing a single query"
     def get_object(self, request, pk=None, session=None, **kwargs):
@@ -166,6 +188,8 @@ class QueryResource(QueryBase):
 
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
+public_resource = never_cache(PublicQueriesResource())
+
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataQuery, object_model_template=templates.Query,
     object_model_base_uri='serrano:queries'))
@@ -182,6 +206,7 @@ urlpatterns = patterns(
     url(r'^$', active_resource, name='active'),
 
     # Endpoints for specific queries
+    url(r'^public/$', public_resource, name='public'),
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
 
