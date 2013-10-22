@@ -8,27 +8,27 @@ class ConceptResourceTestCase(BaseTestCase):
     def setUp(self):
         super(ConceptResourceTestCase, self).setUp()
 
-        name_field = DataField.objects.get_by_natural_key('tests', 'title',
-                        'name')
-        salary_field = DataField.objects.get_by_natural_key('tests', 'title',
-                        'salary')
-        boss_field = DataField.objects.get_by_natural_key('tests', 'title',
-                        'boss')
+        self.name_field = DataField.objects.get_by_natural_key('tests',
+            'title', 'name')
+        self.salary_field = DataField.objects.get_by_natural_key('tests',
+            'title', 'salary')
+        self.boss_field = DataField.objects.get_by_natural_key('tests',
+            'title', 'boss')
 
-        c1 = DataConcept(name='Title', published=True, pk=1)
+        c1 = DataConcept(name='Title', published=True)
         c1.save()
-        DataConceptField(concept=c1, field=name_field, order=1).save()
-        DataConceptField(concept=c1, field=salary_field, order=2).save()
-        DataConceptField(concept=c1, field=boss_field, order=3).save()
+        DataConceptField(concept=c1, field=self.name_field, order=1).save()
+        DataConceptField(concept=c1, field=self.salary_field, order=2).save()
+        DataConceptField(concept=c1, field=self.boss_field, order=3).save()
 
-        c2 = DataConcept(name='Salary', pk=2)
+        c2 = DataConcept(name='Salary')
         c2.save()
-        DataConceptField(concept=c2, field=salary_field, order=1).save()
-        DataConceptField(concept=c2, field=boss_field, order=2).save()
+        DataConceptField(concept=c2, field=self.salary_field, order=1).save()
+        DataConceptField(concept=c2, field=self.boss_field, order=2).save()
 
-        c3 = DataConcept(name='Name', published=True, pk=3)
+        c3 = DataConcept(name='Name', published=True)
         c3.save()
-        DataConceptField(concept=c1, field=name_field, order=1).save()
+        DataConceptField(concept=c1, field=self.name_field, order=1).save()
 
     def test_get_all(self):
         response = self.client.get('/api/concepts/',
@@ -39,7 +39,8 @@ class ConceptResourceTestCase(BaseTestCase):
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to embed in the concepts we
         # are about to retrieve.
-        DataField.objects.filter(pk=2).update(field_name='XXX')
+        DataField.objects.filter(pk=self.salary_field.pk) \
+            .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/', {'embed': True},
             HTTP_ACCEPT='application/json')
@@ -57,7 +58,8 @@ class ConceptResourceTestCase(BaseTestCase):
     def test_get_all_orphan_check_off(self):
         # Orphan one of the fields we are about to embed in the concepts we
         # are about to retrieve.
-        DataField.objects.filter(pk=2).update(field_name='XXX')
+        DataField.objects.filter(pk=self.salary_field.pk) \
+            .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/', {'embed': True},
             HTTP_ACCEPT='application/json')
@@ -84,7 +86,8 @@ class ConceptResourceTestCase(BaseTestCase):
 
     def test_get_one_orphan(self):
         # Orphan one of the fields on the concept before we retrieve it
-        DataField.objects.filter(pk=2).update(model_name="XXX")
+        DataField.objects.filter(pk=self.salary_field.pk) \
+            .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/1/', {'embed': True},
             HTTP_ACCEPT='application/json')
@@ -98,7 +101,8 @@ class ConceptResourceTestCase(BaseTestCase):
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
     def test_get_one_orphan_check_off(self):
         # Orphan one of the fields on the concept before we retrieve it
-        DataField.objects.filter(pk=2).update(model_name="XXX")
+        DataField.objects.filter(pk=self.salary_field.pk) \
+            .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/1/', {'embed': True},
             HTTP_ACCEPT='application/json')
@@ -114,18 +118,18 @@ class ConceptFieldResourceTestCase(BaseTestCase):
     def setUp(self):
         super(ConceptFieldResourceTestCase, self).setUp()
 
-        name_field = DataField.objects.get_by_natural_key('tests', 'title',
-                        'name')
-        salary_field = DataField.objects.get_by_natural_key('tests', 'title',
-                        'salary')
-        boss_field = DataField.objects.get_by_natural_key('tests', 'title',
-                        'boss')
+        self.name_field = DataField.objects.get_by_natural_key('tests',
+            'title', 'name')
+        self.salary_field = DataField.objects.get_by_natural_key('tests',
+            'title', 'salary')
+        self.boss_field = DataField.objects.get_by_natural_key('tests',
+            'title', 'boss')
 
-        c1 = DataConcept(name='Title', published=True, pk=1)
+        c1 = DataConcept(name='Title', published=True)
         c1.save()
-        DataConceptField(concept=c1, field=name_field, order=1).save()
-        DataConceptField(concept=c1, field=salary_field, order=2).save()
-        DataConceptField(concept=c1, field=boss_field, order=3).save()
+        DataConceptField(concept=c1, field=self.name_field, order=1).save()
+        DataConceptField(concept=c1, field=self.salary_field, order=2).save()
+        DataConceptField(concept=c1, field=self.boss_field, order=3).save()
 
     def test_get(self):
         response = self.client.get('/api/concepts/1/fields/',
@@ -136,7 +140,8 @@ class ConceptFieldResourceTestCase(BaseTestCase):
     def test_get_orphan(self):
         # Orphan the data field linked to the concept we are about to read
         # the fields for.
-        DataField.objects.filter(pk=2).update(field_name="XXX")
+        DataField.objects.filter(pk=self.salary_field.pk) \
+            .update(field_name="XXX")
 
         response = self.client.get('/api/concepts/1/fields/',
             HTTP_ACCEPT='application/json')
@@ -146,7 +151,8 @@ class ConceptFieldResourceTestCase(BaseTestCase):
     def test_get_orphan_check_off(self):
         # Orphan the data field linked to the concept we are about to read
         # the fields for.
-        DataField.objects.filter(pk=2).update(field_name="XXX")
+        DataField.objects.filter(pk=self.salary_field.pk) \
+            .update(field_name="XXX")
 
         response = self.client.get('/api/concepts/1/fields/',
             HTTP_ACCEPT='application/json')
