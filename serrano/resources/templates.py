@@ -68,6 +68,14 @@ User = {
     }
 }
 
+BriefQuery = {
+    'exclude': ['session_key', 'context_json', 'view_json'],
+    'allow_missing': True,
+    'related': {
+        'user': User,
+    }
+}
+
 Query = {
     'fields': [':pk', 'accessed', 'name', 'description', 'user',
                'shared_users', 'context_json', 'view_json'],
