@@ -131,7 +131,6 @@ class QueryForksResource(QueryBase):
                              description=request.instance.description,
                              view_json=request.instance.view_json,
                              context_json=request.instance.context_json,
-                             public=request.instance.public,
                              parent=request.instance,
                              user=getattr(request, 'user', None))
             fork.save()
