@@ -190,6 +190,11 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         self.private_query = DataQuery(name='Private Parent')
         self.private_query.save()
 
+        self.shared_query = DataQuery(name='Shared Parent')
+        self.shared_query.save()
+        self.shared_query.shared_users.add(self.user)
+        self.shared_query.save()
+
         query = DataQuery(name='Child 1', parent=self.public_query)
         query.save()
         query = DataQuery(name='Child 2', parent=self.public_query)
@@ -204,6 +209,49 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
 
         query = DataQuery(name='Child 6', parent=self.private_query)
         query.save()
+
+    def test_post(self):
+        query_count = DataQuery.objects.count()
+
+        # We should be able to fork public queries
+        url = '/api/queries/{0}/forks/'.format(self.public_query.pk)
+        response = self.client.post(url, data='{}',
+            content_type='application/json', HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.created)
+        self.assertEqual(DataQuery.objects.count(), query_count + 1)
+
+        # ... and queries we own
+        url = '/api/queries/{0}/forks/'.format(self.user_query.pk)
+        response = self.client.post(url, data='{}',
+            content_type='application/json')
+        self.assertEqual(response.status_code, codes.created)
+        self.assertEqual(DataQuery.objects.count(), query_count + 2)
+
+        # ... and queries shared with us
+        url = '/api/queries/{0}/forks/'.format(self.shared_query.pk)
+        response = self.client.post(url, data='{}',
+            content_type='application/json')
+        self.assertEqual(response.status_code, codes.created)
+        self.assertEqual(DataQuery.objects.count(), query_count + 3)
+
+    def test_post_unauthenticated(self):
+        self.client.logout()
+
+        url = '/api/queries/{0}/forks/'.format(self.user_query.pk)
+        response = self.client.post(url, data='{}',
+            content_type='application/json')
+        self.assertEqual(response.status_code, codes.unauthorized)
+
+    def test_post_unauthorized(self):
+        url = '/api/queries/{0}/forks/'.format(self.private_query.pk)
+        response = self.client.post(url, data='{}',
+            content_type='application/json')
+        self.assertEqual(response.status_code, codes.unauthorized)
+
+    def test_post_invalid_pk(self):
+        response = self.client.post('/api/queries/999999/forks/', data='{}',
+            content_type='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_get_invalid_pk(self):
         response = self.client.get('/api/queries/999999/forks/',

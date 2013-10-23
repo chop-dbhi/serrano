@@ -125,6 +125,25 @@ class QueryForksResource(QueryBase):
     "Resource for accessing forks of the specified query or forking the query"
     template = templates.ForkedQuery
 
+    def post(self, request, **kwargs):
+        if self.requestor_can_fork(request):
+            fork = DataQuery(name=request.instance.name,
+                             description=request.instance.description,
+                             view_json=request.instance.view_json,
+                             context_json=request.instance.context_json,
+                             public=request.instance.public,
+                             parent=request.instance,
+                             user=getattr(request, 'user', None))
+            fork.save()
+
+            posthook = functools.partial(query_posthook, request=request)
+            data = serialize(fork, posthook=posthook, **templates.Query)
+
+            return self.render(request, data, status=codes.created)
+
+        else:
+            return HttpResponse(status=codes.unauthorized)
+
     def get_object(self, request, pk=None, *kwargs):
         if not pk:
             raise ValueError('A pk must be used for the fork lookup')
@@ -152,12 +171,37 @@ class QueryForksResource(QueryBase):
 
         return self.model.objects.filter(**kwargs)
 
-    def user_is_owner(self, request):
-        return (hasattr(request, 'user') and request.user.is_authenticated()
-                and request.user == request.instance.user)
+    def requestor_can_get_forks(self, request):
+        """
+        A user can retrieve the forks of a query if that query is public or
+        if they are the owner of that query.
+        """
+        if request.instance.public:
+            return True
+
+        if not hasattr(request, 'user'):
+            return False
+
+        return (request.user.is_authenticated() and
+                request.user == request.instance.user)
+
+    def requestor_can_fork(self, request):
+        """
+        A user can fork a query if that query is public or if they are the
+        owner or in the shared_users group of that query.
+        """
+        if request.instance.public:
+            return True
+
+        if hasattr(request, 'user') and request.user.is_authenticated():
+            return (request.user == request.instance.user or
+                    request.instance.shared_users
+                    .filter(pk=request.user.pk).exists())
+
+        return False
 
     def get(self, request, **kwargs):
-        if request.instance.public or self.user_is_owner(request):
+        if self.requestor_can_get_forks(request):
             return self.prepare(request, self.get_queryset(request))
         else:
             return HttpResponse(status=codes.unauthorized)
