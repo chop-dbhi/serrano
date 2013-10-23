@@ -30,6 +30,9 @@ def query_posthook(instance, data, request):
     data['_links'] = {
         'self': {
             'href': uri(reverse('serrano:queries:single', args=[instance.pk])),
+        },
+        'forks': {
+            'href': uri(reverse('serrano:queries:forks', args=[instance.pk])),
         }
     }
 
