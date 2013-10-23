@@ -131,8 +131,13 @@ class QueryForksResource(QueryBase):
                              description=request.instance.description,
                              view_json=request.instance.view_json,
                              context_json=request.instance.context_json,
-                             parent=request.instance,
-                             user=getattr(request, 'user', None))
+                             parent=request.instance)
+
+            if hasattr(request, 'user'):
+                fork.user = request.user
+            elif request.session.session_key:
+                fork.session_key = request.session.session_key
+
             fork.save()
 
             posthook = functools.partial(query_posthook, request=request)
