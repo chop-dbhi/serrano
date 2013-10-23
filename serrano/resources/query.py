@@ -35,11 +35,23 @@ def query_posthook(instance, data, request):
 
     data['is_owner'] = instance.user == request.user
 
-    # If this user is not the owner then the shared users are not included
-    # because this sort of data should not be exposed to anyone who isn't the
-    # owner of the original query.
     if not data['is_owner']:
         del data['shared_users']
+
+    return data
+
+
+def forked_query_posthook(instance, data, request):
+    uri = request.build_absolute_uri
+    data['_links'] = {
+        'self': {
+            'href': uri(reverse('serrano:queries:single', args=[instance.pk])),
+        },
+        'parent': {
+            'href': uri(reverse('serrano:queries:single',
+                        args=[instance.parent.pk])),
+        }
+    }
 
     return data
 
@@ -107,6 +119,48 @@ class QueriesResource(QueryBase):
             response = self.render(request, dict(form.errors),
                                    status=codes.unprocessable_entity)
         return response
+
+
+class QueryForksResource(QueryBase):
+    "Resource for accessing forks of the specified query or forking the query"
+    template = templates.ForkedQuery
+
+    def get_object(self, request, pk=None, *kwargs):
+        if not pk:
+            raise ValueError('A pk must be used for the fork lookup')
+
+        try:
+            return self.model.objects.get(pk=pk)
+        except self.model.DoesNotExist:
+            pass
+
+    def is_not_found(self, request, response, **kwargs):
+        instance = self.get_object(request, **kwargs)
+        if instance is None:
+            return True
+        request.instance = instance
+
+    def prepare(self, request, instance, template=None):
+        if template is None:
+            template = self.template
+
+        posthook = functools.partial(forked_query_posthook, request=request)
+        return serialize(instance, posthook=posthook, **template)
+
+    def get_queryset(self, request, **kwargs):
+        kwargs['parent'] = request.instance.pk
+
+        return self.model.objects.filter(**kwargs)
+
+    def user_is_owner(self, request):
+        return (hasattr(request, 'user') and request.user.is_authenticated()
+                and request.user == request.instance.user)
+
+    def get(self, request, **kwargs):
+        if request.instance.public or self.user_is_owner(request):
+            return self.prepare(request, self.get_queryset(request))
+        else:
+            return HttpResponse(status=codes.unauthorized)
 
 
 class PublicQueriesResource(QueryBase):
@@ -189,6 +243,7 @@ class QueryResource(QueryBase):
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 public_resource = never_cache(PublicQueriesResource())
+forks_resource = never_cache(QueryForksResource())
 
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataQuery, object_model_template=templates.Query,
@@ -209,6 +264,7 @@ urlpatterns = patterns(
     url(r'^public/$', public_resource, name='public'),
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+    url(r'^(?P<pk>\d+)/forks/$', forks_resource, name='forks'),
 
     # Revision related endpoints
     url(r'^revisions/$', revisions_resource, name='revisions'),

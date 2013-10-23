@@ -177,6 +177,70 @@ class PublicQueriesResourceTestCase(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 2)
 
 
+class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
+    def setUp(self):
+        super(QueryForksResourceTestCase, self).setUp()
+
+        self.public_query = DataQuery(name='Public Parent', public=True)
+        self.public_query.save()
+
+        self.user_query = DataQuery(name='Private User Parent', user=self.user)
+        self.user_query.save()
+
+        self.private_query = DataQuery(name='Private Parent')
+        self.private_query.save()
+
+        query = DataQuery(name='Child 1', parent=self.public_query)
+        query.save()
+        query = DataQuery(name='Child 2', parent=self.public_query)
+        query.save()
+        query = DataQuery(name='Child 3', parent=self.public_query)
+        query.save()
+
+        query = DataQuery(name='Child 4', parent=self.user_query)
+        query.save()
+        query = DataQuery(name='Child 5', parent=self.user_query)
+        query.save()
+
+        query = DataQuery(name='Child 6', parent=self.private_query)
+        query.save()
+
+    def test_get_invalid_pk(self):
+        response = self.client.get('/api/queries/999999/forks/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+    def test_get_authenticated_owner(self):
+        url = '/api/queries/{0}/forks/'.format(self.user_query.pk)
+
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+    def test_get_unauthenticated_owner(self):
+        self.client.logout()
+
+        url = '/api/queries/{0}/forks/'.format(self.user_query.pk)
+
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.unauthorized)
+
+    def test_get_public(self):
+        url = '/api/queries/{0}/forks/'.format(self.public_query.pk)
+
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(len(json.loads(response.content)), 3)
+
+    def test_get_unauthorized(self):
+        url = '/api/queries/{0}/forks/'.format(self.private_query.pk)
+
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.unauthorized)
+
+
 class QueryResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
         query = DataQuery(user=self.user)
