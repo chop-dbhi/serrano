@@ -293,12 +293,27 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
         query = DataQuery(user=self.user)
         query.save()
-        response = self.client.get('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
+
+        child_query = DataQuery(name='Child 1', parent=query)
+        child_query.save()
+        child_query = DataQuery(name='Child 2', parent=query)
+        child_query.save()
+
+        url = '/api/queries/{0}/'.format(query.pk)
+        response = self.client.get(url, HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertLess(query.accessed,
                 DataQuery.objects.get(pk=query.pk).accessed)
+
+        # When we access a query it should contain a valid link to the forks
+        # of that query.
+        data = json.loads(response.content)
+        response = self.client.get(data['_links']['forks']['href'],
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+        self.assertEqual(len(json.loads(response.content)), 2)
 
         # Make sure we get a codes.not_found when accessing a query that
         # doesn't exist
