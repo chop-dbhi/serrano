@@ -104,7 +104,7 @@ class FieldValues(FieldBase, PaginatorResource):
         links = self.get_page_links(request, path, page, extra=params)
         links['parent'] = {
             'href': request.build_absolute_uri(reverse('serrano:field',
-                    kwargs={'pk': pk})),
+                                               kwargs={'pk': pk})),
         }
 
         return {
