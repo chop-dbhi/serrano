@@ -141,7 +141,8 @@ class FieldValues(FieldBase, PaginatorResource):
                       .values_list(field_name, flat=True))
 
         for datum in array:
-            datum['label'] = instance.get_label(datum['value'])
+            if 'label' not in datum:
+                datum['label'] = instance.get_label(datum['value'])
             datum['valid'] = datum['value'] in results
 
         usage.log('validate', instance=instance, request=request, data={
