@@ -412,7 +412,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.no_content)
 
-        # Since the delete handler send email asyncronously, wait for a while
+        # Since the delete handler send email asynchronously, wait for a while
         # while the mail goes through.
         time.sleep(5)
 
@@ -442,7 +442,7 @@ class EmailTestCase(BaseTestCase):
     subject = 'Email_Subject'
     message = str([i for i in range(5000)])
 
-    def test_syncronous(self):
+    def test_synchronous(self):
         from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
@@ -463,7 +463,7 @@ class EmailTestCase(BaseTestCase):
         self.assertSequenceEqual(mail.outbox[0].to,
             ['share@example.com', '', 'share3@example.com'])
 
-    def test_asyncronous(self):
+    def test_asynchronous(self):
         from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
@@ -476,7 +476,7 @@ class EmailTestCase(BaseTestCase):
             self.message)
 
         # Make sure the mail was sent(after a slight pause to account for the
-        # "asyncronousness".
+        # "asynchronousness".
         time.sleep(5)
         self.assertEqual(len(mail.outbox), 1)
         # Make sure the subject is correct
