@@ -24,8 +24,8 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertEqual(len(shared_query['shared_users']), 2)
+        content = json.loads(response.content)[0]
+        self.assertEqual(len(content['shared_users']), 2)
 
         u3 = User(username='user3', email='user3@email.com')
         u3.save()
@@ -41,8 +41,29 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertEqual(len(shared_query['shared_users']), 3)
+        content = json.loads(response.content)[0]
+        self.assertEqual(len(content['shared_users']), 3)
+
+    def test_session_owner(self):
+        # No user for this one..
+        self.client.logout()
+
+        # Access endpoint to initialize the anonymous session. This feels
+        # like a hack, but there seems to be no other way to initialize the
+        # session with a key
+        self.client.get('/api/')
+
+        # Fake the session key
+        query = DataQuery(session_key=self.client.session.session_key)
+        query.save()
+
+        response = self.client.get('/api/queries/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        query = json.loads(response.content)[0]
+        self.assertTrue(query['is_owner'])
 
     def test_only_owner(self):
         query = DataQuery(user=self.user)
@@ -58,9 +79,9 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertTrue(shared_query['is_owner'])
-        self.assertTrue('shared_users' in shared_query)
+        query = json.loads(response.content)[0]
+        self.assertTrue(query['is_owner'])
+        self.assertTrue('shared_users' in query)
 
     def test_owner_and_shared(self):
         # Create a query this user owns
@@ -133,9 +154,9 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertFalse(shared_query['is_owner'])
-        self.assertFalse('shared_users' in shared_query)
+        query = json.loads(response.content)[0]
+        self.assertFalse(query['is_owner'])
+        self.assertFalse('shared_users' in query)
 
     def test_post(self):
         # Attempt to create a new query using a POST request
@@ -190,10 +211,10 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         self.private_query = DataQuery(name='Private Parent')
         self.private_query.save()
 
-        self.shared_query = DataQuery(name='Shared Parent')
-        self.shared_query.save()
-        self.shared_query.shared_users.add(self.user)
-        self.shared_query.save()
+        self.query = DataQuery(name='Shared Parent')
+        self.query.save()
+        self.query.shared_users.add(self.user)
+        self.query.save()
 
         query = DataQuery(name='Child 1', parent=self.public_query)
         query.save()
@@ -228,7 +249,7 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(DataQuery.objects.count(), query_count + 2)
 
         # ... and queries shared with us
-        url = '/api/queries/{0}/forks/'.format(self.shared_query.pk)
+        url = '/api/queries/{0}/forks/'.format(self.query.pk)
         response = self.client.post(url, data='{}',
             content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
@@ -391,7 +412,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.no_content)
 
-        # Since the delete handler send email asyncronously, wait for a while
+        # Since the delete handler send email asynchronously, wait for a while
         # while the mail goes through.
         time.sleep(5)
 
@@ -421,7 +442,7 @@ class EmailTestCase(BaseTestCase):
     subject = 'Email_Subject'
     message = str([i for i in range(5000)])
 
-    def test_syncronous(self):
+    def test_synchronous(self):
         from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
@@ -442,7 +463,7 @@ class EmailTestCase(BaseTestCase):
         self.assertSequenceEqual(mail.outbox[0].to,
             ['share@example.com', '', 'share3@example.com'])
 
-    def test_asyncronous(self):
+    def test_asynchronous(self):
         from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
             email='share@example.com')
@@ -455,7 +476,7 @@ class EmailTestCase(BaseTestCase):
             self.message)
 
         # Make sure the mail was sent(after a slight pause to account for the
-        # "asyncronousness".
+        # "asynchronousness".
         time.sleep(5)
         self.assertEqual(len(mail.outbox), 1)
         # Make sure the subject is correct

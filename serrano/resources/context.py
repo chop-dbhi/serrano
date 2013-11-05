@@ -53,7 +53,7 @@ class ContextBase(ThrottledResource):
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session."
 
-        if hasattr(request, 'user') and request.user.is_authenticated():
+        if getattr(request, 'user', None) and request.user.is_authenticated():
             kwargs['user'] = request.user
         elif request.session.session_key:
             kwargs['session_key'] = request.session.session_key

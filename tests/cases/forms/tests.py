@@ -150,7 +150,7 @@ class QueryFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
-        # Since save sends email asyncronously, wait for a while for the mail
+        # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
         time.sleep(5)
 
@@ -172,7 +172,7 @@ class QueryFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
-        # Since save sends email asyncronously, wait for a while for the mail
+        # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
         time.sleep(5)
 
@@ -194,7 +194,7 @@ class QueryFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 2)
 
-        # Since save sends email asyncronously, wait for a while for the mail
+        # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
         time.sleep(5)
 
@@ -215,7 +215,7 @@ class QueryFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
-        # Since save sends email asyncronously, wait for a while for the mail
+        # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
         time.sleep(5)
 
@@ -289,7 +289,7 @@ class QueryFormTestCase(BaseTestCase):
             {'usernames_or_emails': 'email1@email.com'})
         instance = form.save(commit=False)
 
-        # Since save sends email asyncronously, wait for a while for the mail
+        # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
         time.sleep(5)
 
