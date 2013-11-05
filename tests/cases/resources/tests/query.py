@@ -24,8 +24,8 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertEqual(len(shared_query['shared_users']), 2)
+        content = json.loads(response.content)[0]
+        self.assertEqual(len(content['shared_users']), 2)
 
         u3 = User(username='user3', email='user3@email.com')
         u3.save()
@@ -41,8 +41,8 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertEqual(len(shared_query['shared_users']), 3)
+        content = json.loads(response.content)[0]
+        self.assertEqual(len(content['shared_users']), 3)
 
     def test_session_owner(self):
         # No user for this one..
@@ -79,9 +79,9 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertTrue(shared_query['is_owner'])
-        self.assertTrue('shared_users' in shared_query)
+        query = json.loads(response.content)[0]
+        self.assertTrue(query['is_owner'])
+        self.assertTrue('shared_users' in query)
 
     def test_owner_and_shared(self):
         # Create a query this user owns
@@ -154,9 +154,9 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        shared_query = json.loads(response.content)[0]
-        self.assertFalse(shared_query['is_owner'])
-        self.assertFalse('shared_users' in shared_query)
+        query = json.loads(response.content)[0]
+        self.assertFalse(query['is_owner'])
+        self.assertFalse('shared_users' in query)
 
     def test_post(self):
         # Attempt to create a new query using a POST request
@@ -211,10 +211,10 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         self.private_query = DataQuery(name='Private Parent')
         self.private_query.save()
 
-        self.shared_query = DataQuery(name='Shared Parent')
-        self.shared_query.save()
-        self.shared_query.shared_users.add(self.user)
-        self.shared_query.save()
+        self.query = DataQuery(name='Shared Parent')
+        self.query.save()
+        self.query.shared_users.add(self.user)
+        self.query.save()
 
         query = DataQuery(name='Child 1', parent=self.public_query)
         query.save()
@@ -249,7 +249,7 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(DataQuery.objects.count(), query_count + 2)
 
         # ... and queries shared with us
-        url = '/api/queries/{0}/forks/'.format(self.shared_query.pk)
+        url = '/api/queries/{0}/forks/'.format(self.query.pk)
         response = self.client.post(url, data='{}',
             content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
