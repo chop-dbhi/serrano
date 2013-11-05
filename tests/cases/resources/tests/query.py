@@ -44,6 +44,27 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         shared_query = json.loads(response.content)[0]
         self.assertEqual(len(shared_query['shared_users']), 3)
 
+    def test_session_owner(self):
+        # No user for this one..
+        self.client.logout()
+
+        # Access endpoint to initialize the anonymous session. This feels
+        # like a hack, but there seems to be no other way to initialize the
+        # session with a key
+        self.client.get('/api/')
+
+        # Fake the session key
+        query = DataQuery(session_key=self.client.session.session_key)
+        query.save()
+
+        response = self.client.get('/api/queries/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        query = json.loads(response.content)[0]
+        self.assertTrue(query['is_owner'])
+
     def test_only_owner(self):
         query = DataQuery(user=self.user)
         query.save()

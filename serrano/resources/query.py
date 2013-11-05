@@ -36,7 +36,10 @@ def query_posthook(instance, data, request):
         }
     }
 
-    data['is_owner'] = instance.user == request.user
+    if getattr(instance, 'user', None) and instance.user.is_authenticated():
+        data['is_owner'] = instance.user == request.user
+    else:
+        data['is_owner'] = instance.session_key == request.session.session_key
 
     if not data['is_owner']:
         del data['shared_users']
@@ -101,10 +104,12 @@ class QueriesResource(QueryBase):
     def get_queryset(self, request, **kwargs):
         if hasattr(request, 'user') and request.user.is_authenticated():
             f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
-            return self.model.objects.filter(**kwargs).filter(f) \
-                .order_by('-accessed').distinct()
+        elif request.session.session_key:
+            f = Q(session_key=request.session.session_key)
         else:
             return super(QueriesResource, self).get_queryset(request, **kwargs)
+        return self.model.objects.filter(f, **kwargs) \
+            .order_by('-accessed').distinct()
 
     def get(self, request):
         queryset = self.get_queryset(request)
