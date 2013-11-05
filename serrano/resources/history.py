@@ -66,7 +66,7 @@ class RevisionsResource(ThrottledResource):
         if not self.object_model:
             return self.model.objects.none()
 
-        if hasattr(request, 'user') and request.user.is_authenticated():
+        if getattr(request, 'user', None) and request.user.is_authenticated():
             kwargs['user'] = request.user
         elif request.session.session_key:
             kwargs['session_key'] = request.session.session_key

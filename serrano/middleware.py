@@ -1,6 +1,6 @@
 class SessionMiddleware(object):
     def process_request(self, request):
-        if hasattr(request, 'user') and request.user.is_authenticated():
+        if getattr(request, 'user', None) and request.user.is_authenticated():
             return
         session = request.session
         # Ensure the session is created view processing, but only if a cookie

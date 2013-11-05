@@ -78,7 +78,7 @@ class QueryBase(ThrottledResource):
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session."
 
-        if hasattr(request, 'user') and request.user.is_authenticated():
+        if getattr(request, 'user', None) and request.user.is_authenticated():
             kwargs['user'] = request.user
         elif request.session.session_key:
             kwargs['session_key'] = request.session.session_key
@@ -102,7 +102,7 @@ class QueriesResource(QueryBase):
         return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):
-        if hasattr(request, 'user') and request.user.is_authenticated():
+        if getattr(request, 'user', None) and request.user.is_authenticated():
             f = Q(user=request.user) | Q(shared_users__pk=request.user.pk)
         elif request.session.session_key:
             f = Q(session_key=request.session.session_key)
@@ -141,7 +141,7 @@ class QueryForksResource(QueryBase):
                              context_json=request.instance.context_json,
                              parent=request.instance)
 
-            if hasattr(request, 'user'):
+            if getattr(request, 'user', None):
                 fork.user = request.user
             elif request.session.session_key:
                 fork.session_key = request.session.session_key
@@ -191,7 +191,7 @@ class QueryForksResource(QueryBase):
         if request.instance.public:
             return True
 
-        if not hasattr(request, 'user'):
+        if not getattr(request, 'user', None):
             return False
 
         return (request.user.is_authenticated() and
@@ -205,7 +205,7 @@ class QueryForksResource(QueryBase):
         if request.instance.public:
             return True
 
-        if hasattr(request, 'user') and request.user.is_authenticated():
+        if getattr(request, 'user', None) and request.user.is_authenticated():
             return (request.user == request.instance.user or
                     request.instance.shared_users
                     .filter(pk=request.user.pk).exists())
