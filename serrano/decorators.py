@@ -5,7 +5,12 @@ from django.contrib.auth import authenticate, login
 
 
 def get_token(request):
-    return request.REQUEST.get('token', '')
+    "Attempts to retrieve a token from the request."
+    if 'token' in request.REQUEST:
+        return request.REQUEST['token']
+    if 'HTTP_API_TOKEN' in request.META:
+        return request.META['HTTP_API_TOKEN']
+    return ''
 
 
 def check_auth(func):
