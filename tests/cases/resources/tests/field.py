@@ -1,6 +1,7 @@
 import json
 from django.test.utils import override_settings
-from avocado.models import DataField, Log
+from avocado.models import DataField
+from avocado.events.models import Log
 from .base import BaseTestCase
 from tests.models import Project, Title
 
