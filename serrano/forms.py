@@ -1,16 +1,23 @@
 import logging
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.sites.models import get_current_site
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.validators import validate_email
 from avocado.models import DataContext, DataView, DataQuery
 from serrano import utils
 
 log = logging.getLogger(__name__)
 
-SHARE_QUERY_EMAIL_TITLE = "'{0}' has been shared with you"
-SHARE_QUERY_EMAIL_BODY = """The query named '{0}' has been shared with you.
- You will be notified if this query is later removed."""
+SHARED_QUERY_EMAIL_TITLE = ("'{query_name}' has been shared with you on "
+                            "{site_name}")
+SHARED_QUERY_EMAIL_BODY = ("The query named '{query_name}' has been shared "
+                           "with you on {site_name}({domain}). You will be "
+                           "notified if this query is later removed.")
+SHARED_QUERY_URL_MESSAGE = ("You can open the query by navigating to this "
+                            "URL: {domain}{path}.")
 
 
 class ContextForm(forms.ModelForm):
@@ -202,11 +209,37 @@ class QueryForm(forms.ModelForm):
                 'email', flat=True))
             new_emails = all_emails - existing_emails
 
+            current_site = get_current_site(request)
+            try:
+                domain = request.build_absolute_uri('/')
+            except KeyError:
+                domain = current_site.domain + \
+                    getattr(settings, 'SCRIPT_NAME', '')
+
+            title = SHARED_QUERY_EMAIL_TITLE.format(
+                query_name=instance.name, site_name=current_site.name)
+            body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
+                                                  site_name=current_site.name,
+                                                  domain=domain)
+
+            query_reverse_name = getattr(settings,
+                                         'SERRANO_QUERY_REVERSE_NAME', None)
+            if query_reverse_name:
+                try:
+                    url = reverse(query_reverse_name,
+                                  kwargs={'pk': instance.pk})
+                    body = body + " " + SHARED_QUERY_URL_MESSAGE.format(
+                        domain=domain, path=url)
+                except NoReverseMatch:
+                    url = None
+                    log.warn("Could not reverse '{0}'. Omitting URL in email "
+                             "message content.".format(query_reverse_name))
+            else:
+                log.warn("'SERRANO_QUERY_REVERSE_NAME' not found in settings. "
+                         "Omitting URL in email message content.")
+
             # Email and register all the new email addresses
-            utils.send_mail(
-                new_emails,
-                SHARE_QUERY_EMAIL_TITLE.format(instance.name),
-                SHARE_QUERY_EMAIL_BODY.format(instance.name))
+            utils.send_mail(new_emails, title, body)
             for email in new_emails:
                 instance.share_with_user(email)
 
