@@ -49,6 +49,22 @@ MIDDLEWARE_CLASSES = (
 )
 ```
 
+### API Tokens
+
+Serrano supports authenticating via an API token. Users can request for a token so they can supply the token in place of their credentials. This is specifically useful for scripting and integrating with external services since it removes the needs to have to store a username and password.
+
+To enable support for tokens, add `serrano` to `INSTALLED_APPS` and define (or augment) the `AUTHENTICATION_BACKENDS` setting:
+
+```python
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'serrano.backends.TokenBackend',
+    ...
+)
+```
+
+[Read more about tokens]({{ site.baseurl }}{% post_url 2013-06-12-api-tokens %})
+
 ---
 
 #### Next: [Settings]({{ site.baseurl }}{% post_url 2013-06-12-settings %})
