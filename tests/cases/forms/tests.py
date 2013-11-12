@@ -1,11 +1,14 @@
 import logging
 import time
-from django.core import mail, management
-from django.test import TestCase
-from django.http import HttpRequest
+from django.conf.urls import url
 from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
-from avocado.models import DataConcept, DataConceptField, DataContext, DataField, DataView
+from django.core import mail, management
+from django.http import HttpRequest
+from django.test import TestCase
+from django.test.utils import override_settings
+from avocado.models import DataConcept, DataConceptField, DataContext, \
+    DataField, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
 from ...models import Employee, MockHandler
 
@@ -37,7 +40,8 @@ class ContextFormTestCase(BaseTestCase):
         self.assertFalse(form.count_needs_update)
         instance = form.save()
         self.assertIsNone(instance.user)
-        self.assertEqual(instance.session_key, self.request.session.session_key)
+        self.assertEqual(instance.session_key,
+                         self.request.session.session_key)
         self.assertIsNone(instance.count)
 
     def test_user(self):
@@ -51,9 +55,11 @@ class ContextFormTestCase(BaseTestCase):
         self.assertEqual(instance.session_key, None)
 
     def test_json(self):
-        expected_count = Employee.objects.filter(title__salary__gt=1000).count()
+        expected_count = \
+            Employee.objects.filter(title__salary__gt=1000).count()
 
-        form = ContextForm(self.request, {'json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
+        form = ContextForm(self.request, {'json': {
+            'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
         self.assertTrue(form.is_valid())
 
         instance = form.save()
@@ -69,7 +75,7 @@ class ContextFormTestCase(BaseTestCase):
     def test_no_commit(self):
         previous_context_count = DataContext.objects.count()
 
-        form = ContextForm(self.request,{})
+        form = ContextForm(self.request, {})
         instance = form.save(commit=False)
 
         self.assertIsNone(instance.pk)
@@ -82,7 +88,8 @@ class ViewFormTestCase(BaseTestCase):
         self.assertTrue(form.is_valid())
         form.save()
         self.assertEqual(form.instance.user, None)
-        self.assertEqual(form.instance.session_key, self.request.session.session_key)
+        self.assertEqual(form.instance.session_key,
+                         self.request.session.session_key)
 
     def test_user(self):
         user = User.objects.create_user(username='test', password='test')
@@ -106,7 +113,7 @@ class ViewFormTestCase(BaseTestCase):
     def test_no_commit(self):
         previous_view_count = DataView.objects.count()
 
-        form = ViewForm(self.request,{})
+        form = ViewForm(self.request, {})
         instance = form.save(commit=False)
 
         self.assertIsNone(instance.pk)
@@ -128,7 +135,8 @@ class QueryFormTestCase(BaseTestCase):
         self.assertTrue(form.is_valid())
         form.save()
         self.assertEqual(form.instance.user, None)
-        self.assertEqual(form.instance.session_key, self.request.session.session_key)
+        self.assertEqual(form.instance.session_key,
+                         self.request.session.session_key)
 
     def test_user(self):
         user = User.objects.create_user(username='test', password='test')
@@ -142,11 +150,13 @@ class QueryFormTestCase(BaseTestCase):
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
 
+    @override_settings(SERRANO_QUERY_REVERSE_NAME='serrano:queries:single')
     def test_with_email(self):
         previous_user_count = User.objects.count()
         previous_mail_count = len(mail.outbox)
 
-        form = QueryForm(self.request, {'usernames_or_emails': 'email1@email.com'})
+        form = QueryForm(self.request, {'usernames_or_emails':
+                                        'email1@email.com'})
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
@@ -165,7 +175,7 @@ class QueryFormTestCase(BaseTestCase):
 
     def test_with_user(self):
         user = User.objects.create_user(username='user_1',
-            email='user_1@email.com')
+                                        email='user_1@email.com')
         user.save()
 
         form = QueryForm(self.request, {'usernames_or_emails': 'user_1'})
@@ -184,7 +194,7 @@ class QueryFormTestCase(BaseTestCase):
 
     def test_with_mixed(self):
         user = User.objects.create_user(username='user_1',
-            email='user_1@email.com')
+                                        email='user_1@email.com')
         user.save()
 
         previous_user_count = User.objects.count()
@@ -206,12 +216,12 @@ class QueryFormTestCase(BaseTestCase):
 
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to, ['user_1@email.com',
-            'valid@email.com'])
+                                                     'valid@email.com'])
 
         # Remove a user from the list
         previous_user_count = User.objects.count()
         form = QueryForm(self.request, {'usernames_or_emails': 'user_1'},
-            instance=instance)
+                         instance=instance)
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
@@ -225,9 +235,15 @@ class QueryFormTestCase(BaseTestCase):
         # Make sure no email was generated as a result
         self.assertEqual(len(mail.outbox), 1)
 
+    @override_settings(SERRANO_QUERY_REVERSE_NAME='serrano:queries:single')
     def test_clean_user_email_logging(self):
+        """
+        We override the SERRANO_QUERY_REVERSE_NAME setting here to avoid the
+        setting not found warning in the forms code. This code counts the log
+        warnings so we need to avoid triggering unnecessary warnings.
+        """
         user = User.objects.create_user(username='user_1',
-            email='user_1@email.com')
+                                        email='user_1@email.com')
         user.save()
 
         initial_warning_count = len(self.mock_handler.messages['warning'])
@@ -236,7 +252,7 @@ class QueryFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 0)
         self.assertEqual(len(self.mock_handler.messages['warning']),
-            initial_warning_count)
+                         initial_warning_count)
 
         initial_warning_count = len(self.mock_handler.messages['warning'])
 
@@ -245,7 +261,26 @@ class QueryFormTestCase(BaseTestCase):
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 2)
         self.assertEqual(len(self.mock_handler.messages['warning']),
-            initial_warning_count + 2)
+                         initial_warning_count + 2)
+
+    def test_warn_on_reverse_setting_missing(self):
+        initial_warning_count = len(self.mock_handler.messages['warning'])
+
+        form = QueryForm(self.request, {'usernames_or_emails': ""})
+        instance = form.save()
+        self.assertEqual(instance.shared_users.count(), 0)
+        self.assertEqual(len(self.mock_handler.messages['warning']),
+                         initial_warning_count + 1)
+
+    @override_settings(SERRANO_QUERY_REVERSE_NAME='serrano:root')
+    def test_warn_on_bad_reverse_setting(self):
+        initial_warning_count = len(self.mock_handler.messages['warning'])
+
+        form = QueryForm(self.request, {'usernames_or_emails': ""})
+        instance = form.save()
+        self.assertEqual(instance.shared_users.count(), 0)
+        self.assertEqual(len(self.mock_handler.messages['warning']),
+                         initial_warning_count + 1)
 
     def test_view_json(self):
         expected_count = Employee.objects.count()
@@ -256,17 +291,24 @@ class QueryFormTestCase(BaseTestCase):
         self.assertEqual(instance.record_count, expected_count)
 
     def test_context_json(self):
-        expected_count = Employee.objects.filter(title__salary__gt=1000).count()
+        expected_count = \
+            Employee.objects.filter(title__salary__gt=1000).count()
 
-        form = QueryForm(self.request, {'context_json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
+        form = QueryForm(self.request, {'context_json': {
+            'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
         self.assertTrue(form.is_valid())
         instance = form.save()
         self.assertEqual(instance.distinct_count, expected_count)
 
     def test_both_json(self):
-        expected_count = Employee.objects.filter(title__salary__gt=1000).count()
+        expected_count = \
+            Employee.objects.filter(title__salary__gt=1000).count()
 
-        form = QueryForm(self.request, {'context_json': {'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}, 'view_json': {'columns': [1]}})
+        form = QueryForm(self.request, {
+            'context_json': {
+                'field': 'tests.title.salary', 'operator': 'gt',
+                'value': '1000'},
+            'view_json': {'columns': [1]}})
         self.assertTrue(form.is_valid())
         instance = form.save()
         self.assertEqual(instance.distinct_count, expected_count)
@@ -286,7 +328,7 @@ class QueryFormTestCase(BaseTestCase):
         previous_user_count = User.objects.count()
 
         form = QueryForm(self.request,
-            {'usernames_or_emails': 'email1@email.com'})
+                         {'usernames_or_emails': 'email1@email.com'})
         instance = form.save(commit=False)
 
         # Since save sends email asynchronously, wait for a while for the mail

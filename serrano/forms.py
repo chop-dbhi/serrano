@@ -1,16 +1,20 @@
 import logging
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.sites.models import get_current_site
 from django.core.exceptions import ValidationError
+from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.validators import validate_email
 from avocado.models import DataContext, DataView, DataQuery
 from serrano import utils
 
 log = logging.getLogger(__name__)
 
-SHARE_QUERY_EMAIL_TITLE = "'{0}' has been shared with you"
-SHARE_QUERY_EMAIL_BODY = """The query named '{0}' has been shared with you.
- You will be notified if this query is later removed."""
+SHARED_QUERY_EMAIL_TITLE = '{site_name}: A query has been shared with you!'
+SHARED_QUERY_EMAIL_BODY = 'The query "{query_name}" has been shared with ' \
+                          'you on {site_name} ({site_url})!'
+SHARED_QUERY_URL_MESSAGE = 'You can view the query by going to: {query_url}.'
 
 
 class ContextForm(forms.ModelForm):
@@ -202,16 +206,47 @@ class QueryForm(forms.ModelForm):
                 'email', flat=True))
             new_emails = all_emails - existing_emails
 
+            site = get_current_site(request)
+
+            try:
+                site_url = request.build_absolute_uri('/')
+            except KeyError:
+                site_url = site.domain + getattr(settings, 'SCRIPT_NAME', '')
+
+            # Use the site url as the default query url in case there are
+            # issues generating the query url.
+            query_url = site_url
+
+            reverse_name = getattr(settings, 'SERRANO_QUERY_REVERSE_NAME', '')
+
+            if reverse_name:
+                try:
+                    query_url = reverse(reverse_name,
+                                        kwargs={'pk': instance.pk})
+                except NoReverseMatch:
+                    log.warn("Could not reverse '{0}'. Omitting direct URL in "
+                             "email message.".format(reverse_name))
+            else:
+                log.warn('SERRANO_QUERY_REVERSE_NAME not found in settings. '
+                         'Omitting direct URL in email message.')
+
+            title = SHARED_QUERY_EMAIL_TITLE.format(query_name=instance.name,
+                                                    site_name=site.name)
+
+            body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
+                                                  site_name=site.name,
+                                                  site_url=site_url,
+                                                  query_url=query_url)
+
             # Email and register all the new email addresses
-            utils.send_mail(
-                new_emails,
-                SHARE_QUERY_EMAIL_TITLE.format(instance.name),
-                SHARE_QUERY_EMAIL_BODY.format(instance.name))
+            utils.send_mail(new_emails, title, body)
+
             for email in new_emails:
                 instance.share_with_user(email)
 
             # Find and remove users who have had their query share revoked
             removed_emails = existing_emails - all_emails
+
             for user in User.objects.filter(email__in=removed_emails):
                 instance.shared_users.remove(user)
 
