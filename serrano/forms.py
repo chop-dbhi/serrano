@@ -11,13 +11,10 @@ from serrano import utils
 
 log = logging.getLogger(__name__)
 
-SHARED_QUERY_EMAIL_TITLE = ("'{query_name}' has been shared with you on "
-                            "{site_name}")
-SHARED_QUERY_EMAIL_BODY = ("The query named '{query_name}' has been shared "
-                           "with you on {site_name}({domain}). You will be "
-                           "notified if this query is later removed.")
-SHARED_QUERY_URL_MESSAGE = ("You can open the query by navigating to this "
-                            "URL: {domain}{path}.")
+SHARED_QUERY_EMAIL_TITLE = '{site_name}: A query has been shared with you!'
+SHARED_QUERY_EMAIL_BODY = 'The query "{query_name}" has been shared with ' \
+                          'you on {site_name} ({site_url})!'
+SHARED_QUERY_URL_MESSAGE = 'You can view the query by going to: {query_url}.'
 
 
 class ContextForm(forms.ModelForm):
@@ -209,42 +206,47 @@ class QueryForm(forms.ModelForm):
                 'email', flat=True))
             new_emails = all_emails - existing_emails
 
-            current_site = get_current_site(request)
+            site = get_current_site(request)
+
             try:
-                domain = request.build_absolute_uri('/')
+                site_url = request.build_absolute_uri('/')
             except KeyError:
-                domain = current_site.domain + \
-                    getattr(settings, 'SCRIPT_NAME', '')
+                site_url = site.domain + getattr(settings, 'SCRIPT_NAME', '')
 
-            title = SHARED_QUERY_EMAIL_TITLE.format(
-                query_name=instance.name, site_name=current_site.name)
-            body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
-                                                  site_name=current_site.name,
-                                                  domain=domain)
+            # Use the site url as the default query url in case there are
+            # issues generating the query url.
+            query_url = site_url
 
-            query_reverse_name = getattr(settings,
-                                         'SERRANO_QUERY_REVERSE_NAME', None)
-            if query_reverse_name:
+            reverse_name = getattr(settings, 'SERRANO_QUERY_REVERSE_NAME', '')
+
+            if reverse_name:
                 try:
-                    url = reverse(query_reverse_name,
-                                  kwargs={'pk': instance.pk})
-                    body = body + " " + SHARED_QUERY_URL_MESSAGE.format(
-                        domain=domain, path=url)
+                    query_url = reverse(reverse_name,
+                                        kwargs={'pk': instance.pk})
                 except NoReverseMatch:
-                    url = None
-                    log.warn("Could not reverse '{0}'. Omitting URL in email "
-                             "message content.".format(query_reverse_name))
+                    log.warn("Could not reverse '{0}'. Omitting direct URL in "
+                             "email message.".format(reverse_name))
             else:
-                log.warn("'SERRANO_QUERY_REVERSE_NAME' not found in settings. "
-                         "Omitting URL in email message content.")
+                log.warn('SERRANO_QUERY_REVERSE_NAME not found in settings. '
+                         'Omitting direct URL in email message.')
+
+            title = SHARED_QUERY_EMAIL_TITLE.format(query_name=instance.name,
+                                                    site_name=site.name)
+
+            body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
+                                                  site_name=site.name,
+                                                  site_url=site_url,
+                                                  query_url=query_url)
 
             # Email and register all the new email addresses
             utils.send_mail(new_emails, title, body)
+
             for email in new_emails:
                 instance.share_with_user(email)
 
             # Find and remove users who have had their query share revoked
             removed_emails = existing_emails - all_emails
+
             for user in User.objects.filter(email__in=removed_emails):
                 instance.shared_users.remove(user)
 
