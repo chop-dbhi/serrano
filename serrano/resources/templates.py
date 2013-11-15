@@ -32,7 +32,7 @@ Concept = {
     'fields': [
         ':pk', 'name', 'plural_name', 'description', 'keywords',
         'category_id', 'order', 'modified', 'published',
-        'formatter_name', 'queryable', 'sortable'
+        'formatter_name', 'queryable', 'sortable', 'viewable'
     ],
     'aliases': {
         'plural_name': 'get_plural_name',
