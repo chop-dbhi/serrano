@@ -233,11 +233,9 @@ class QueryForm(forms.ModelForm):
                         query_url = site.domain + \
                             getattr(settings, 'SCRIPT_NAME', '') + query_url
                 except NoReverseMatch:
-                    log.warn("Could not reverse '{0}'. Omitting direct URL in "
-                             "email message.".format(reverse_name))
+                    log.warn("Could not reverse '{0}'. ".format(reverse_name))
             else:
-                log.warn('SERRANO_QUERY_REVERSE_NAME not found in settings. '
-                         'Omitting direct URL in email message.')
+                log.warn('SERRANO_QUERY_REVERSE_NAME not found in settings.')
 
             title = SHARED_QUERY_EMAIL_TITLE.format(query_name=instance.name,
                                                     site_name=site.name)
