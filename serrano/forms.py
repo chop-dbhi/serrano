@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 SHARED_QUERY_EMAIL_TITLE = '{site_name}: A query has been shared with you!'
 SHARED_QUERY_EMAIL_BODY = 'The query "{query_name}" has been shared with ' \
-                          'you on {site_name} ({site_url})!'
-SHARED_QUERY_URL_MESSAGE = 'You can view the query by going to: {query_url}.'
+                          'you on {site_name} ({site_url})! You can view ' \
+                          'the query by going to: {query_url}.'
 
 
 class ContextForm(forms.ModelForm):
