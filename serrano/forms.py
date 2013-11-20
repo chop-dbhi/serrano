@@ -13,8 +13,8 @@ log = logging.getLogger(__name__)
 
 SHARED_QUERY_EMAIL_TITLE = '{site_name}: A query has been shared with you!'
 SHARED_QUERY_EMAIL_BODY = 'The query "{query_name}" has been shared with ' \
-                          'you on {site_name} ({site_url})!'
-SHARED_QUERY_URL_MESSAGE = 'You can view the query by going to: {query_url}.'
+                          'you on {site_name} ({site_url})! You can view ' \
+                          'the query by going to: {query_url}.'
 
 
 class ContextForm(forms.ModelForm):
@@ -223,12 +223,19 @@ class QueryForm(forms.ModelForm):
                 try:
                     query_url = reverse(reverse_name,
                                         kwargs={'pk': instance.pk})
+
+                    # Since reverse will just return the path to the query
+                    # we need to prepend the site url to make it a valid
+                    # link that people can follow.
+                    try:
+                        query_url = request.build_absolute_uri(query_url)
+                    except KeyError:
+                        query_url = site.domain + \
+                            getattr(settings, 'SCRIPT_NAME', '') + query_url
                 except NoReverseMatch:
-                    log.warn("Could not reverse '{0}'. Omitting direct URL in "
-                             "email message.".format(reverse_name))
+                    log.warn("Could not reverse '{0}'. ".format(reverse_name))
             else:
-                log.warn('SERRANO_QUERY_REVERSE_NAME not found in settings. '
-                         'Omitting direct URL in email message.')
+                log.warn('SERRANO_QUERY_REVERSE_NAME not found in settings.')
 
             title = SHARED_QUERY_EMAIL_TITLE.format(query_name=instance.name,
                                                     site_name=site.name)

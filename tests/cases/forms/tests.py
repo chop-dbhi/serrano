@@ -150,7 +150,7 @@ class QueryFormTestCase(BaseTestCase):
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
 
-    @override_settings(SERRANO_QUERY_REVERSE_NAME='serrano:queries:single')
+    @override_settings(SERRANO_QUERY_REVERSE_NAME='results')
     def test_with_email(self):
         previous_user_count = User.objects.count()
         previous_mail_count = len(mail.outbox)
