@@ -223,6 +223,15 @@ class QueryForm(forms.ModelForm):
                 try:
                     query_url = reverse(reverse_name,
                                         kwargs={'pk': instance.pk})
+
+                    # Since reverse will just return the path to the query
+                    # we need to prepend the site url to make it a valid
+                    # link that people can follow.
+                    try:
+                        query_url = request.build_absolute_uri(query_url)
+                    except KeyError:
+                        query_url = site.domain + \
+                            getattr(settings, 'SCRIPT_NAME', '') + query_url
                 except NoReverseMatch:
                     log.warn("Could not reverse '{0}'. Omitting direct URL in "
                              "email message.".format(reverse_name))
