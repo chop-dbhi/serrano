@@ -264,4 +264,4 @@ class QueryForm(forms.ModelForm):
     class Meta(object):
         model = DataQuery
         fields = ('name', 'description', 'keywords', 'context_json',
-                  'view_json', 'session')
+                  'view_json', 'session', 'public')
