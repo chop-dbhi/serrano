@@ -69,11 +69,8 @@ User = {
 }
 
 BriefQuery = {
-    'exclude': ['session_key', 'context_json', 'view_json'],
+    'include': [':pk', 'name', 'context_json', 'view_json'],
     'allow_missing': True,
-    'related': {
-        'user': User,
-    }
 }
 
 ForkedQuery = {
@@ -83,7 +80,7 @@ ForkedQuery = {
 
 Query = {
     'fields': [':pk', 'accessed', 'name', 'description', 'user',
-               'shared_users', 'context_json', 'view_json'],
+               'shared_users', 'context_json', 'view_json', 'public'],
     'related': {
         'user': User,
         'shared_users': User,
