@@ -4,7 +4,7 @@ from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from serrano.tokens import token_generator
+from serrano.tokens import token_generator, generate_random_token
 
 
 class TokenTestCase(TestCase):
@@ -56,6 +56,10 @@ class TokenTestCase(TestCase):
 
         self.assertFalse(token_generator.check(user1, token1))
 
+    def test_generate_random_token(self):
+        falsy = lambda x: False
+        self.assertRaises(ValueError, generate_random_token, test=falsy)
+
 
 class TokenBackendTestCase(TestCase):
     def test(self):
@@ -68,25 +72,26 @@ class TokenBackendTestCase(TestCase):
         user = User.objects.create_user(username='foo', password='bar')
 
         resp = self.client.get(reverse('serrano:root'),
-            HTTP_ACCEPT='application/json')
+                               HTTP_ACCEPT='application/json')
         self.assertEqual(resp.status_code, 401)
 
         self.assertTrue(self.client.login(username='foo', password='bar'))
         resp = self.client.get(reverse('serrano:root'),
-            HTTP_ACCEPT='application/json')
+                               HTTP_ACCEPT='application/json')
         self.assertEqual(resp.status_code, 200)
 
         self.client.logout()
         resp = self.client.get(reverse('serrano:root'),
-            HTTP_ACCEPT='application/json')
+                               HTTP_ACCEPT='application/json')
         self.assertEqual(resp.status_code, 401)
 
         token = token_generator.make(user)
         resp = self.client.get(reverse('serrano:root'), {'token': token},
-            HTTP_ACCEPT='application/json')
+                               HTTP_ACCEPT='application/json')
         self.assertEqual(resp.status_code, 200)
 
-    @override_settings(SERRANO_AUTH_REQUIRED=True, SESSION_COOKIE_AGE=2, SESSION_SAVE_EVERY_REQUEST=True)
+    @override_settings(SERRANO_AUTH_REQUIRED=True, SESSION_COOKIE_AGE=2,
+                       SESSION_SAVE_EVERY_REQUEST=True)
     def test_session_timeout(self):
         User.objects.create_user(username='foo', password='bar')
 
@@ -96,12 +101,12 @@ class TokenBackendTestCase(TestCase):
         # cookies
         for i in xrange(3):
             resp = self.client.get(reverse('serrano:root'),
-                HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
             self.assertEqual(resp.status_code, 200)
             time.sleep(1)
 
         # Wait longer than session timeout..
         time.sleep(3)
         resp = self.client.get(reverse('serrano:root'),
-            HTTP_ACCEPT='application/json')
+                               HTTP_ACCEPT='application/json')
         self.assertEqual(resp.status_code, 401)

@@ -1,6 +1,9 @@
 [run]
 branch = True
 source = serrano
+omit =
+    */migrations/*
+    serrano/mediatypes.py
 
 [report]
 exclude_lines =
