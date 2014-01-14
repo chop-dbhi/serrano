@@ -27,6 +27,9 @@ class Root(BaseResource):
                 'self': {
                     'href': uri(reverse('serrano:root')),
                 },
+                'categories': {
+                    'href': uri(reverse('serrano:categories')),
+                },
                 'fields': {
                     'href': uri(reverse('serrano:fields')),
                 },

@@ -6,3 +6,4 @@ from .field import *
 from .preview import *
 from .query import *
 from .view import *
+from .category import *

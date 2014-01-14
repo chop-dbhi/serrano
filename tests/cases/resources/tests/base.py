@@ -48,6 +48,7 @@ class RootResourceTestCase(TestCase):
                 'queries': {'href': 'http://testserver/api/queries/'},
                 'public_queries': {'href': 'http://testserver/api/queries/public/'},
                 'fields': {'href': 'http://testserver/api/fields/'},
+                'categories': {'href': 'http://testserver/api/categories/'},
                 'self': {'href': 'http://testserver/api/'},
                 'concepts': {'href': 'http://testserver/api/concepts/'},
                 'preview': {'href': 'http://testserver/api/data/preview/'},
