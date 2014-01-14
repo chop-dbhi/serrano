@@ -29,7 +29,7 @@ class ConceptResourceTestCase(BaseTestCase):
 
         c3 = DataConcept(name='Name', published=True)
         c3.save()
-        DataConceptField(concept=c1, field=self.name_field, order=1).save()
+        DataConceptField(concept=c3, field=self.name_field, order=1).save()
 
     def test_get_all(self):
         response = self.client.get('/api/concepts/',
