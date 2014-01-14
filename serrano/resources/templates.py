@@ -14,7 +14,7 @@ Field = {
         'app_name', 'model_name', 'field_name',
         'modified', 'published', 'operators',
         'simple_type', 'internal_type', 'data_modified', 'enumerable',
-        'searchable', 'unit', 'plural_unit', 'nullable'
+        'searchable', 'unit', 'plural_unit', 'nullable', 'order'
     ],
     'aliases': {
         'plural_name': 'get_plural_name',
@@ -41,7 +41,7 @@ Concept = {
 }
 
 ConceptField = {
-    'fields': ['alt_name', 'alt_plural_name'],
+    'fields': ['alt_name', 'alt_plural_name', 'order'],
     'aliases': {
         'alt_name': 'name',
         'alt_plural_name': 'get_plural_name',
