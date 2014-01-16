@@ -40,7 +40,7 @@ kwargs = {
     'description': 'Hypermedia implementation for Avocado',
     'license': 'BSD',
     'keywords': 'hypermedia rest api avocado serrano cilantro harvest',
-    'url': 'http://cbmi.github.com/serrano/',
+    'url': 'http://github.com/cbmi/serrano',
     'classifiers': [
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: BSD License',
