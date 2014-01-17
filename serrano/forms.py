@@ -1,6 +1,6 @@
 import logging
 from django import forms
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import get_current_site
 from django.core.exceptions import ValidationError
@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.validators import validate_email
 from avocado.models import DataContext, DataView, DataQuery
 from serrano import utils
+from serrano.conf import settings
 
 log = logging.getLogger(__name__)
 
@@ -189,6 +190,8 @@ class QueryForm(forms.ModelForm):
         if commit:
             instance.save()
 
+            script_name = getattr(django_settings, 'SCRIPT_NAME', '')
+
             # The code to update the shared_users field on the Query model
             # included inside this if statement because the shared_users
             # field in inaccessible until the instance is saved which is only
@@ -211,13 +214,13 @@ class QueryForm(forms.ModelForm):
             try:
                 site_url = request.build_absolute_uri('/')
             except KeyError:
-                site_url = site.domain + getattr(settings, 'SCRIPT_NAME', '')
+                site_url = site.domain + script_name
 
             # Use the site url as the default query url in case there are
             # issues generating the query url.
             query_url = site_url
 
-            reverse_name = getattr(settings, 'SERRANO_QUERY_REVERSE_NAME', '')
+            reverse_name = settings.QUERY_REVERSE_NAME
 
             if reverse_name:
                 try:
@@ -230,8 +233,7 @@ class QueryForm(forms.ModelForm):
                     try:
                         query_url = request.build_absolute_uri(query_url)
                     except KeyError:
-                        query_url = site.domain + \
-                            getattr(settings, 'SCRIPT_NAME', '') + query_url
+                        query_url = site.domain + script_name + query_url
                 except NoReverseMatch:
                     log.warn("Could not reverse '{0}'. ".format(reverse_name))
             else:

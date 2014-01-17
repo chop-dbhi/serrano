@@ -12,6 +12,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 5)
 
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to retrieve
         DataField.objects.filter(pk=2).update(field_name="XXX")
@@ -43,6 +44,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='read', object_id=2).exists())
 
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_one_orphan(self):
         # Orphan the field before we retrieve it
         DataField.objects.filter(pk=2).update(model_name="XXX")
