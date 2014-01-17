@@ -3,6 +3,7 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate, login
 import serrano
+from serrano.conf import dep_supported
 from serrano.tokens import token_generator
 from .base import BaseResource
 
@@ -20,7 +21,7 @@ class Root(BaseResource):
     def get(self, request):
         uri = request.build_absolute_uri
 
-        return {
+        data = {
             'title': 'Serrano Hypermedia API',
             'version': API_VERSION,
             '_links': {
@@ -53,9 +54,16 @@ class Root(BaseResource):
                 },
                 'exporter': {
                     'href': uri(reverse('serrano:data:exporter')),
-                }
+                },
             }
         }
+
+        if dep_supported('objectset'):
+            data['_links']['sets'] = {
+                'href': uri(reverse('serrano:sets:root')),
+            }
+
+        return data
 
     def post(self, request):
         username = request.data.get('username')
