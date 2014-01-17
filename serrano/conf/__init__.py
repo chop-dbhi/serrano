@@ -17,7 +17,9 @@ class Settings(object):
     def __init__(self, settings_dict):
         # set the initial settings as defined in the global_settings
         for setting in dir(global_settings):
-            setattr(self, setting, getattr(global_settings, setting))
+            # Ignore internal module properties
+            if not setting.startswith('_'):
+                setattr(self, setting, getattr(global_settings, setting))
 
         # iterate over the user-defined settings and override the default
         # settings
