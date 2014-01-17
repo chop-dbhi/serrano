@@ -37,6 +37,7 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to embed in the concepts we
         # are about to retrieve.
@@ -85,6 +86,7 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
 
+    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_one_orphan(self):
         # Orphan one of the fields on the concept before we retrieve it
         DataField.objects.filter(pk=self.salary_field.pk) \

@@ -1,10 +1,10 @@
 import functools
 from datetime import datetime
-from django.conf import settings
 from django.core.cache import cache
 from restlib2.params import Parametizer
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView, DataQuery
+from serrano.conf import settings
 from ..decorators import check_auth
 from .. import cors
 
@@ -216,21 +216,26 @@ class BaseResource(Resource):
 
     @property
     def checks_for_orphans(self):
-        return getattr(settings, 'SERRANO_CHECK_ORPHANED_FIELDS', True)
+        return settings.CHECK_ORPHANED_FIELDS
 
 
 class ThrottledResource(BaseResource):
     def __init__(self, **kwargs):
-        self.rate_limit_count = getattr(
-            settings, 'SERRANO_RATE_LIMIT_COUNT', self.rate_limit_count)
-        self.rate_limit_seconds = getattr(
-            settings, 'SERRANO_RATE_LIMIT_SECONDS', self.rate_limit_seconds)
+        if settings.RATE_LIMIT_COUNT:
+            self.rate_limit_count = settings.RATE_LIMIT_COUNT
 
-        self.auth_rate_limit_count = getattr(
-            settings, 'SERRANO_AUTH_RATE_LIMIT_COUNT', self.rate_limit_count)
-        self.auth_rate_limit_seconds = getattr(
-            settings, 'SERRANO_AUTH_RATE_LIMIT_SECONDS',
-            self.rate_limit_seconds)
+        if settings.RATE_LIMIT_SECONDS:
+            self.rate_limit_seconds = settings.RATE_LIMIT_SECONDS
+
+        if settings.AUTH_RATE_LIMIT_COUNT:
+            self.auth_rate_limit_count = settings.AUTH_RATE_LIMIT_COUNT
+        else:
+            self.auth_rate_limit_count = self.rate_limit_count
+
+        if settings.AUTH_RATE_LIMIT_SECONDS:
+            self.auth_rate_limit_seconds = settings.AUTH_RATE_LIMIT_SECONDS
+        else:
+            self.auth_rate_limit_seconds = self.rate_limit_seconds
 
         return super(ThrottledResource, self).__init__(**kwargs)
 

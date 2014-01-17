@@ -3,8 +3,9 @@ import string
 import hashlib
 from datetime import datetime
 from random import SystemRandom
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.utils.http import int_to_base36, base36_to_int
+from serrano.conf import settings
 
 # Hex characters
 HEX_CHARS = string.lowercase[:6] + string.digits
@@ -65,15 +66,14 @@ class TokenGenerator(object):
 
     def _make(self, user, timestamp):
         ts_b36 = int_to_base36(timestamp)
-        total = (settings.SECRET_KEY + unicode(user.pk) + user.password +
-                 unicode(timestamp))
+        total = (django_settings.SECRET_KEY + unicode(user.pk) +
+                 user.password + unicode(timestamp))
         digest = hashlib.sha1(total).hexdigest()[::2]
         return '{0}-{1}-{2}'.format(user.pk, ts_b36, digest)
 
     @property
     def timeout(self):
-        return getattr(settings, 'SERRANO_TOKEN_TIMEOUT',
-                       settings.SESSION_COOKIE_AGE)
+        return settings.TOKEN_TIMEOUT or django_settings.SESSION_COOKIE_AGE
 
     def split(self, token):
         try:
