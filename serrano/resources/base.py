@@ -227,15 +227,11 @@ class ThrottledResource(BaseResource):
         if settings.RATE_LIMIT_SECONDS:
             self.rate_limit_seconds = settings.RATE_LIMIT_SECONDS
 
-        if settings.AUTH_RATE_LIMIT_COUNT:
-            self.auth_rate_limit_count = settings.AUTH_RATE_LIMIT_COUNT
-        else:
-            self.auth_rate_limit_count = self.rate_limit_count
+        self.auth_rate_limit_count = settings.AUTH_RATE_LIMIT_COUNT \
+            or self.rate_limit_count
 
-        if settings.AUTH_RATE_LIMIT_SECONDS:
-            self.auth_rate_limit_seconds = settings.AUTH_RATE_LIMIT_SECONDS
-        else:
-            self.auth_rate_limit_seconds = self.rate_limit_seconds
+        self.auth_rate_limit_seconds = settings.AUTH_RATE_LIMIT_SECONDS \
+            or self.rate_limit_seconds
 
         return super(ThrottledResource, self).__init__(**kwargs)
 

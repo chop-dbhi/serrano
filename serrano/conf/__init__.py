@@ -1,5 +1,6 @@
 import re
 import functools
+from warnings import warn
 from django.dispatch import receiver
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.functional import LazyObject
@@ -20,7 +21,7 @@ class Settings(object):
 
         # iterate over the user-defined settings and override the default
         # settings
-        for key, value in iter(settings_dict.items()):
+        for key, value in settings_dict.items():
             setattr(self, key, value)
 
     def __setattr__(self, key, value):
@@ -30,6 +31,9 @@ class Settings(object):
                 default.update(value)
             else:
                 object.__setattr__(self, key, value)
+        else:
+            warn('Ignoring non-uppercase setting "{0}". Note that all '
+                 'Serrano settings are expected to be uppercased.'.format(key))
 
 
 class LazySettings(LazyObject):
@@ -54,7 +58,7 @@ settings = LazySettings()
 @receiver(setting_changed)
 def test_setting_changed_handler(**kwargs):
     if kwargs['setting'] == 'SERRANO':
-        for key, value in kwargs['value'].iteritems():
+        for key, value in kwargs['value'].items():
             setattr(settings, key, value)
     elif kwargs['setting'].startswith(SETTING_PREFIX):
         key = kwargs['setting'][SETTING_PREFIX_LEN:]

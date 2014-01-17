@@ -12,7 +12,7 @@ CORS_ORIGINS = ()
 
 # Integer of seconds until a token expires. Note, the token timeout is fixed
 # and does not reset upon each request. Default is the same as the
-# SESSION_COOKIE_AGE Django setting
+# SESSION_COOKIE_AGE Django setting.
 TOKEN_TIMEOUT = None
 
 # Integer defining the number of requests that are allowed in any given time
@@ -21,6 +21,7 @@ TOKEN_TIMEOUT = None
 # requests is exceeded within the time interval, the response will be
 # 429 Too Many Requests. If this setting is not explicity set, it will default
 # to the rate_limit_count value from restlib2.
+# See https://github.com/bruth/restlib2 for more information.
 RATE_LIMIT_COUNT = None
 
 # Integer defining the length of the request rate limiting time interval
@@ -29,6 +30,7 @@ RATE_LIMIT_COUNT = None
 # requests are received within this time interval, the response will be
 # 429 Too Many Requests. If this setting is not explicity set, it will default
 # to the rate_limit_seconds value from restlib2.
+# See https://github.com/bruth/restlib2 for more information.
 RATE_LIMIT_SECONDS = None
 
 # Integer defining the number of authenticated requests that are allowed in
@@ -51,6 +53,7 @@ QUERY_REVERSE_NAME = None
 
 # List/tuple of configuration options for defining resources and URLs for
 # ObjectSet classes. This requires django-objectset to be installed.
+# See https://github.com/bruth/django-objectset for more information.
 OBJECT_SETS = ()
 
 # If true, performs a check on all concepts as to whether it contains any
