@@ -68,7 +68,7 @@ class FieldResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/fields/',
             HTTP_ACCEPT='application/json')
-        self.assertEqual(len(json.loads(response.content)), 11)
+        self.assertEqual(len(json.loads(response.content)), 12)
 
         response = self.client.get('/api/fields/1/',
             HTTP_ACCEPT='application/json')

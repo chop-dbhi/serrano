@@ -1,5 +1,7 @@
 import logging
 from django.db import models
+from objectset.models import ObjectSet
+
 
 class MockHandler(logging.Handler):
     def __init__(self, *args, **kwargs):
@@ -49,3 +51,7 @@ class Project(models.Model):
     employees = models.ManyToManyField(Employee)
     manager = models.OneToOneField(Employee, related_name='managed_projects')
     due_date = models.DateField(null=True)
+
+
+class Team(ObjectSet):
+    employees = models.ManyToManyField(Employee)

@@ -19,6 +19,7 @@ INSTALLED_APPS = (
     'tests.cases.base',
     'tests.cases.resources',
     'tests.cases.forms',
+    'tests.cases.sets',
 )
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

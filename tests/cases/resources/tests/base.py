@@ -52,6 +52,7 @@ class RootResourceTestCase(TestCase):
                 'self': {'href': 'http://testserver/api/'},
                 'concepts': {'href': 'http://testserver/api/concepts/'},
                 'preview': {'href': 'http://testserver/api/data/preview/'},
+                'sets': {'href': 'http://testserver/api/sets/'},
             },
         })
 
