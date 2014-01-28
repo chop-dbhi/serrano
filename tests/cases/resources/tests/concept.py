@@ -56,6 +56,15 @@ class ConceptResourceTestCase(BaseTestCase):
                  json.loads(response.content)]
         self.assertEqual(names, ['Title', 'Name'])
 
+    def test_get_all_limit(self):
+        # Name and title are both published but with the limit param set below
+        # we should only get one back.
+        response = self.client.get('/api/concepts/',
+                                   {'limit': 1},
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to embed in the concepts we
