@@ -37,6 +37,25 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
+    def test_get_all_name_sort(self):
+        response = self.client.get('/api/concepts/',
+                                   {'sort': 'name'},
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 2)
+        names = [concept.get('name', '') for concept in
+                 json.loads(response.content)]
+        self.assertEqual(names, ['Name', 'Title'])
+
+        response = self.client.get('/api/concepts/',
+                                   {'sort': 'name', 'order': 'desc'},
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(json.loads(response.content)), 2)
+        names = [concept.get('name', '') for concept in
+                 json.loads(response.content)]
+        self.assertEqual(names, ['Title', 'Name'])
+
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to embed in the concepts we
