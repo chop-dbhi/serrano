@@ -208,6 +208,9 @@ class ConceptsResource(ConceptBase):
     def get(self, request, pk=None):
         params = self.get_params(request)
 
+        order = ['-category__order' if params['order'] == 'desc'
+                 else 'category__order']
+
         queryset = self.get_queryset(request)
 
         # For privileged users, check if any filters are applied, otherwise
@@ -234,8 +237,12 @@ class ConceptsResource(ConceptBase):
             objects = (x.object for x in results)
         else:
             if params['sort'] == 'name':
-                order = '-name' if params['order'] == 'desc' else 'name'
-                queryset = queryset.order_by(order)
+                order.append('-name' if params['order'] == 'desc'
+                             else 'name')
+
+            # We need to order before a possible slice is taken because
+            # querysets cannot be ordered post-slice.
+            queryset = queryset.order_by(*order)
 
             if params['limit']:
                 queryset = queryset[:params['limit']]
