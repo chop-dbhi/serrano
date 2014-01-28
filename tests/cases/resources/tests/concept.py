@@ -9,12 +9,12 @@ class ConceptResourceTestCase(BaseTestCase):
     def setUp(self):
         super(ConceptResourceTestCase, self).setUp()
 
-        self.name_field = DataField.objects.get_by_natural_key('tests',
-            'title', 'name')
-        self.salary_field = DataField.objects.get_by_natural_key('tests',
-            'title', 'salary')
-        self.boss_field = DataField.objects.get_by_natural_key('tests',
-            'title', 'boss')
+        self.name_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'name')
+        self.salary_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'salary')
+        self.boss_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'boss')
 
         c1 = DataConcept(name='Title', published=True)
         c1.save()
@@ -33,7 +33,7 @@ class ConceptResourceTestCase(BaseTestCase):
 
     def test_get_all(self):
         response = self.client.get('/api/concepts/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
@@ -45,14 +45,14 @@ class ConceptResourceTestCase(BaseTestCase):
             .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/', {'embed': True},
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 1)
 
         # If we aren't embedding the fields, then none of the concepts
         # should be filtered out.
         response = self.client.get('/api/concepts/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
@@ -64,24 +64,24 @@ class ConceptResourceTestCase(BaseTestCase):
             .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/', {'embed': True},
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
         # If we aren't embedding the fields, then none of the concepts
         # should be filtered out.
         response = self.client.get('/api/concepts/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 2)
 
     def test_get_one(self):
         response = self.client.get('/api/concepts/999/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 404)
 
         response = self.client.get('/api/concepts/3/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
@@ -93,12 +93,12 @@ class ConceptResourceTestCase(BaseTestCase):
             .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/1/', {'embed': True},
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 500)
 
         # If we aren't embedding the fields, there should not be a server error
         response = self.client.get('/api/concepts/1/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
@@ -108,12 +108,12 @@ class ConceptResourceTestCase(BaseTestCase):
             .update(field_name='XXX')
 
         response = self.client.get('/api/concepts/1/', {'embed': True},
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
 
         # If we aren't embedding the fields, there should not be a server error
         response = self.client.get('/api/concepts/1/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
 
 
@@ -121,12 +121,12 @@ class ConceptFieldResourceTestCase(BaseTestCase):
     def setUp(self):
         super(ConceptFieldResourceTestCase, self).setUp()
 
-        self.name_field = DataField.objects.get_by_natural_key('tests',
-            'title', 'name')
-        self.salary_field = DataField.objects.get_by_natural_key('tests',
-            'title', 'salary')
-        self.boss_field = DataField.objects.get_by_natural_key('tests',
-            'title', 'boss')
+        self.name_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'name')
+        self.salary_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'salary')
+        self.boss_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'boss')
 
         c1 = DataConcept(name='Title', published=True)
         c1.save()
@@ -136,7 +136,7 @@ class ConceptFieldResourceTestCase(BaseTestCase):
 
     def test_get(self):
         response = self.client.get('/api/concepts/1/fields/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 3)
 
@@ -147,7 +147,7 @@ class ConceptFieldResourceTestCase(BaseTestCase):
             .update(field_name="XXX")
 
         response = self.client.get('/api/concepts/1/fields/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 500)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
@@ -158,5 +158,5 @@ class ConceptFieldResourceTestCase(BaseTestCase):
             .update(field_name="XXX")
 
         response = self.client.get('/api/concepts/1/fields/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
