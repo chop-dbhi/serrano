@@ -39,7 +39,7 @@ def category_posthook(instance, data, request):
 class CategoryParametizer(Parametizer):
     "Supported params and their defaults for Category endpoints."
 
-    published = BoolParam()
+    unpublished = BoolParam(False)
 
 
 class CategoryBase(ThrottledResource):
@@ -101,15 +101,7 @@ class CategoriesResource(CategoryBase):
 
         # For privileged users, check if any filters are applied, otherwise
         # only allow for published objects.
-        if can_change_category(request.user):
-            filters = {}
-
-            if params['published'] is not None:
-                filters['published'] = params['published']
-
-            if filters:
-                queryset = queryset.filter(**filters)
-        else:
+        if not can_change_category(request.user) or not params['unpublished']:
             queryset = queryset.published()
 
         return self.prepare(request, queryset, **params)

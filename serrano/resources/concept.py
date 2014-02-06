@@ -84,7 +84,7 @@ class ConceptParametizer(Parametizer):
 
     sort = StrParam()
     order = StrParam('asc')
-    published = BoolParam()
+    unpublished = BoolParam(False)
     embed = BoolParam(False)
     brief = BoolParam(False)
     query = StrParam()
@@ -215,15 +215,7 @@ class ConceptsResource(ConceptBase):
 
         # For privileged users, check if any filters are applied, otherwise
         # only allow for published objects.
-        if can_change_concept(request.user):
-            filters = {}
-
-            if params['published'] is not None:
-                filters['published'] = params['published']
-
-            if filters:
-                queryset = queryset.filter(**filters)
-        else:
+        if not can_change_concept(request.user) or not params['unpublished']:
             queryset = queryset.published()
 
         # If Haystack is installed, perform the search
