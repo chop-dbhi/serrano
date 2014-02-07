@@ -66,7 +66,7 @@ class FieldResourceTestCase(BaseTestCase):
         # Superuser sees everything
         self.client.login(username='root', password='password')
 
-        response = self.client.get('/api/fields/',
+        response = self.client.get('/api/fields/?unpublished=1',
             HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 12)
 

@@ -212,6 +212,19 @@ class ConceptResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
 
+    def test_get_privileged(self):
+        # Superuser sees everything
+        self.client.login(username='root', password='password')
+
+        response = self.client.get('/api/concepts/?unpublished=1',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 3)
+
+        response = self.client.get('/api/concepts/2/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content))
+
 
 class ConceptFieldResourceTestCase(BaseTestCase):
     def setUp(self):
