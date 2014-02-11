@@ -53,6 +53,7 @@ class RootResourceTestCase(TestCase):
                 'concepts': {'href': 'http://testserver/api/concepts/'},
                 'preview': {'href': 'http://testserver/api/data/preview/'},
                 'sets': {'href': 'http://testserver/api/sets/'},
+                'ping': {'href': 'http://testserver/api/ping/'},
             },
         })
 
@@ -230,3 +231,36 @@ class ObjectRevisionResourceTestCase(AuthenticatedBaseTestCase):
         url = '/api/test/{0}/revisions/'.format(view.id)
         response = self.client.get(url, HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
+
+
+class PingResourceTestCase(AuthenticatedBaseTestCase):
+    @override_settings(SERRANO_AUTH_REQUIRED=True)
+    def test(self):
+        response = self.client.get('/api/ping/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(json.loads(response.content)['status'], 'ok')
+
+        # emulate session timeout..
+        self.client.logout()
+
+        response = self.client.get('/api/ping/',
+                                   HTTP_ACCEPT='application/json',
+                                   HTTP_REFERER='http://testserver/query/')
+
+        data = json.loads(response.content)
+        self.assertEqual(data['status'], 'timeout')
+        self.assertEqual(data['location'],
+                         'http://testserver/accounts/login/?next=/query/')
+
+    @override_settings(SERRANO_AUTH_REQUIRED=True, LOGIN_REDIRECT_URL='/')
+    def test_nonsafe_referer(self):
+        self.client.logout()
+
+        response = self.client.get('/api/ping/',
+                                   HTTP_ACCEPT='application/json',
+                                   HTTP_REFERER='http://example.com/spam/')
+
+        data = json.loads(response.content)
+        self.assertEqual(data['status'], 'timeout')
+        self.assertEqual(data['location'],
+                         'http://testserver/accounts/login/?next=/')
