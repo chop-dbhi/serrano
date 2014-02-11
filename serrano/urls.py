@@ -15,7 +15,7 @@ data_patterns = patterns(
 serrano_patterns = patterns(
     '',
 
-    url(r'^$',
+    url(r'^',
         include('serrano.resources')),
 
     url(r'^categories/',
