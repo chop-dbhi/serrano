@@ -50,7 +50,7 @@ class PreviewResource(BaseResource, PaginatorResource):
         offset = max(0, page.start_index() - 1)
 
         # Prepare the exporter and iterable
-        iterable = processor.get_iterable(offset=offset, limit=limit)
+        iterable = processor.get_iterable()
 
         # Build up the header keys.
         # TODO: This is flawed since it assumes the output columns
@@ -73,14 +73,17 @@ class PreviewResource(BaseResource, PaginatorResource):
 
         objects = []
 
-        for row in exporter.read(iterable, request=request):
+        for row in exporter.read(iterable, request=request, offset=offset,
+                                 limit=limit):
             pk = None
             values = []
+
             for i, output in enumerate(row):
                 if i == 0:
                     pk = output[pk_name]
                 else:
                     values.extend(output.values())
+
             objects.append({'pk': pk, 'values': values})
 
         # Various model options
