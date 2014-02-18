@@ -100,10 +100,11 @@ class ExporterResource(BaseResource):
                                    include_pk=False)
 
         exporter = processor.get_exporter(exporters[export_type])
-        iterable = processor.get_iterable(offset=offset, limit=limit)
+        iterable = processor.get_iterable()
 
         # Write the data to the response
-        exporter.write(iterable, resp, request=request)
+        exporter.write(iterable, resp, request=request, offset=offset,
+                       limit=limit)
 
         filename = '{0}-{1}-data.{2}'.format(
             file_tag, datetime.now(), exporter.file_extension)
