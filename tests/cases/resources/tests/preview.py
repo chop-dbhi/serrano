@@ -19,6 +19,7 @@ class PreviewResourceTestCase(TestCase):
                 }
             },
             'keys': [],
+            'count': 0,
             'object_count': 0,
             'object_name': 'employee',
             'object_name_plural': 'employees',
@@ -46,6 +47,7 @@ class PreviewResourceTestCase(TestCase):
                 }
             },
             'keys': [],
+            'count': 0,
             'object_count': 0,
             'object_name': 'employee',
             'object_name_plural': 'employees',

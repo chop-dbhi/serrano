@@ -100,20 +100,23 @@ class FieldValues(FieldBase, PaginatorResource):
         paginator = self.get_paginator(values, limit=limit)
         page = paginator.page(page)
 
+        # Get paginator-based response
+        resp = self.get_page_response(request, paginator, page)
+
+        # Add links
         path = reverse('serrano:field-values', kwargs={'pk': pk})
+
         links = self.get_page_links(request, path, page, extra=params)
         links['parent'] = {
             'href': request.build_absolute_uri(reverse('serrano:field',
                                                kwargs={'pk': pk})),
         }
-
-        return {
-            'values': page.object_list,
-            'limit': paginator.per_page,
-            'num_pages': paginator.num_pages,
-            'page_num': page.number,
+        resp.update({
             '_links': links,
-        }
+            'values': page.object_list,
+        })
+
+        return resp
 
     def post(self, request, pk):
         instance = request.instance

@@ -14,17 +14,33 @@ class PaginatorResource(Resource):
     parametizer = PaginatorParametizer
 
     def get_paginator(self, queryset, limit):
-        return Paginator(queryset, per_page=limit)
+        paginator = Paginator(queryset, per_page=limit)
+        paginator.has_limit = bool(limit)
+
+        # Perform count an update paginator to prevent redundant call
+        if not limit:
+            count = len(queryset)
+            paginator.per_page = count
+            paginator._count = count
+
+        return paginator
 
     def get_page_links(self, request, path, page, extra=None):
         "Returns the page links."
         uri = request.build_absolute_uri
 
         # format string will be expanded below
-        params = {
-            'page': '{0}',
-            'limit': '{1}',
-        }
+        if page.paginator.has_limit:
+            limit = page.paginator.per_page
+            params = {
+                'limit': '{limit}',
+                'page': '{page}',
+            }
+        else:
+            limit = None
+            params = {
+                'limit': '0',
+            }
 
         if extra:
             for key, value in extra.items():
@@ -40,11 +56,10 @@ class PaginatorResource(Resource):
         # Create path string
         path_format = '{0}?{1}'.format(path, '&'.join(pairs))
 
-        limit = page.paginator.per_page
-
         links = {
             'self': {
-                'href': uri(path_format.format(page.number, limit)),
+                'href': uri(path_format.format(page=page.number,
+                                               limit=limit)),
             },
             'base': {
                 'href': uri(path),
@@ -54,13 +69,23 @@ class PaginatorResource(Resource):
         if page.has_previous():
             links['prev'] = {
                 'href': uri(
-                    path_format.format(page.previous_page_number(), limit)),
+                    path_format.format(page=page.previous_page_number(),
+                                       limit=limit)),
             }
 
         if page.has_next():
             links['next'] = {
                 'href': uri(
-                    path_format.format(page.next_page_number(), limit)),
+                    path_format.format(page=page.next_page_number(),
+                                       limit=limit)),
             }
 
         return links
+
+    def get_page_response(self, request, paginator, page):
+        return {
+            'count': paginator.count,
+            'limit': paginator.per_page if paginator.has_limit else 0,
+            'num_pages': paginator.num_pages,
+            'page_num': page.number,
+        }
