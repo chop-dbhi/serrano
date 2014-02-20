@@ -73,8 +73,12 @@ class PreviewResource(BaseResource, PaginatorResource):
 
         objects = []
 
+        # 0 limit means all for pagination, however the read method requires
+        # an explicit limit or None
+        read_limit = limit or None
+
         for row in exporter.read(iterable, request=request, offset=offset,
-                                 limit=limit):
+                                 limit=read_limit):
             pk = None
             values = []
 
@@ -91,20 +95,21 @@ class PreviewResource(BaseResource, PaginatorResource):
         model_name = opts.verbose_name.format()
         model_name_plural = opts.verbose_name_plural.format()
 
+        resp = self.get_page_response(request, paginator, page)
+
         path = reverse('serrano:data:preview')
         links = self.get_page_links(request, path, page, extra=params)
 
-        return {
+        resp.update({
             'keys': header,
             'objects': objects,
             'object_name': model_name,
             'object_name_plural': model_name_plural,
             'object_count': paginator.count,
-            'limit': paginator.per_page,
-            'num_pages': paginator.num_pages,
-            'page_num': page.number,
             '_links': links,
-        }
+        })
+
+        return resp
 
     # POST mimics GET to support sending large request bodies for on-the-fly
     # context and view data.

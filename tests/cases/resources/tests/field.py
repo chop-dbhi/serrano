@@ -82,6 +82,16 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(json.loads(response.content)['values'])
 
+    def test_values_no_limit(self):
+        # title.name
+        response = self.client.get('/api/fields/2/values/?limit=0',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['values'])
+        self.assertFalse('previous' in data['_links'])
+        self.assertFalse('next' in data['_links'])
+
     def test_values_random(self):
         # Random values
         response = self.client.get('/api/fields/2/values/?random=3',
