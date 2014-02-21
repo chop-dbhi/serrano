@@ -174,6 +174,37 @@ class FieldResourceTestCase(BaseTestCase):
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 422)
 
+    def test_labels_validate(self):
+        # Valid, single dict
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps({'label': 'IT'}),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(content, {
+            'value': 'IT',
+            'label': 'IT',
+            'valid': True,
+        })
+
+    def test_mixed_validate(self):
+        response = self.client.post('/api/fields/2/values/',
+            data=json.dumps([
+                {'label': 'IT'},
+                {'label': 'Bartender'},
+                {'value': 'Programmer'}
+            ]),
+            content_type='application/json',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertEqual(content, [
+            {'value': 'IT', 'label': 'IT', 'valid': True},
+            {'value': 'Bartender', 'label': 'Bartender', 'valid': False},
+            {'value': 'Programmer', 'label': 'Programmer', 'valid': True},
+        ])
+
     def test_stats(self):
         # title.name
         response = self.client.get('/api/fields/2/stats/',

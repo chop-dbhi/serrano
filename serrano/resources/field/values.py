@@ -1,5 +1,6 @@
-from django.http import HttpResponse
+from django.db.models import Q
 from django.core.urlresolvers import reverse
+from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from restlib2.params import StrParam, IntParam, BoolParam
 from avocado.events import usage
@@ -122,31 +123,85 @@ class FieldValues(FieldBase, PaginatorResource):
         instance = request.instance
         params = self.get_params(request)
 
+        if not request.data:
+            return self.render(request, 'Error parsing data',
+                               status=codes.unprocessable_entity)
+
         if isinstance(request.data, dict):
             array = [request.data]
         else:
             array = request.data
 
-        try:
-            values = map(lambda x: x['value'], array)
-        except (KeyError, TypeError):
-            return HttpResponse('Error parsing value',
-                                status=codes.unprocessable_entity)
+        values = []
+        labels = []
+        array_map = {}
+
+        # Separate out the values and labels for the lookup. Track indexes
+        # maintain order of array
+        for i, datum in enumerate(array):
+            # Value takes precedence over label if supplied
+            if 'value' in datum:
+                array_map[i] = 'value'
+                values.append(datum['value'])
+            elif 'label' in datum:
+                array_map[i] = 'label'
+                labels.append(datum['label'])
+            else:
+                return self.render(request, 'Error parsing value or label',
+                                   status=codes.unprocessable_entity)
 
         field_name = instance.field_name
 
+        # Note, this logic is encapsulated in Avocado 2.3.1
+        if instance.lexicon:
+            label_field_name = 'label'
+        elif instance.objectset:
+            if hasattr(instance.model, 'label_field'):
+                label_field_name = instance.model.label_field
+            else:
+                label_field_name = 'pk'
+        else:
+            label_field_name = instance.field_name
+
         # Note, this return a context-aware or naive queryset depending
-        # on params
-        queryset = self.get_base_values(request, instance, params)
-        lookup = {'{0}__in'.format(field_name): values}
+        # on params. Get the value and label fields so they can be filled
+        # in below.
+        queryset = self.get_base_values(request, instance, params)\
+            .values_list(field_name, label_field_name)
 
-        results = set(queryset.filter(**lookup)
-                      .values_list(field_name, flat=True))
+        lookup = Q()
 
-        for datum in array:
-            if 'label' not in datum:
-                datum['label'] = instance.get_label(datum['value'])
-            datum['valid'] = datum['value'] in results
+        # Validate based on the label
+        if labels:
+            lookup |= Q(**{'{0}__in'.format(label_field_name): labels})
+
+        if values:
+            lookup |= Q(**{'{0}__in'.format(field_name): values})
+
+        results = queryset.filter(lookup)
+
+        value_labels = dict(results)
+        label_values = dict([(v, k) for k, v in value_labels.items()])
+
+        for i, datum in enumerate(array):
+            if array_map[i] == 'label':
+                valid = datum['label'] in label_values
+                if valid:
+                    value = label_values[datum['label']]
+                else:
+                    value = datum['label']
+
+                datum['valid'] = valid
+                datum['value'] = value
+            else:
+                valid = datum['value'] in value_labels
+                if valid:
+                    label = value_labels[datum['value']]
+                else:
+                    label = smart_unicode(datum['value'])
+
+                datum['valid'] = valid
+                datum['label'] = label
 
         usage.log('validate', instance=instance, request=request, data={
             'count': len(array),
