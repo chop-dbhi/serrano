@@ -19,7 +19,7 @@ class ApiTokenManager(models.Manager):
 class ApiToken(models.Model):
     "Token for use as authentication for API access."
     user = models.ForeignKey(User)
-    token = models.CharField(max_length=32)
+    token = models.CharField(max_length=32, editable=False)
     revoked = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
@@ -35,4 +35,4 @@ class ApiToken(models.Model):
     def save(self, *args, **kwargs):
         if not self.token:
             self.token = generate_random_token(32, test=unique_token)
-        return super(self.__class__, self).save(*args, **kwargs)
+        return super(ApiToken, self).save(*args, **kwargs)
