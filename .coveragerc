@@ -4,6 +4,7 @@ source = serrano
 omit =
     */migrations/*
     serrano/mediatypes.py
+    */admin.py
 
 [report]
 exclude_lines =
