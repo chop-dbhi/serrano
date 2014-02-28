@@ -5,7 +5,8 @@ from restlib2.params import Parametizer
 from restlib2.resources import Resource
 from avocado.models import DataContext, DataView, DataQuery
 from serrano.conf import settings
-from ..decorators import check_auth
+from django.contrib.auth import authenticate, login
+from ..tokens import get_request_token
 from .. import cors
 
 __all__ = ('BaseResource', 'ThrottledResource')
@@ -188,9 +189,18 @@ class BaseResource(Resource):
 
     parametizer = Parametizer
 
-    @check_auth
-    def __call__(self, request, **kwargs):
-        return super(BaseResource, self).__call__(request, **kwargs)
+    def is_unauthorized(self, request, *args, **kwargs):
+        user = getattr(request, 'user', None)
+
+        # Attempt to authenticate if a token is present
+        if not user or not user.is_authenticated():
+            token = get_request_token(request)
+            user = authenticate(token=token)
+
+            if user:
+                login(request, user)
+            elif settings.AUTH_REQUIRED:
+                return True
 
     def process_response(self, request, response):
         response = super(BaseResource, self).process_response(

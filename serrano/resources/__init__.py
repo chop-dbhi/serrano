@@ -19,10 +19,9 @@ API_VERSION = '{major}.{minor}.{micro}'.format(**serrano.__version_info__)
 class Root(BaseResource):
     # Override to allow a POST to not be checked for authorization since
     # this is the only way to authorize.
-    def __call__(self, request, *args, **kwargs):
-        if request.method == 'POST':
-            return super(BaseResource, self).__call__(request, *args, **kwargs)
-        return super(Root, self).__call__(request, *args, **kwargs)
+    def is_unauthorized(self, request, *args, **kwargs):
+        if request.method != 'POST':
+            return super(Root, self).is_unauthorized(request, *args, **kwargs)
 
     def get(self, request):
         uri = request.build_absolute_uri
