@@ -104,7 +104,7 @@ class ViewFormTestCase(BaseTestCase):
     def test_json(self):
         previous_view_count = DataView.objects.count()
 
-        form = ViewForm(self.request, {'json': {'columns': [1]}})
+        form = ViewForm(self.request, {'json': [{'concept': 1}]})
         self.assertTrue(form.is_valid())
 
         form.save()
@@ -285,7 +285,7 @@ class QueryFormTestCase(BaseTestCase):
     def test_view_json(self):
         expected_count = Employee.objects.count()
 
-        form = QueryForm(self.request, {'view_json': {'columns': [1]}})
+        form = QueryForm(self.request, {'view_json': [{'concept': 1}]})
         self.assertTrue(form.is_valid())
         instance = form.save()
         self.assertEqual(instance.record_count, expected_count)
@@ -308,7 +308,7 @@ class QueryFormTestCase(BaseTestCase):
             'context_json': {
                 'field': 'tests.title.salary', 'operator': 'gt',
                 'value': '1000'},
-            'view_json': {'columns': [1]}})
+            'view_json': [{'concept': 1}]})
         self.assertTrue(form.is_valid())
         instance = form.save()
         self.assertEqual(instance.distinct_count, expected_count)
