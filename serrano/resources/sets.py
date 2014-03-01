@@ -57,15 +57,23 @@ def configure_object_set(config):
             # ``serrano.resources.base.get_request_context`` for parsing
             # details
             context = self.resource.get_context(self.request)
-            return context
+
+            if context.json:
+                return context
 
         def save(self, commit=True):
             instance = super(ObjectSetForm, self).save(commit=False)
+            context = self.cleaned_data.get('context')
+
+            # Set the `context_json` on the instance if new. This is
+            # harmless for models that do not have a `context_json` field
+            # defined.
+            if not instance.pk and context:
+                instance.context_json = context.json
 
             # Prevents reapplying the context to the pending objects
             if not self._context_applied:
                 self._context_applied = True
-                context = self.cleaned_data.get('context')
                 if context:
                     instance._pending |= context.apply()
 
