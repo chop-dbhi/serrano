@@ -43,3 +43,8 @@ class SetResourcesTest(TestCase):
                          .count(), 2)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(json.loads(response.content)['count'], 2)
+        self.assertEqual(json.loads(response.content)['context_json'], {
+            'field': 'tests.title.salary',
+            'operator': 'gt',
+            'value': 15000,
+        })

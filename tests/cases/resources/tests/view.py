@@ -15,7 +15,7 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
         self.assertFalse(json.loads(response.content))
 
     def test_get_all_default(self):
-        view = DataView(template=True, default=True, json={})
+        view = DataView(template=True, default=True, json=[])
         view.save()
         response = self.client.get('/api/views/',
             HTTP_ACCEPT='application/json')

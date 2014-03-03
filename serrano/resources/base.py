@@ -58,11 +58,9 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
             if key_object:
                 attrs = key_object.json
 
-    # If attrs were supplied or derived from the request, validate them
-    # and return as is. This provides support for one-off queries via POST
-    # or GET.
-    if isinstance(attrs, dict):
-        klass.validate(attrs)
+    # Use attrs that were supplied or derived from the request.
+    # This provides support for one-off queries via POST or GET.
+    if isinstance(attrs, (list, dict)):
         return klass(json=attrs)
 
     kwargs = {}

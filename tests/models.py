@@ -1,4 +1,5 @@
 import logging
+import jsonfield
 from django.db import models
 from objectset.models import ObjectSet
 
@@ -55,3 +56,4 @@ class Project(models.Model):
 
 class Team(ObjectSet):
     employees = models.ManyToManyField(Employee)
+    context_json = jsonfield.JSONField(null=True, blank=True)
