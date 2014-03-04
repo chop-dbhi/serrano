@@ -2,9 +2,10 @@
 branch = True
 source = serrano
 omit =
+    */admin.py
     */migrations/*
     serrano/mediatypes.py
-    */admin.py
+    serrano/__init__.py
 
 [report]
 exclude_lines =
