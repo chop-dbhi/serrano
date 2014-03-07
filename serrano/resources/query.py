@@ -33,6 +33,9 @@ def query_posthook(instance, data, request):
         },
         'forks': {
             'href': uri(reverse('serrano:queries:forks', args=[instance.pk])),
+        },
+        'stats': {
+            'href': uri(reverse('serrano:queries:stats', args=[instance.pk])),
         }
     }
 
