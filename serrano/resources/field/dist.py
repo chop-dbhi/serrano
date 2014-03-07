@@ -30,7 +30,7 @@ class FieldDistribution(FieldBase):
     parametizer = FieldDistParametizer
 
     def get(self, request, pk):
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
         params = self.get_params(request)
 
         tree = trees[params.get('tree')]

@@ -107,11 +107,17 @@ class ConceptBase(ThrottledResource):
         return queryset
 
     def get_object(self, request, **kwargs):
-        queryset = self.get_queryset(request)
-        try:
-            return queryset.get(**kwargs)
-        except self.model.DoesNotExist:
-            pass
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request)
+
+            try:
+                instance = queryset.get(**kwargs)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def _get_categories(self, request, objects):
         """Returns a QuerySet of categories for use during serialization.
@@ -147,18 +153,14 @@ class ConceptBase(ThrottledResource):
             return True
 
     def is_not_found(self, request, response, pk, *args, **kwargs):
-        instance = self.get_object(request, pk=pk)
-        if instance is None:
-            return True
-        request.instance = instance
-        return False
+        return self.get_object(request, pk=pk) is None
 
 
 class ConceptResource(ConceptBase):
     "Resource for interacting with Concept instances."
     def get(self, request, pk):
         params = self.get_params(request)
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
 
         if (self.checks_for_orphans and params['embed'] and
                 has_orphaned_field(instance)):
@@ -196,7 +198,7 @@ class ConceptFieldsResource(ConceptBase):
         return fields
 
     def get(self, request, pk):
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
         usage.log('fields', instance=instance, request=request)
         return self.prepare(request, instance)
 

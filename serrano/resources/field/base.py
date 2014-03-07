@@ -93,11 +93,17 @@ class FieldBase(ThrottledResource):
         return queryset
 
     def get_object(self, request, **kwargs):
-        queryset = self.get_queryset(request)
-        try:
-            return queryset.get(**kwargs)
-        except self.model.DoesNotExist:
-            pass
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request)
+
+            try:
+                instance = queryset.get(**kwargs)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def prepare(self, request, instance, template=None, brief=False, **params):
         if template is None:
@@ -107,18 +113,15 @@ class FieldBase(ThrottledResource):
         return serialize(instance, posthook=posthook, **template)
 
     def is_not_found(self, request, response, pk, *args, **kwargs):
-        instance = self.get_object(request, pk=pk)
-        if instance is None:
-            return True
-        request.instance = instance
-        return False
+        return self.get_object(request, pk=pk) is None
 
 
 class FieldResource(FieldBase):
     "Resource for interacting with Field instances."
 
     def get(self, request, pk):
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
+
         usage.log('read', instance=instance, request=request)
 
         # If the field is an orphan then log an error before returning an error

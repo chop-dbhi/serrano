@@ -112,22 +112,24 @@ class ObjectRevisionResource(RevisionsResource):
         if not revision_pk:
             raise ValueError('A Revision id must be supplied for the lookup')
 
-        queryset = self.get_queryset(request, **kwargs)
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request, **kwargs)
 
-        try:
-            return queryset.get(pk=revision_pk, object_id=object_pk)
-        except self.model.DoesNotExist:
-            pass
+            try:
+                instance = queryset.get(pk=revision_pk, object_id=object_pk)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def is_not_found(self, request, response, **kwargs):
         try:
-            instance = self.get_object(request, **kwargs)
+            return self.get_object(request, **kwargs) is None
         except ValueError:
             return True
 
-        if instance is None:
-            return True
-        request.instance = instance
-
     def get(self, request, **kwargs):
-        return self.prepare(request, request.instance)
+        instance = self.get_object(request, **kwargs)
+        return self.prepare(request, instance)

@@ -58,11 +58,17 @@ class CategoryBase(ThrottledResource):
         return queryset
 
     def get_object(self, request, **kwargs):
-        queryset = self.get_queryset(request)
-        try:
-            return queryset.get(**kwargs)
-        except self.model.DoesNotExist:
-            pass
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request)
+
+            try:
+                instance = queryset.get(**kwargs)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def prepare(self, request, objects, template=None, **params):
         posthook = functools.partial(category_posthook, request=request)
@@ -75,17 +81,14 @@ class CategoryBase(ThrottledResource):
             return True
 
     def is_not_found(self, request, response, pk, *args, **kwargs):
-        instance = self.get_object(request, pk=pk)
-        if instance is None:
-            return True
-        request.instance = instance
-        return False
+        return self.get_object(request, pk=pk) is None
 
 
 class CategoryResource(CategoryBase):
     "Resource for interacting with Category instances."
     def get(self, request, pk):
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
+
         usage.log('read', instance=instance, request=request)
         return self.prepare(request, instance)
 
