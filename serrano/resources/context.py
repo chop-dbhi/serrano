@@ -172,7 +172,20 @@ class ContextResource(ContextBase):
         return HttpResponse(status=codes.no_content)
 
 
+class ContextStatsResource(ContextBase):
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        instance = self.get_object(request, **kwargs)
+
+        return {
+            'count': instance.apply().distinct().count()
+        }
+
+
 single_resource = never_cache(ContextResource())
+stats_resource = never_cache(ContextStatsResource())
 active_resource = never_cache(ContextsResource())
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataContext, object_model_template=templates.Context,
@@ -192,6 +205,10 @@ urlpatterns = patterns(
     # Endpoints for specific contexts
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Stats for a single context
+    url(r'^(?P<pk>\d+)/stats/$', stats_resource,  name='stats'),
+    url(r'^session/stats/$', stats_resource, {'session': True}, name='stats'),
 
     # Revision related endpoints
     url(r'^revisions/$', revisions_resource, name='revisions'),

@@ -307,10 +307,24 @@ class QueryResource(QueryBase):
         return HttpResponse(status=codes.no_content)
 
 
+class QueryStatsResource(QueryBase):
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        instance = self.get_object(request, **kwargs)
+
+        return {
+            'distinct_count': instance.context.apply().distinct().count(),
+            'record_count': instance.apply().count()
+        }
+
+
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 public_resource = never_cache(PublicQueriesResource())
 forks_resource = never_cache(QueryForksResource())
+stats_resource = never_cache(QueryStatsResource())
 
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataQuery, object_model_template=templates.Query,
@@ -329,8 +343,17 @@ urlpatterns = patterns(
 
     # Endpoints for specific queries
     url(r'^public/$', public_resource, name='public'),
+
+    # Single queries
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Stats
+    url(r'^(?P<pk>\d+)/stats/$', stats_resource, name='stats'),
+    url(r'^session/stats/$', stats_resource, {'session': True}, name='stats'),
+
+    # Forks
+    # TODO add endpoint for session?
     url(r'^(?P<pk>\d+)/forks/$', forks_resource, name='forks'),
 
     # Revision related endpoints
