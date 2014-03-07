@@ -438,6 +438,30 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
 
+class QueryStatsResourceTestCase(AuthenticatedBaseTestCase):
+    def test_pk(self):
+        query = DataQuery(session=True, user=self.user)
+        query.save()
+
+        response = self.client.get('/api/queries/1/stats/',
+            HTTP_ACCEPT='application/json')
+
+        data = json.loads(response.content)
+        self.assertEqual(data['distinct_count'], 6)
+        self.assertEqual(data['record_count'], 6)
+
+    def test_session(self):
+        query = DataQuery(session=True, user=self.user)
+        query.save()
+
+        response = self.client.get('/api/queries/session/stats/',
+            HTTP_ACCEPT='application/json')
+
+        data = json.loads(response.content)
+        self.assertEqual(data['distinct_count'], 6)
+        self.assertEqual(data['record_count'], 6)
+
+
 class EmailTestCase(BaseTestCase):
     subject = 'Email_Subject'
     message = str([i for i in range(5000)])

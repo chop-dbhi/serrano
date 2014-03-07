@@ -8,7 +8,7 @@ class FieldStats(FieldBase):
 
     def get(self, request, pk):
         uri = request.build_absolute_uri
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
 
         if instance.simple_type == 'number':
             stats = instance.max().min().avg()

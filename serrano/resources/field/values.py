@@ -76,7 +76,7 @@ class FieldValues(FieldBase, PaginatorResource):
         return results
 
     def get(self, request, pk):
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
         params = self.get_params(request)
 
         if params['random']:
@@ -120,7 +120,7 @@ class FieldValues(FieldBase, PaginatorResource):
         return resp
 
     def post(self, request, pk):
-        instance = request.instance
+        instance = self.get_object(request, pk=pk)
         params = self.get_params(request)
 
         if not request.data:

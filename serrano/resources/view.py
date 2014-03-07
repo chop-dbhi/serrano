@@ -108,30 +108,36 @@ class ViewResource(ViewBase):
         if not pk and not session:
             raise ValueError('A pk or session must used for the lookup')
 
-        queryset = self.get_queryset(request, **kwargs)
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request, **kwargs)
 
-        try:
-            if pk:
-                return queryset.get(pk=pk)
-            else:
-                return queryset.get(session=True)
-        except self.model.DoesNotExist:
-            pass
+            try:
+                if pk:
+                    instance = queryset.get(pk=pk)
+                else:
+                    instance = queryset.get(session=True)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def is_not_found(self, request, response, **kwargs):
-        instance = self.get_object(request, **kwargs)
-        if instance is None:
-            return True
-        request.instance = instance
+        return self.get_object(request, **kwargs) is None
 
     def get(self, request, **kwargs):
-        usage.log('read', instance=request.instance, request=request)
-        self.model.objects.filter(pk=request.instance.pk).update(
+        instance = self.get_object(request, **kwargs)
+
+        usage.log('read', instance=instance, request=request)
+        self.model.objects.filter(pk=instance.pk).update(
             accessed=datetime.now())
-        return self.prepare(request, request.instance)
+
+        return self.prepare(request, instance)
 
     def put(self, request, **kwargs):
-        instance = request.instance
+        instance = self.get_object(request, **kwargs)
+
         form = ViewForm(request, request.data, instance=instance)
 
         if form.is_valid():
@@ -144,10 +150,13 @@ class ViewResource(ViewBase):
         return response
 
     def delete(self, request, **kwargs):
-        if request.instance.session:
+        instance = self.get_object(request, **kwargs)
+
+        if instance.session:
             return HttpResponse(status=codes.bad_request)
-        request.instance.delete()
-        usage.log('delete', instance=request.instance, request=request)
+
+        instance.delete()
+        usage.log('delete', instance=instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 

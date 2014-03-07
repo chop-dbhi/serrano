@@ -32,6 +32,9 @@ def context_posthook(instance, data, request):
         'self': {
             'href': uri(
                 reverse('serrano:contexts:single', args=[instance.pk])),
+        },
+        'stats': {
+            'href': uri(reverse('serrano:contexts:stats', args=[instance.pk])),
         }
     }
     return data
@@ -64,6 +67,25 @@ class ContextBase(ThrottledResource):
             return self.model.objects.none()
 
         return self.model.objects.filter(**kwargs)
+
+    def get_object(self, request, pk=None, session=None, **kwargs):
+        if not pk and not session:
+            raise ValueError('A pk or session must used for the lookup')
+
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request, **kwargs)
+
+            try:
+                if pk:
+                    instance = queryset.get(pk=pk)
+                else:
+                    instance = queryset.get(session=True)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def get_default(self, request):
         default = self.model.objects.get_default_template()
@@ -113,34 +135,23 @@ class ContextsResource(ContextBase):
 
 class ContextResource(ContextBase):
     "Resource for accessing a single context"
-    def get_object(self, request, pk=None, session=None, **kwargs):
-        if not pk and not session:
-            raise ValueError('A pk or session must used for the lookup')
-
-        queryset = self.get_queryset(request, **kwargs)
-
-        try:
-            if pk:
-                return queryset.get(pk=pk)
-            else:
-                return queryset.get(session=True)
-        except self.model.DoesNotExist:
-            pass
-
     def is_not_found(self, request, response, **kwargs):
-        instance = self.get_object(request, **kwargs)
-        if instance is None:
-            return True
-        request.instance = instance
+        return self.get_object(request, **kwargs) is None
 
     def get(self, request, **kwargs):
-        usage.log('read', instance=request.instance, request=request)
-        self.model.objects.filter(pk=request.instance.pk).update(
+        instance = self.get_object(request, **kwargs)
+        usage.log('read', instance=instance, request=request)
+
+        # Fast single field update..
+        # TODO Django 1.5+ supports this on instance save methods.
+        self.model.objects.filter(pk=instance.pk).update(
             accessed=datetime.now())
-        return self.prepare(request, request.instance)
+
+        return self.prepare(request, instance)
 
     def put(self, request, **kwargs):
-        instance = request.instance
+        instance = self.get_object(request, **kwargs)
+
         form = ContextForm(request, request.data, instance=instance)
 
         if form.is_valid():
@@ -153,14 +164,31 @@ class ContextResource(ContextBase):
         return response
 
     def delete(self, request, **kwargs):
-        if request.instance.session:
+        instance = self.get_object(request, **kwargs)
+
+        # Cannot delete the current session
+        if instance.session:
             return HttpResponse(status=codes.bad_request)
-        request.instance.delete()
-        usage.log('delete', instance=request.instance, request=request)
+
+        instance.delete()
+        usage.log('delete', instance=instance, request=request)
         return HttpResponse(status=codes.no_content)
 
 
+class ContextStatsResource(ContextBase):
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        instance = self.get_object(request, **kwargs)
+
+        return {
+            'count': instance.apply().distinct().count()
+        }
+
+
 single_resource = never_cache(ContextResource())
+stats_resource = never_cache(ContextStatsResource())
 active_resource = never_cache(ContextsResource())
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataContext, object_model_template=templates.Context,
@@ -180,6 +208,10 @@ urlpatterns = patterns(
     # Endpoints for specific contexts
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Stats for a single context
+    url(r'^(?P<pk>\d+)/stats/$', stats_resource,  name='stats'),
+    url(r'^session/stats/$', stats_resource, {'session': True}, name='stats'),
 
     # Revision related endpoints
     url(r'^revisions/$', revisions_resource, name='revisions'),
