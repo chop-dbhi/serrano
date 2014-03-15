@@ -370,7 +370,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         # Attempt to update the name via a PUT request
         response = self.client.put('/api/queries/1/',
             data=u'{"name":"New Name"}', content_type='application/json')
-        self.assertEqual(response.status_code, codes.no_content)
+        self.assertEqual(response.status_code, codes.ok)
 
         # Make sure our changes from the PUT request are persisted
         response = self.client.get('/api/queries/1/',

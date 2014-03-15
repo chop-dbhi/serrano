@@ -1,7 +1,6 @@
 import functools
 import logging
 from datetime import datetime
-from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
@@ -97,7 +96,11 @@ class ViewsResource(ViewBase):
             response = self.render(request, self.prepare(request, instance),
                                    status=codes.created)
         else:
-            response = self.render(request, dict(form.errors),
+            data = {
+                'message': 'Cannot create view',
+                'errors': dict(form.errors),
+            }
+            response = self.render(request, data,
                                    status=codes.unprocessable_entity)
         return response
 
@@ -145,7 +148,11 @@ class ViewResource(ViewBase):
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
-            response = self.render(request, dict(form.errors),
+            data = {
+                'message': 'Cannot update view',
+                'errors': dict(form.errors),
+            }
+            response = self.render(request, data,
                                    status=codes.unprocessable_entity)
         return response
 
@@ -153,11 +160,13 @@ class ViewResource(ViewBase):
         instance = self.get_object(request, **kwargs)
 
         if instance.session:
-            return HttpResponse(status=codes.bad_request)
+            data = {
+                'message': 'Cannot delete session view',
+            }
+            return self.render(request, data, status=codes.bad_request)
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
-        return HttpResponse(status=codes.no_content)
 
 
 single_resource = never_cache(ViewResource())

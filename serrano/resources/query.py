@@ -1,7 +1,6 @@
 import functools
 import logging
 from datetime import datetime
-from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -146,7 +145,11 @@ class QueriesResource(QueryBase):
             response = self.render(request, self.prepare(request, instance),
                                    status=codes.created)
         else:
-            response = self.render(request, dict(form.errors),
+            data = {
+                'message': 'Error creating query',
+                'errors': dict(form.errors),
+            }
+            response = self.render(request, data,
                                    status=codes.unprocessable_entity)
         return response
 
@@ -217,7 +220,10 @@ class QueryForksResource(QueryBase):
         if self._requestor_can_get_forks(request, instance):
             return self.prepare(request, self.get_queryset(request, **kwargs))
 
-        return HttpResponse(status=codes.unauthorized)
+        data = {
+            'message': 'Cannot access forks',
+        }
+        return self.render(request, data, status=codes.unauthorized)
 
     def post(self, request, **kwargs):
         instance = self.get_object(request, **kwargs)
@@ -241,7 +247,10 @@ class QueryForksResource(QueryBase):
 
             return self.render(request, data, status=codes.created)
 
-        return HttpResponse(status=codes.unauthorized)
+        data = {
+            'message': 'Cannot fork query',
+        }
+        return self.render(request, data, status=codes.unauthorized)
 
 
 class PublicQueriesResource(QueryBase):
@@ -290,7 +299,11 @@ class QueryResource(QueryBase):
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
-            response = self.render(request, dict(form.errors),
+            data = {
+                'message': 'Cannot update query',
+                'errors': dict(form.errors),
+            }
+            response = self.render(request, data,
                                    status=codes.unprocessable_entity)
         return response
 
@@ -298,7 +311,10 @@ class QueryResource(QueryBase):
         instance = self.get_object(request, **kwargs)
 
         if instance.session:
-            return HttpResponse(status=codes.bad_request)
+            data = {
+                'message': 'Cannot delete session query',
+            }
+            return self.render(request, data, status=codes.bad_request)
 
         utils.send_mail(instance.shared_users.values_list('email', flat=True),
                         DELETE_QUERY_EMAIL_TITLE.format(instance.name),
@@ -306,8 +322,6 @@ class QueryResource(QueryBase):
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
-
-        return HttpResponse(status=codes.no_content)
 
 
 class QueryStatsResource(QueryBase):

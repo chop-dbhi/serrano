@@ -2,7 +2,6 @@ import logging
 import functools
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse
 from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, BoolParam, StrParam, IntParam
@@ -164,10 +163,11 @@ class ConceptResource(ConceptBase):
 
         if (self.checks_for_orphans and params['embed'] and
                 has_orphaned_field(instance)):
-            return HttpResponse(
-                status=codes.internal_server_error,
-                content="Could not get concept because it has one or more "
-                        "orphaned fields.")
+            data = {
+                'message': 'One or more orphaned fields exist'
+            }
+            return self.render(request, data,
+                               status=codes.internal_server_error)
 
         usage.log('read', instance=instance, request=request)
         return self.prepare(request, instance, embed=params['embed'])
@@ -183,10 +183,11 @@ class ConceptFieldsResource(ConceptBase):
         resource = FieldResource()
 
         if self.checks_for_orphans and has_orphaned_field(instance):
-            return HttpResponse(
-                status=codes.internal_server_error,
-                content="Could not get concept fields because one or more are "
-                        "linked to orphaned fields.")
+            data = {
+                'message': 'One or more orphaned fields exist'
+            }
+            return self.render(request, data,
+                               status=codes.internal_server_error)
 
         for cf in instance.concept_fields.select_related('field').iterator():
             field = resource.prepare(request, cf.field)
