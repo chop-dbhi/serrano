@@ -1,7 +1,5 @@
-import json
 from decimal import Decimal
 from django.db.models import Q
-from django.http import HttpResponse
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
@@ -106,8 +104,11 @@ class FieldDistribution(FieldBase):
             return resp
 
         if length > MAXIMUM_OBSERVATIONS:
-            return HttpResponse(json.dumps({'error': 'Data too large'}),
-                                status=codes.unprocessable_entity)
+            data = {
+                'message': 'Data too large',
+            }
+            return self.render(request, data,
+                               status=codes.unprocessable_entity)
 
         # Apply ordering. If any of the fields are enumerable, ordering should
         # be relative to those fields. For continuous data, the ordering is

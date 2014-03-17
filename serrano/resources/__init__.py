@@ -1,5 +1,4 @@
 from urlparse import urlparse
-from django.http import HttpResponse
 from django.utils.http import is_safe_url
 from django.conf import settings as django_settings
 from django.conf.urls import patterns, url
@@ -76,15 +75,19 @@ class Root(BaseResource):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
+
         if username and password:
             user = authenticate(username=username, password=password)
+
             if user:
                 login(request, user)
                 token = token_generator.make(user)
                 data = self.get(request)
                 data['token'] = token
                 return data
-        return HttpResponse('Invalid credentials', status=401)
+
+        return self.render(request, {'message': 'Invalid credentials'},
+                           status=codes.unauthorized)
 
 
 class Ping(Resource):

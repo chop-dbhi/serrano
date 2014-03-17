@@ -64,7 +64,6 @@ class RootResourceTestCase(TestCase):
             content_type='application/json',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.unauthorized)
-        self.assertEqual(response.content, 'Invalid credentials')
 
         response = self.client.post('/api/',
             json.dumps({'username': 'root', 'password': 'password'}),

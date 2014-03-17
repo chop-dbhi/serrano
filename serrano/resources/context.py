@@ -1,7 +1,6 @@
 import functools
 import logging
 from datetime import datetime
-from django.http import HttpResponse
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
@@ -128,7 +127,11 @@ class ContextsResource(ContextBase):
             response = self.render(request, self.prepare(request, instance),
                                    status=codes.created)
         else:
-            response = self.render(request, dict(form.errors),
+            data = {
+                'message': 'Error creating context',
+                'errors': dict(form.errors),
+            }
+            response = self.render(request, data,
                                    status=codes.unprocessable_entity)
         return response
 
@@ -159,7 +162,11 @@ class ContextResource(ContextBase):
             usage.log('update', instance=instance, request=request)
             response = self.render(request, self.prepare(request, instance))
         else:
-            response = self.render(request, dict(form.errors),
+            data = {
+                'message': 'Error updating context',
+                'errors': dict(form.errors),
+            }
+            response = self.render(request, data,
                                    status=codes.unprocessable_entity)
         return response
 
@@ -168,11 +175,13 @@ class ContextResource(ContextBase):
 
         # Cannot delete the current session
         if instance.session:
-            return HttpResponse(status=codes.bad_request)
+            data = {
+                'message': 'Cannot delete session context',
+            }
+            return self.render(request, data, status=codes.bad_request)
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
-        return HttpResponse(status=codes.no_content)
 
 
 class ContextStatsResource(ContextBase):

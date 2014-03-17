@@ -124,7 +124,10 @@ class FieldValues(FieldBase, PaginatorResource):
         params = self.get_params(request)
 
         if not request.data:
-            return self.render(request, 'Error parsing data',
+            data = {
+                'message': 'Error parsing data',
+            }
+            return self.render(request, data,
                                status=codes.unprocessable_entity)
 
         if isinstance(request.data, dict):
@@ -147,7 +150,10 @@ class FieldValues(FieldBase, PaginatorResource):
                 array_map[i] = 'label'
                 labels.append(datum['label'])
             else:
-                return self.render(request, 'Error parsing value or label',
+                data = {
+                    'message': 'Error parsing value or lable'
+                }
+                return self.render(request, data,
                                    status=codes.unprocessable_entity)
 
         field_name = instance.field_name

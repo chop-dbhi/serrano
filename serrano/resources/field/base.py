@@ -1,6 +1,5 @@
 import functools
 import logging
-from django.http import HttpResponse
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.http import codes
@@ -126,9 +125,11 @@ class FieldResource(FieldBase):
 
         # If the field is an orphan then log an error before returning an error
         if self.checks_for_orphans and is_field_orphaned(instance):
-            return HttpResponse(
-                status=codes.internal_server_error,
-                content="Error occurred when retrieving orphaned field")
+            data = {
+                'message': 'Orphaned field',
+            }
+            return self.render(request, data,
+                               status=codes.internal_server_error)
 
         return self.prepare(request, instance)
 
