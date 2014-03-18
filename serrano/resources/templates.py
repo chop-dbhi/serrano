@@ -5,6 +5,9 @@ Category = {
 
 BriefField = {
     'fields': [':pk', 'name', 'description'],
+    'aliases': {
+        'name': '__unicode__',
+    },
     'allow_missing': True,
 }
 
@@ -17,6 +20,7 @@ Field = {
         'searchable', 'unit', 'plural_unit', 'nullable', 'order'
     ],
     'aliases': {
+        'name': '__unicode__',
         'plural_name': 'get_plural_name',
         'plural_unit': 'get_plural_unit',
     },
@@ -35,6 +39,7 @@ Concept = {
         'formatter_name', 'queryable', 'sortable', 'viewable'
     ],
     'aliases': {
+        'name': '__unicode__',
         'plural_name': 'get_plural_name',
     },
     'allow_missing': True,
@@ -43,7 +48,7 @@ Concept = {
 ConceptField = {
     'fields': ['alt_name', 'alt_plural_name', 'order'],
     'aliases': {
-        'alt_name': 'name',
+        'alt_name': '__unicode__',
         'alt_plural_name': 'get_plural_name',
     },
     'allow_missing': True,
