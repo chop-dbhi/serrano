@@ -156,24 +156,14 @@ class FieldValues(FieldBase, PaginatorResource):
                 return self.render(request, data,
                                    status=codes.unprocessable_entity)
 
-        field_name = instance.field_name
-
-        # Note, this logic is encapsulated in Avocado 2.3.1
-        if instance.lexicon:
-            label_field_name = 'label'
-        elif instance.objectset:
-            if hasattr(instance.model, 'label_field'):
-                label_field_name = instance.model.label_field
-            else:
-                label_field_name = 'pk'
-        else:
-            label_field_name = instance.field_name
+        value_field_name = instance.field_name
+        label_field_name = instance.label_field.name
 
         # Note, this return a context-aware or naive queryset depending
         # on params. Get the value and label fields so they can be filled
         # in below.
         queryset = self.get_base_values(request, instance, params)\
-            .values_list(field_name, label_field_name)
+            .values_list(value_field_name, label_field_name)
 
         lookup = Q()
 
@@ -182,7 +172,7 @@ class FieldValues(FieldBase, PaginatorResource):
             lookup |= Q(**{'{0}__in'.format(label_field_name): labels})
 
         if values:
-            lookup |= Q(**{'{0}__in'.format(field_name): values})
+            lookup |= Q(**{'{0}__in'.format(value_field_name): values})
 
         results = queryset.filter(lookup)
 
