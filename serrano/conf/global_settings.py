@@ -60,3 +60,10 @@ OBJECT_SETS = ()
 # orphaned fields. This prevents causing server errors for out of sync
 # metadata, but incurs an overhead.
 CHECK_ORPHANED_FIELDS = True
+
+# Export cookie settings. The template is required to take one positional
+# parameter, the export type, to distinguish itself from other exporter
+# cookies. The data is simply a value that is set by the server to denote
+# the request has been complete.
+EXPORT_COOKIE_NAME_TEMPLATE = 'export-type-{0}'
+EXPORT_COOKIE_DATA = 'complete'

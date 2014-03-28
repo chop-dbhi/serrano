@@ -1,4 +1,3 @@
-from serrano.resources import API_VERSION
 from datetime import datetime
 from django.http import HttpResponse, Http404
 from django.conf.urls import patterns, url
@@ -8,6 +7,8 @@ from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
 from avocado.query import pipeline
 from avocado.events import usage
+from ..conf import settings
+from . import API_VERSION
 from .base import BaseResource
 
 # Single list of all registered exporters
@@ -109,7 +110,9 @@ class ExporterResource(BaseResource):
         filename = '{0}-{1}-data.{2}'.format(
             file_tag, datetime.now(), exporter.file_extension)
 
-        resp.set_cookie('export-type-{0}'.format(export_type), 'complete')
+        cookie_name = settings.EXPORT_COOKIE_NAME_TEMPLATE.format(export_type)
+        resp.set_cookie(cookie_name, settings.EXPORT_COOKIE_DATA)
+
         resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(
             filename)
         resp['Content-Type'] = exporter.content_type
