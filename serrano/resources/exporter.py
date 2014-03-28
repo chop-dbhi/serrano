@@ -109,8 +109,7 @@ class ExporterResource(BaseResource):
         filename = '{0}-{1}-data.{2}'.format(
             file_tag, datetime.now(), exporter.file_extension)
 
-        resp.set_cookie('export-type-{0}'.format(
-            exporter.short_name.lower()), 'complete')
+        resp.set_cookie('export-type-{0}'.format(export_type), 'complete')
         resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(
             filename)
         resp['Content-Type'] = exporter.content_type
