@@ -83,7 +83,9 @@ def _get_request_object(request, attrs=None, klass=None, key=None):
         kwargs['session'] = True
 
     try:
-        return klass.objects.get(**kwargs)
+        # Check that multiple DataViews or DataContexts are not returned
+        # If there are more than one, return the most recent
+        return klass.objects.filter(**kwargs).latest('modified')
     except klass.DoesNotExist:
         pass
 
