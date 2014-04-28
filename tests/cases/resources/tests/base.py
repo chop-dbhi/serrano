@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.test.utils import override_settings
 from restlib2.http import codes
 from avocado.history.models import Revision
-from avocado.models import DataField, DataView
+from avocado.models import DataField, DataView, DataContext
 from serrano.resources import API_VERSION
 from serrano.models import ApiToken
 
@@ -263,3 +263,41 @@ class PingResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(data['status'], 'timeout')
         self.assertEqual(data['location'],
                          'http://testserver/accounts/login/?next=/')
+
+
+class MultipleObjectsTestCase(AuthenticatedBaseTestCase):
+
+    def test_multiple_contexts(self):
+        cxt1 = DataContext(session=True, user=self.user)
+        cxt1.save()
+        cxt2 = DataContext(user=self.user, session=True)
+        cxt2.save()
+        response = self.client.get('/api/data/preview/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+
+    def test_multiple_views(self):
+        dv1 = DataView(session=True, user=self.user)
+        dv1.save()
+        dv2 = DataView(session=True, user=self.user)
+        dv2.save()
+        response = self.client.get('/api/data/preview/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertTrue(response.content)
+        self.assertEqual(response.status_code, codes.ok)
+
+    def test_multiple_context_and_view(self):
+        # Create two Contexts and views, an illegal action that
+        # Our base resource should handle
+        cxt3 = DataContext(session=True, user=self.user)
+        cxt3.save()
+        cxt4 = DataContext(user=self.user, session=True)
+        cxt4.save()
+        dv3 = DataView(session=True, user=self.user)
+        dv3.save()
+        dv4 = DataView(session=True, user=self.user)
+        dv4.save()
+        response = self.client.get('/api/data/preview/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertTrue(response.content)
+        self.assertEqual(response.status_code, codes.ok)
