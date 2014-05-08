@@ -155,7 +155,7 @@ class FieldValues(FieldBase, PaginatorResource):
                 labels.append(datum['label'])
             else:
                 data = {
-                    'message': 'Error parsing value or lable'
+                    'message': 'Error parsing value or label'
                 }
                 return self.render(request, data,
                                    status=codes.unprocessable_entity)
