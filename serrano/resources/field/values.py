@@ -52,9 +52,11 @@ class FieldValues(FieldBase, PaginatorResource):
         implementation.
         """
         results = []
+        value_labels = instance.value_labels()
+
         for value in instance.search(query):
             results.append({
-                'label': instance.get_label(value),
+                'label': value_labels.get(value, smart_unicode(value)),
                 'value': value,
             })
         return results
@@ -67,10 +69,12 @@ class FieldValues(FieldBase, PaginatorResource):
             .order_by('?')[:random]
 
         results = []
+        value_labels = instance.value_labels()
+
         for obj in queryset:
             value = getattr(obj, instance.field_name)
             results.append({
-                'label': instance.get_label(value),
+                'label': value_labels.get(value, smart_unicode(value)),
                 'value': value,
             })
         return results
