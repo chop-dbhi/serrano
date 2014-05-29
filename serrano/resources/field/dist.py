@@ -63,10 +63,12 @@ class FieldDistribution(FieldBase):
                 f = self.get_object(request, pk=pk)
                 if f:
                     fields.append(f)
-                    groupby.append(tree.query_string_for_field(f.field))
+                    groupby.append(tree.query_string_for_field(f.field,
+                                                               model=f.model))
         else:
             fields = [instance]
-            groupby = [tree.query_string_for_field(instance.field)]
+            groupby = [tree.query_string_for_field(instance.field,
+                                                   model=instance.model)]
 
         # Perform a count aggregation of the tree model grouped by the
         # specified dimensions
