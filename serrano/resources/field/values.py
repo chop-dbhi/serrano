@@ -62,21 +62,21 @@ class FieldValues(FieldBase, PaginatorResource):
         return results
 
     def get_random_values(self, request, instance, random):
-        """Returns a random set of values. This is useful for pre-populating
-        documents or form fields with example data.
         """
-        queryset = instance.model.objects.only(instance.field_name)\
-            .order_by('?')[:random]
+        Returns a random set of value/label pairs.
 
+        This is useful for pre-populating documents or form fields with
+        example data.
+        """
+        values = instance.random(random)
         results = []
-        value_labels = instance.value_labels()
 
-        for obj in queryset:
-            value = getattr(obj, instance.field_name)
+        for value in values:
             results.append({
-                'label': value_labels.get(value, smart_unicode(value)),
+                'label': instance.get_label(value),
                 'value': value,
             })
+
         return results
 
     def get(self, request, pk):
