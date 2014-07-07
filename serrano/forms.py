@@ -212,7 +212,7 @@ class QueryForm(forms.ModelForm):
             site = get_current_site(request)
 
             try:
-                site_url = request.build_absolute_uri('/')
+                site_url = request.build_absolute_uri(script_name + '/')
             except KeyError:
                 site_url = site.domain + script_name
 
