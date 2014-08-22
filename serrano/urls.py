@@ -36,7 +36,11 @@ serrano_patterns = patterns(
     url(r'^views/',
         include('serrano.resources.view', namespace='views')),
 
-    url(r'^data/', include(data_patterns, namespace='data')),
+    url(r'^data/',
+        include(data_patterns, namespace='data')),
+
+    url(r'^stats/',
+        include('serrano.resources.stats', namespace='stats')),
 )
 
 if dep_supported('objectset'):
