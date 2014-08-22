@@ -62,6 +62,9 @@ class Root(BaseResource):
                 'ping': {
                     'href': uri(reverse('serrano:ping')),
                 },
+                'stats': {
+                    'href': uri(reverse('serrano:stats:root')),
+                },
             }
         }
 
