@@ -3,9 +3,10 @@ from django.db.models import Q
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
-from avocado.models import DataField
-from avocado.stats import kmeans
 from avocado.events import usage
+from avocado.models import DataField
+from avocado.query import pipeline
+from avocado.stats import kmeans
 from .base import FieldBase
 
 
@@ -14,12 +15,13 @@ MAXIMUM_OBSERVATIONS = 50000
 
 
 class FieldDistParametizer(Parametizer):
-    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
     aware = BoolParam(False)
-    nulls = BoolParam(False)
-    sort = StrParam()
     cluster = BoolParam(True)
     n = IntParam()
+    nulls = BoolParam(False)
+    processor = StrParam('default', choices=pipeline.query_processors)
+    sort = StrParam()
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
 class FieldDistribution(FieldBase):
@@ -41,16 +43,15 @@ class FieldDistribution(FieldBase):
         # are not supported
         dimensions = request.GET.getlist('dimensions')
 
-        # The `aware` flag toggles the behavior of the distribution by making
-        # it relative to the applied context or not
         if params['aware']:
-            attrs = None
+            context = self.get_context(request)
         else:
-            attrs = {}
+            context = None
 
-        # Get and apply context relative to the tree
-        context = self.get_context(request, attrs=attrs)
-        queryset = context.apply(tree=tree)
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(context=context, tree=tree)
+
+        queryset = processor.get_queryset(request=request)
 
         # Explicit fields to group by, ignore ones that dont exist or the
         # user does not have permission to view. Default is to group by the

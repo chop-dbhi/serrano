@@ -2,8 +2,10 @@ import json
 from django.test.utils import override_settings
 from avocado.models import DataField
 from avocado.events.models import Log
+from restlib2.http import codes
 from .base import BaseTestCase
 from tests.models import Project, Title
+
 
 class FieldResourceTestCase(BaseTestCase):
     def test_get_all(self):
@@ -80,7 +82,17 @@ class FieldResourceTestCase(BaseTestCase):
         response = self.client.get('/api/fields/2/values/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(json.loads(response.content)['values'])
+        content = json.loads(response.content)
+        self.assertTrue(content['values'])
+        self.assertTrue(len(content['values']), 7)
+
+        response = self.client.get(
+            '/api/fields/2/values/?processor=first_title',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        self.assertTrue(content['values'])
+        self.assertTrue(len(content['values']), 1)
 
     def test_values_no_limit(self):
         # title.name
@@ -99,8 +111,17 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(json.loads(response.content)), 3)
 
+        # Even though we are requesting 3 values, the query processor should
+        # limit the population to 1 value so make sure that the call returns
+        # only that single value since all values in the population should be
+        # returned when the random sample size is bigger than population size.
+        response = self.client.get(
+            '/api/fields/2/values/?random=3&processor=first_title',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
     def test_values_query(self):
-        # Query values
         response = self.client.get('/api/fields/2/values/?query=a',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
@@ -113,6 +134,16 @@ class FieldResourceTestCase(BaseTestCase):
         ])
         message = Log.objects.get(event='values', object_id=2)
         self.assertEqual(message.data['query'], 'a')
+
+        response = self.client.get(
+            '/api/fields/2/values/?query=a&processor=under_twenty_thousand',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)['values'], [
+            {'label': 'Guard', 'value': 'Guard'},
+            {'label': 'Programmer', 'value': 'Programmer'},
+            {'label': 'QA', 'value': 'QA'},
+        ])
 
     def test_values_validate(self):
         # Valid, single dict
@@ -217,8 +248,29 @@ class FieldResourceTestCase(BaseTestCase):
         response = self.client.get('/api/fields/3/stats/',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(json.loads(response.content))
+        stats = json.loads(response.content)
+        self.assertTrue(stats)
         self.assertTrue(Log.objects.filter(event='stats', object_id=3).exists())
+        self.assertEqual(stats['min'], 10000)
+        self.assertEqual(stats['max'], 200000)
+        self.assertAlmostEqual(stats['avg'], 53571.42857, places=5)
+
+        # Using an invalid query processor should fall back to the default.
+        response = self.client.get('/api/fields/3/stats/?processor=INVALID',
+            HTTP_ACCEPT='application/json')
+        stats = json.loads(response.content)
+        self.assertEqual(stats['min'], 10000)
+        self.assertEqual(stats['max'], 200000)
+        self.assertAlmostEqual(stats['avg'], 53571.42857, places=5)
+
+        # Using a valid query processor should affect the stats.
+        response = self.client.get(
+            '/api/fields/3/stats/?processor=under_twenty_thousand',
+            HTTP_ACCEPT='application/json')
+        stats = json.loads(response.content)
+        self.assertEqual(stats['min'], 10000)
+        self.assertEqual(stats['max'], 15000)
+        self.assertEqual(stats['avg'], 13750)
 
         # project.due_date
         response = self.client.get('/api/fields/11/stats/',
@@ -242,11 +294,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertTrue(Log.objects.filter(event='stats', object_id=2).exists())
 
     def test_dist(self):
-        # title.salary
-        response = self.client.get('/api/fields/3/dist/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(json.loads(response.content), {
+        default_content = {
             u'size': 4,
             u'clustered': False,
             u'outliers': [],
@@ -263,5 +311,32 @@ class FieldResourceTestCase(BaseTestCase):
                 u'count': 1,
                 u'values': [200000]
             }],
-        })
+        }
+
+        # title.salary
+        response = self.client.get('/api/fields/3/dist/',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content), default_content)
         self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
+
+        # Using an invalid processor should fallback to the default processor.
+        response = self.client.get('/api/fields/3/dist/?processor=INVALID',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(json.loads(response.content), default_content)
+
+        # Using the custom query process, we should be limited to a smaller
+        # salary set.
+        response = self.client.get('/api/fields/3/dist/?processor=manager',
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(json.loads(response.content), {
+            u'size': 1,
+            u'clustered': False,
+            u'outliers': [],
+            u'data': [{
+                u'count': 1,
+                u'values': [15000]
+            }]
+        })

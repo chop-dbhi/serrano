@@ -1,16 +1,22 @@
+import logging
 from django.db.models import Q
 from django.core.urlresolvers import reverse
 from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from restlib2.params import StrParam, IntParam, BoolParam
 from avocado.events import usage
+from avocado.query import pipeline
 from ..pagination import PaginatorResource, PaginatorParametizer
 from .base import FieldBase
 
 
+log = logging.getLogger(__name__)
+
+
 class FieldValuesParametizer(PaginatorParametizer):
-    limit = IntParam(10)
     aware = BoolParam(False)
+    limit = IntParam(10)
+    processor = StrParam('default', choices=pipeline.query_processors)
     query = StrParam()
     random = IntParam()
 
@@ -34,17 +40,17 @@ class FieldValues(FieldBase, PaginatorResource):
             context = self.get_context(request, attrs={})
         return context.apply(queryset=instance.model.objects.all())
 
-    def get_all_values(self, request, instance):
+    def get_all_values(self, request, instance, queryset):
         "Returns all distinct values for this field."
         results = []
-        for value, label in instance.choices():
+        for value, label in instance.choices(queryset=queryset):
             results.append({
                 'label': label,
                 'value': value,
             })
         return results
 
-    def get_search_values(self, request, instance, query):
+    def get_search_values(self, request, instance, query, queryset):
         """
         Performs a search on the underlying data for a field.
 
@@ -52,28 +58,28 @@ class FieldValues(FieldBase, PaginatorResource):
         implementation.
         """
         results = []
-        value_labels = instance.value_labels()
+        value_labels = instance.value_labels(queryset=queryset)
 
-        for value in instance.search(query):
+        for value in instance.search(query, queryset=queryset):
             results.append({
                 'label': value_labels.get(value, smart_unicode(value)),
                 'value': value,
             })
         return results
 
-    def get_random_values(self, request, instance, random):
+    def get_random_values(self, request, instance, random, queryset):
         """
         Returns a random set of value/label pairs.
 
         This is useful for pre-populating documents or form fields with
         example data.
         """
-        values = instance.random(random)
+        values = instance.random(random, queryset=queryset)
         results = []
 
         for value in values:
             results.append({
-                'label': instance.get_label(value),
+                'label': instance.get_label(value, queryset=queryset),
                 'value': value,
             })
 
@@ -83,32 +89,50 @@ class FieldValues(FieldBase, PaginatorResource):
         instance = self.get_object(request, pk=pk)
         params = self.get_params(request)
 
+        if params['aware']:
+            context = self.get_context(request)
+        else:
+            context = None
+
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(tree=instance.model, context=context)
+        queryset = processor.get_queryset(request=request)
+
         if params['random']:
-            return self.get_random_values(request, instance, params['random'])
+            # In the case that the queryset contains a population smaller than
+            # the number of random items being requested, a ValueError will be
+            # triggered. Instead of passing the error on to the client, we
+            # simply return all the possible values.
+            try:
+                return self.get_random_values(
+                    request, instance, params['random'], queryset)
+            except ValueError:
+                return instance.values(queryset=queryset)
 
         page = params['page']
         limit = params['limit']
 
-        # If a query term is supplied, perform the icontains search
+        # If a query term is supplied, perform the icontains search.
         if params['query']:
             usage.log('values', instance=instance, request=request, data={
                 'query': params['query'],
             })
-            values = self.get_search_values(request, instance, params['query'])
+            values = self.get_search_values(
+                request, instance, params['query'], queryset)
         else:
-            values = self.get_all_values(request, instance)
+            values = self.get_all_values(request, instance, queryset)
 
-        # No page specified, return everything
+        # No page specified, return everything.
         if page is None:
             return values
 
         paginator = self.get_paginator(values, limit=limit)
         page = paginator.page(page)
 
-        # Get paginator-based response
+        # Get paginator-based response.
         resp = self.get_page_response(request, paginator, page)
 
-        # Add links
+        # Add links.
         path = reverse('serrano:field-values', kwargs={'pk': pk})
 
         links = self.get_page_links(request, path, page, extra=params)
@@ -146,7 +170,7 @@ class FieldValues(FieldBase, PaginatorResource):
         # Separate out the values and labels for the lookup. Track indexes
         # maintain order of array
         for i, datum in enumerate(array):
-            # Value takes precedence over label if supplied
+            # Value takes precedence over label if supplied.
             if 'value' in datum:
                 array_map[i] = 'value'
                 values.append(datum['value'])
@@ -171,7 +195,7 @@ class FieldValues(FieldBase, PaginatorResource):
 
         lookup = Q()
 
-        # Validate based on the label
+        # Validate based on the label.
         if labels:
             lookup |= Q(**{'{0}__in'.format(label_field_name): labels})
 
@@ -207,5 +231,5 @@ class FieldValues(FieldBase, PaginatorResource):
             'count': len(array),
         })
 
-        # Return the augmented data
+        # Return the augmented data.
         return request.data

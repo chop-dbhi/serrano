@@ -41,6 +41,7 @@ class ExporterRootResource(BaseResource):
 
 class ExporterParametizer(Parametizer):
     limit = IntParam(50)
+    processor = StrParam('default', choices=pipeline.query_processors)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
@@ -96,7 +97,7 @@ class ExporterResource(BaseResource):
             limit = None
             file_tag = 'all'
 
-        QueryProcessor = pipeline.query_processors.default
+        QueryProcessor = pipeline.query_processors[params['processor']]
         processor = QueryProcessor(context=context, view=view, tree=tree,
                                    include_pk=False)
 
