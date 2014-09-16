@@ -2,7 +2,7 @@ from django.core.urlresolvers import reverse
 from django.conf.urls import patterns, url
 from django.views.decorators.cache import never_cache
 from restlib2.params import Parametizer, BoolParam
-from avocado.models import DataField, DataContext
+from avocado.models import DataContext, DataField
 from .base import BaseResource, ThrottledResource
 
 

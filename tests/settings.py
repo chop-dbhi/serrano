@@ -71,6 +71,14 @@ MODELTREES = {
 
 AVOCADO = {
     'FORCE_SYNC_LOG': True,
+
+    'QUERY_PROCESSORS': {
+        'default': 'avocado.query.pipeline.QueryProcessor',
+        'manager': 'tests.processors.ManagerQueryProcessor',
+        'under_twenty_thousand':
+            'tests.processors.UnderTwentyThousandQueryProcessor',
+        'first_title': 'tests.processors.FirstTitleQueryProcessor',
+    }
 }
 
 # Switch handlers from 'null' => 'console' to see logging output
