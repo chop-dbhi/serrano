@@ -15,11 +15,13 @@ class BaseTestCase(TestCase):
     fixtures = ['test_data.json']
 
     def setUp(self):
-        management.call_command('avocado', 'init', 'tests', quiet=True, publish=False, concepts=False)
-        # Only publish some of them..
-        DataField.objects.filter(model_name__in=['project', 'title']).update(published=True)
+        management.call_command('avocado', 'init', 'tests', quiet=True,
+                                publish=False, concepts=False)
+        DataField.objects.filter(
+            model_name__in=['project', 'title']).update(published=True)
+
         self.user = User.objects.create_user(username='root',
-            password='password')
+                                             password='password')
         self.user.is_superuser = True
         self.user.save()
 
@@ -34,8 +36,7 @@ class AuthenticatedBaseTestCase(BaseTestCase):
 
 class RootResourceTestCase(TestCase):
     def test_get(self):
-        response = self.client.get('/api/',
-            HTTP_ACCEPT='application/json')
+        response = self.client.get('/api/', HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
@@ -46,7 +47,9 @@ class RootResourceTestCase(TestCase):
                 'views': {'href': 'http://testserver/api/views/'},
                 'contexts': {'href': 'http://testserver/api/contexts/'},
                 'queries': {'href': 'http://testserver/api/queries/'},
-                'public_queries': {'href': 'http://testserver/api/queries/public/'},
+                'public_queries': {
+                    'href': 'http://testserver/api/queries/public/'
+                },
                 'fields': {'href': 'http://testserver/api/fields/'},
                 'categories': {'href': 'http://testserver/api/categories/'},
                 'self': {'href': 'http://testserver/api/'},
@@ -61,12 +64,14 @@ class RootResourceTestCase(TestCase):
     @override_settings(SERRANO_AUTH_REQUIRED=True)
     def test_post(self):
         User.objects.create_user(username='root', password='password')
-        response = self.client.post('/api/',
+        response = self.client.post(
+            '/api/',
             content_type='application/json',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.unauthorized)
 
-        response = self.client.post('/api/',
+        response = self.client.post(
+            '/api/',
             json.dumps({'username': 'root', 'password': 'password'}),
             content_type='application/json',
             HTTP_ACCEPT='application/json')
@@ -76,7 +81,8 @@ class RootResourceTestCase(TestCase):
 
         # Confirm that passing an invalid username/password returns a status
         # code of codes.unauthorized -- unauthorized.
-        response = self.client.post('/api/',
+        response = self.client.post(
+            '/api/',
             json.dumps({'username': 'root', 'password': 'NOT_THE_PASSWORD'}),
             content_type='application/json')
 
@@ -106,39 +112,38 @@ class ThrottledResourceTestCase(BaseTestCase):
     def test_too_many_auth_requests(self):
         self.client.login(username='root', password='password')
 
-        # Be certain we are clear of the current interval
+        # Be certain we are clear of the current interval.
         time.sleep(7)
 
-        # These 20 requests should be OK
+        # These 20 requests should be OK.
         for _ in range(20):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
 
-        # Wait a little while but stay in the interval
+        # Wait a little while but stay in the interval.
         time.sleep(3)
 
-        # These 20 requests should be still be OK
+        # These 20 requests should be still be OK.
         for _ in range(20):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
 
-        # These 10 requests should fail as we've exceeded the limit
+        # These 10 requests should fail as we've exceeded the limit.
         for _ in range(10):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.too_many_requests)
 
-        # Wait out the interval
+        # Wait out the interval.
         time.sleep(6)
 
-        # These 5 requests should be OK
+        # These 5 requests should be OK now that we've entered a new interval.
         for _ in range(5):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
-
 
     def test_too_many_requests(self):
         # Force these the requests to be unauthenitcated
@@ -150,40 +155,40 @@ class ThrottledResourceTestCase(BaseTestCase):
         # TODO: Can the session be initialized somehow without sending
         # a request via the client?
         response = self.client.get('/api/fields/2/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
-        # Be certain we are clear of the current interval
+        # Be certain we are clear of the current interval.
         time.sleep(5)
 
         # These 10 requests should be OK
         for _ in range(10):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
 
-        # Wait a little while but stay in the interval
+        # Wait a little while but stay in the interval.
         time.sleep(1)
 
-        # These 10 requests should be still be OK
+        # These 10 requests should be still be OK.
         for _ in range(10):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
 
-        # These 10 requests should fail as we've exceeded the limit
+        # These 10 requests should fail as we've exceeded the limit.
         for _ in range(10):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.too_many_requests)
 
-        # Wait out the interval
+        # Wait out the interval.
         time.sleep(4)
 
-        # These 5 requests should be OK
+        # These 5 requests should be OK now that we've entered a new interval.
         for _ in range(5):
             response = self.client.get('/api/fields/2/',
-                HTTP_ACCEPT='application/json')
+                                       HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
 
 
@@ -197,7 +202,7 @@ class RevisionResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(Revision.objects.filter(user=self.user).count(), 1)
 
         response = self.client.get('/api/test/no_model/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 0)
 
@@ -206,7 +211,7 @@ class RevisionResourceTestCase(AuthenticatedBaseTestCase):
         view.save()
 
         response = self.client.get('/api/test/template/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 

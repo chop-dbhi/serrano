@@ -3,12 +3,12 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from restlib2.http import codes
 from .base import BaseTestCase
-from ..models import Employee, Title
+
 
 class PreviewResourceProcessorTestCase(BaseTestCase):
     def test_no_processor(self):
         response = self.client.get('/api/data/preview/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
         self.assertEqual(content['object_count'], 6)
@@ -18,13 +18,13 @@ class PreviewResourceProcessorTestCase(BaseTestCase):
         # case, is the list of available query processors so we should just
         # end up with the default processor.
         response = self.client.get('/api/data/preview/?processor=INVALID',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
         self.assertEqual(content['object_count'], 6)
 
         response = self.client.get('/api/data/preview/?processor=manager',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
         self.assertEqual(content['object_count'], 1)
@@ -33,13 +33,14 @@ class PreviewResourceProcessorTestCase(BaseTestCase):
 class PreviewResourceTestCase(TestCase):
     def test_get(self):
         response = self.client.get('/api/data/preview/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
             '_links': {
                 'self': {
-                    'href': 'http://testserver/api/data/preview/?limit=20&page=1',
+                    'href': 'http://testserver/api/data/preview/?'
+                            'limit=20&page=1',
                 },
                 'base': {
                     'href': 'http://testserver/api/data/preview/',
@@ -61,13 +62,14 @@ class PreviewResourceTestCase(TestCase):
         self.client.login(username='test', password='test')
 
         response = self.client.get('/api/data/preview/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
             '_links': {
                 'self': {
-                    'href': 'http://testserver/api/data/preview/?limit=20&page=1',
+                    'href': 'http://testserver/api/data/preview/?'
+                            'limit=20&page=1',
                 },
                 'base': {
                     'href': 'http://testserver/api/data/preview/',

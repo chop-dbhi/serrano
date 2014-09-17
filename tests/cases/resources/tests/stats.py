@@ -1,6 +1,5 @@
 import json
-from avocado.models import DataCategory
-from avocado.events.models import Log
+from restlib2.http import codes
 from .base import BaseTestCase
 
 
@@ -12,7 +11,7 @@ class StatsResourceTestCase(BaseTestCase):
         response = self.client.get('/api/stats/',
                                    HTTP_ACCEPT='application/json')
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue('_links' in json.loads(response.content))
 
 
@@ -24,7 +23,7 @@ class CountStatsResourceTestCase(BaseTestCase):
         response = self.client.get('/api/stats/counts/',
                                    HTTP_ACCEPT='application/json')
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
         self.assertEqual(json.loads(response.content), [{
             'app_name': 'tests',
@@ -48,11 +47,11 @@ class CountStatsResourceTestCase(BaseTestCase):
         }
 
         response = self.client.post('/api/stats/counts/?aware=true',
-                                   data=json.dumps({'context': context}),
-                                   content_type='application/json',
-                                   HTTP_ACCEPT='application/json')
+                                    data=json.dumps({'context': context}),
+                                    content_type='application/json',
+                                    HTTP_ACCEPT='application/json')
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
         self.assertEqual(json.loads(response.content), [{
             'app_name': 'tests',

@@ -1,11 +1,11 @@
-import json, time
-from datetime import datetime
+import json
+import time
 from django.contrib.auth.models import User
 from django.core import mail
-from django.test.utils import override_settings
 from restlib2.http import codes
 from avocado.models import DataQuery
 from .base import AuthenticatedBaseTestCase, BaseTestCase
+
 
 class QueriesResourceTestCase(AuthenticatedBaseTestCase):
     def test_shared_users_count(self):
@@ -21,7 +21,7 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
         content = json.loads(response.content)[0]
@@ -38,7 +38,7 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
         content = json.loads(response.content)[0]
@@ -58,8 +58,8 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
         query = json.loads(response.content)[0]
@@ -76,7 +76,7 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(DataQuery.objects.count(), 2)
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
         query = json.loads(response.content)[0]
@@ -103,7 +103,7 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         # Retrieve the queries shared with and owned by this user, the count
         # should be 2 since this user owns one and is the sharee on another.
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
         # Verify that the order is descending based on accessed time. The 3rd
@@ -116,13 +116,13 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         # Access the 1st query. This should make its accessed time update thus
         # making the 1st query the most recent of this users' shared queries.
         response = self.client.get('/api/queries/{0}/'.format(query.pk),
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
         # Retrieve the queries shared with and owned by this user once again
         # to make sure the order has changed.
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
         # Since the 1st query was just accessed, it should now be the first
@@ -135,7 +135,7 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         # be 0 shared queries returned.
         self.client.logout()
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 0)
 
     def test_only_shared(self):
@@ -151,7 +151,7 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(DataQuery.objects.count(), 2)
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
         query = json.loads(response.content)[0]
@@ -161,12 +161,13 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
     def test_post(self):
         # Attempt to create a new query using a POST request
         response = self.client.post('/api/queries/',
-            data=u'{"name":"POST Query"}', content_type='application/json')
+                                    data=u'{"name":"POST Query"}',
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
 
         # Make sure the changes from the POST request are persisted
         response = self.client.get('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertEqual(json.loads(response.content)['name'], 'POST Query')
@@ -174,7 +175,8 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         # Make a POST request with invalid JSON and make sure we get an
         # unprocessable status code back.
         response = self.client.post('/api/queries/',
-            data=u'{"view_json":"[~][~]"}', content_type='application/json')
+                                    data=u'{"view_json":"[~][~]"}',
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
 
@@ -192,7 +194,7 @@ class PublicQueriesResourceTestCase(BaseTestCase):
         self.assertEqual(DataQuery.objects.distinct().count(), 3)
 
         response = self.client.get('/api/queries/public/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertEqual(len(json.loads(response.content)), 2)
@@ -237,21 +239,22 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         # We should be able to fork public queries
         url = '/api/queries/{0}/forks/'.format(self.public_query.pk)
         response = self.client.post(url, data='{}',
-            content_type='application/json', HTTP_ACCEPT='application/json')
+                                    content_type='application/json',
+                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.created)
         self.assertEqual(DataQuery.objects.count(), query_count + 1)
 
         # ... and queries we own
         url = '/api/queries/{0}/forks/'.format(self.user_query.pk)
         response = self.client.post(url, data='{}',
-            content_type='application/json')
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
         self.assertEqual(DataQuery.objects.count(), query_count + 2)
 
         # ... and queries shared with us
         url = '/api/queries/{0}/forks/'.format(self.query.pk)
         response = self.client.post(url, data='{}',
-            content_type='application/json')
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
         self.assertEqual(DataQuery.objects.count(), query_count + 3)
 
@@ -260,23 +263,23 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
 
         url = '/api/queries/{0}/forks/'.format(self.user_query.pk)
         response = self.client.post(url, data='{}',
-            content_type='application/json')
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.unauthorized)
 
     def test_post_unauthorized(self):
         url = '/api/queries/{0}/forks/'.format(self.private_query.pk)
         response = self.client.post(url, data='{}',
-            content_type='application/json')
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.unauthorized)
 
     def test_post_invalid_pk(self):
         response = self.client.post('/api/queries/999999/forks/', data='{}',
-            content_type='application/json')
+                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
     def test_get_invalid_pk(self):
         response = self.client.get('/api/queries/999999/forks/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
     def test_get_authenticated_owner(self):
@@ -325,13 +328,13 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertLess(query.accessed,
-                DataQuery.objects.get(pk=query.pk).accessed)
+                        DataQuery.objects.get(pk=query.pk).accessed)
 
         # When we access a query it should contain a valid link to the forks
         # of that query.
         data = json.loads(response.content)
         response = self.client.get(data['_links']['forks']['href'],
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertEqual(len(json.loads(response.content)), 2)
@@ -339,7 +342,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         # Make sure we get a codes.not_found when accessing a query that
         # doesn't exist
         response = self.client.get('/api/queries/123456/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
     def test_get_session(self):
@@ -347,7 +350,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/session/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
 
@@ -355,7 +358,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/session/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
     def test_put(self):
@@ -363,18 +366,19 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         query = DataQuery(user=self.user, name='Query 1')
         query.save()
         response = self.client.get('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
 
         # Attempt to update the name via a PUT request
         response = self.client.put('/api/queries/1/',
-            data=u'{"name":"New Name"}', content_type='application/json')
+                                   data=u'{"name":"New Name"}',
+                                   content_type='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
         # Make sure our changes from the PUT request are persisted
         response = self.client.get('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertEqual(json.loads(response.content)['name'], 'New Name')
@@ -382,34 +386,36 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         # Make a PUT request with invalid JSON and make sure we get an
         # unprocessable status code back.
         response = self.client.put('/api/queries/1/',
-            data=u'{"view_json":"[~][~]"}', content_type='application/json')
+                                   data=u'{"view_json":"[~][~]"}',
+                                   content_type='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
     def test_delete(self):
         query = DataQuery(user=self.user, name="TestQuery")
         query.save()
-        session_query = DataQuery(user=self.user, name="SessionQuery", session=True)
+        session_query = DataQuery(user=self.user, name="SessionQuery",
+                                  session=True)
         session_query.save()
 
         user1 = User(username='u1', first_name='Shared', last_name='User',
-            email='share@example.com')
+                     email='share@example.com')
         user1.save()
         query.shared_users.add(user1)
         user2 = User(username='u2', first_name='Shared', last_name='User',
-            email='')
+                     email='')
         user2.save()
         query.shared_users.add(user2)
         user3 = User(username='u3', first_name='Shared', last_name='User',
-            email='share3@example.com')
+                     email='share3@example.com')
         user3.save()
         query.shared_users.add(user3)
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
         response = self.client.delete('/api/queries/1/',
-            HTTP_ACCEPT='application/json')
+                                      HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.no_content)
 
         # Since the delete handler send email asynchronously, wait for a while
@@ -420,13 +426,13 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(len(mail.outbox), 1)
         # Make sure the subject is correct
         self.assertEqual(mail.outbox[0].subject,
-            "'TestQuery' has been deleted")
+                         "'TestQuery' has been deleted")
         # Make sure the recipient list is correct
-        self.assertSequenceEqual(mail.outbox[0].to,
-            ['share@example.com', '', 'share3@example.com'])
+        self.assertSequenceEqual(
+            mail.outbox[0].to, ['share@example.com', '', 'share3@example.com'])
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
         # Make sure that we cannot delete the session query
@@ -434,7 +440,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.bad_request)
 
         response = self.client.get('/api/queries/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
 
@@ -444,7 +450,7 @@ class QueryStatsResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/1/stats/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
 
         data = json.loads(response.content)
         self.assertEqual(data['distinct_count'], 6)
@@ -455,7 +461,7 @@ class QueryStatsResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/session/stats/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
 
         data = json.loads(response.content)
         self.assertEqual(data['distinct_count'], 6)
@@ -469,14 +475,14 @@ class EmailTestCase(BaseTestCase):
     def test_synchronous(self):
         from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
-            email='share@example.com')
+                     email='share@example.com')
         user2 = User(username='u2', first_name='Shared', last_name='User',
-            email='')
+                     email='')
         user3 = User(username='u3', first_name='Shared', last_name='User',
-            email='share3@example.com')
+                     email='share3@example.com')
 
         send_mail([user1.email, user2.email, user3.email], self.subject,
-            self.message, async=False)
+                  self.message, async=False)
 
         # Make sure the mail was sent
         self.assertEqual(len(mail.outbox), 1)
@@ -484,20 +490,20 @@ class EmailTestCase(BaseTestCase):
         self.assertEqual(mail.outbox[0].subject, self.subject)
         self.assertEqual(mail.outbox[0].body, self.message)
         # Make sure the recipient list is correct
-        self.assertSequenceEqual(mail.outbox[0].to,
-            ['share@example.com', '', 'share3@example.com'])
+        self.assertSequenceEqual(
+            mail.outbox[0].to, ['share@example.com', '', 'share3@example.com'])
 
     def test_asynchronous(self):
         from serrano.utils import send_mail
         user1 = User(username='u1', first_name='Shared', last_name='User',
-            email='share@example.com')
+                     email='share@example.com')
         user2 = User(username='u2', first_name='Shared', last_name='User',
-            email='')
+                     email='')
         user3 = User(username='u3', first_name='Shared', last_name='User',
-            email='share3@example.com')
+                     email='share3@example.com')
 
         send_mail([user1.email, user2.email, user3.email], self.subject,
-            self.message)
+                  self.message)
 
         # Make sure the mail was sent(after a slight pause to account for the
         # "asynchronousness".
@@ -507,8 +513,8 @@ class EmailTestCase(BaseTestCase):
         self.assertEqual(mail.outbox[0].subject, self.subject)
         self.assertEqual(mail.outbox[0].body, self.message)
         # Make sure the recipient list is correct
-        self.assertSequenceEqual(mail.outbox[0].to,
-            ['share@example.com', '', 'share3@example.com'])
+        self.assertSequenceEqual(
+            mail.outbox[0].to, ['share@example.com', '', 'share3@example.com'])
 
 
 class QueriesRevisionsResourceTestCase(AuthenticatedBaseTestCase):
@@ -517,6 +523,6 @@ class QueriesRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         query.save()
 
         response = self.client.get('/api/queries/revisions/',
-            HTTP_ACCEPT='application/json')
+                                   HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)

@@ -1,5 +1,6 @@
 import json
 from django.test.utils import override_settings
+from restlib2.http import codes
 from avocado.models import DataConcept, DataConceptField, DataField, \
     DataCategory
 from avocado.events.models import Log
@@ -35,11 +36,11 @@ class ConceptResourceTestCase(BaseTestCase):
     def test_get_all(self):
         response = self.client.get('/api/concepts/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
 
     def test_get_all_category_sort(self):
-        # Create some temporary concepts and categories
+        # Create some temporary concepts and categories.
         cat1 = DataCategory(name='Category1', order=1.0, published=True)
         cat1.save()
 
@@ -58,40 +59,40 @@ class ConceptResourceTestCase(BaseTestCase):
         field3 = DataConceptField(concept=c3, field=self.name_field, order=1)
         field3.save()
 
-        # Check that category ordering is happening by default
+        # Check that category ordering is happening by default.
         response = self.client.get('/api/concepts/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 5)
         names = [concept.get('name', '') for concept in
                  json.loads(response.content)]
         self.assertEqual(names, ['Title', 'Name', 'B', 'C', 'A'])
 
-        # Reverse the ordering of the categories
+        # Reverse the ordering of the categories.
         response = self.client.get('/api/concepts/',
                                    {'order': 'desc'},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 5)
         names = [concept.get('name', '') for concept in
                  json.loads(response.content)]
         self.assertEqual(names, ['B', 'C', 'A', 'Title', 'Name'])
 
-        # Order by concept name in addition to category
+        # Order by concept name in addition to category.
         response = self.client.get('/api/concepts/',
                                    {'sort': 'name'},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 5)
         names = [concept.get('name', '') for concept in
                  json.loads(response.content)]
         self.assertEqual(names, ['Name', 'Title', 'A', 'B', 'C'])
 
-        # Reverse the name and category sorting
+        # Reverse the name and category sorting.
         response = self.client.get('/api/concepts/',
                                    {'sort': 'name', 'order': 'desc'},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 5)
         names = [concept.get('name', '') for concept in
                  json.loads(response.content)]
@@ -109,7 +110,7 @@ class ConceptResourceTestCase(BaseTestCase):
         response = self.client.get('/api/concepts/',
                                    {'sort': 'name'},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
         names = [concept.get('name', '') for concept in
                  json.loads(response.content)]
@@ -118,7 +119,7 @@ class ConceptResourceTestCase(BaseTestCase):
         response = self.client.get('/api/concepts/',
                                    {'sort': 'name', 'order': 'desc'},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
         names = [concept.get('name', '') for concept in
                  json.loads(response.content)]
@@ -130,7 +131,7 @@ class ConceptResourceTestCase(BaseTestCase):
         response = self.client.get('/api/concepts/',
                                    {'limit': 1},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
@@ -142,14 +143,14 @@ class ConceptResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/', {'embed': True},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
         # If we aren't embedding the fields, then none of the concepts
         # should be filtered out.
         response = self.client.get('/api/concepts/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
@@ -161,24 +162,24 @@ class ConceptResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/', {'embed': True},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
 
         # If we aren't embedding the fields, then none of the concepts
         # should be filtered out.
         response = self.client.get('/api/concepts/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
 
     def test_get_one(self):
         response = self.client.get('/api/concepts/999/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, codes.not_found)
 
         response = self.client.get('/api/concepts/3/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
 
@@ -190,12 +191,12 @@ class ConceptResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/1/', {'embed': True},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, codes.internal_server_error)
 
         # If we aren't embedding the fields, there should not be a server error
         response = self.client.get('/api/concepts/1/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
     def test_get_one_orphan_check_off(self):
@@ -205,12 +206,12 @@ class ConceptResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/1/', {'embed': True},
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
         # If we aren't embedding the fields, there should not be a server error
         response = self.client.get('/api/concepts/1/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
 
     def test_get_privileged(self):
         # Superuser sees everything
@@ -222,7 +223,7 @@ class ConceptResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/2/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
 
 
@@ -246,7 +247,7 @@ class ConceptFieldResourceTestCase(BaseTestCase):
     def test_get(self):
         response = self.client.get('/api/concepts/1/fields/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 3)
 
     def test_get_orphan(self):
@@ -257,7 +258,7 @@ class ConceptFieldResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/1/fields/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.status_code, codes.internal_server_error)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
     def test_get_orphan_check_off(self):
@@ -268,4 +269,4 @@ class ConceptFieldResourceTestCase(BaseTestCase):
 
         response = self.client.get('/api/concepts/1/fields/',
                                    HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, codes.ok)

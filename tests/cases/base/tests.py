@@ -4,6 +4,7 @@ from django.test.utils import override_settings
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from restlib2.http import codes
 from serrano.tokens import token_generator, generate_random_token
 
 
@@ -73,22 +74,22 @@ class TokenBackendTestCase(TestCase):
 
         resp = self.client.get(reverse('serrano:root'),
                                HTTP_ACCEPT='application/json')
-        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.status_code, codes.unauthorized)
 
         self.assertTrue(self.client.login(username='foo', password='bar'))
         resp = self.client.get(reverse('serrano:root'),
                                HTTP_ACCEPT='application/json')
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, codes.ok)
 
         self.client.logout()
         resp = self.client.get(reverse('serrano:root'),
                                HTTP_ACCEPT='application/json')
-        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.status_code, codes.unauthorized)
 
         token = token_generator.make(user)
         resp = self.client.get(reverse('serrano:root'), {'token': token},
                                HTTP_ACCEPT='application/json')
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, codes.ok)
 
     @override_settings(SERRANO_AUTH_REQUIRED=True, SESSION_COOKIE_AGE=2,
                        SESSION_SAVE_EVERY_REQUEST=True)
@@ -97,16 +98,16 @@ class TokenBackendTestCase(TestCase):
 
         self.assertTrue(self.client.login(username='foo', password='bar'))
 
-        # Sucessive requests.. to refresh session since this client supports
-        # cookies
+        # Sucessive requests to refresh session since this client supports
+        # cookies.
         for i in xrange(3):
             resp = self.client.get(reverse('serrano:root'),
                                    HTTP_ACCEPT='application/json')
-            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.status_code, codes.ok)
             time.sleep(1)
 
-        # Wait longer than session timeout..
+        # Wait longer than session timeout then make another request.
         time.sleep(3)
         resp = self.client.get(reverse('serrano:root'),
                                HTTP_ACCEPT='application/json')
-        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.status_code, codes.unauthorized)

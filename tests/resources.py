@@ -37,17 +37,30 @@ class BadObjectRevisionUrlResource(ObjectRevisionResource):
     object_model_base_uri = 'serrano:views'
 
 
-
 no_object_model_resource = never_cache(NoObjectModelRevisionResource())
 template_resource = never_cache(CustomTemplateRevisionResource())
 bad_object_revision_url_resource = never_cache(BadObjectRevisionUrlResource())
 
-
-urlpatterns = patterns('',
-    url(r'^no_model/$', no_object_model_resource, name='no_model'),
-    url(r'^template/$', template_resource, name='template'),
-    url(r'^revisions/(?P<revision_pk>\d+)/$', bad_object_revision_url_resource,
-        name='no_object_id'),
-    url(r'^(?P<object_pk>\d+)/revisions/$', bad_object_revision_url_resource,
-        name='no_revision_id')
+urlpatterns = patterns(
+    '',
+    url(
+        r'^no_model/$',
+        no_object_model_resource,
+        name='no_model'
+    ),
+    url(
+        r'^template/$',
+        template_resource,
+        name='template'
+    ),
+    url(
+        r'^revisions/(?P<revision_pk>\d+)/$',
+        bad_object_revision_url_resource,
+        name='no_object_id'
+    ),
+    url(
+        r'^(?P<object_pk>\d+)/revisions/$',
+        bad_object_revision_url_resource,
+        name='no_revision_id'
+    )
 )

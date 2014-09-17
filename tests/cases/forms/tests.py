@@ -1,6 +1,5 @@
 import logging
 import time
-from django.conf.urls import url
 from django.contrib.sessions.backends.file import SessionStore
 from django.contrib.auth.models import User
 from django.core import mail, management
