@@ -124,6 +124,7 @@ class ContextsResource(ContextBase):
         if form.is_valid():
             instance = form.save()
             usage.log('create', instance=instance, request=request)
+            request.session.modified = True
             response = self.render(request, self.prepare(request, instance),
                                    status=codes.created)
         else:
@@ -160,6 +161,7 @@ class ContextResource(ContextBase):
         if form.is_valid():
             instance = form.save()
             usage.log('update', instance=instance, request=request)
+            request.session.modified = True
             response = self.render(request, self.prepare(request, instance))
         else:
             data = {
@@ -182,6 +184,7 @@ class ContextResource(ContextBase):
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
+        request.session.modified = True
 
 
 class ContextStatsResource(ContextBase):

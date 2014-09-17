@@ -142,6 +142,7 @@ class QueriesResource(QueryBase):
         if form.is_valid():
             instance = form.save()
             usage.log('create', instance=instance, request=request)
+            request.session.modified = True
             response = self.render(request, self.prepare(request, instance),
                                    status=codes.created)
         else:
@@ -241,6 +242,7 @@ class QueryForksResource(QueryBase):
                 fork.session_key = request.session.session_key
 
             fork.save()
+            request.session.modified = True
 
             posthook = functools.partial(query_posthook, request=request)
             data = serialize(fork, posthook=posthook, **templates.Query)
@@ -297,6 +299,7 @@ class QueryResource(QueryBase):
         if form.is_valid():
             instance = form.save()
             usage.log('update', instance=instance, request=request)
+            request.session.modified = True
             response = self.render(request, self.prepare(request, instance))
         else:
             data = {
@@ -322,6 +325,7 @@ class QueryResource(QueryBase):
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
+        request.session.modified = True
 
 
 class QueryStatsResource(QueryBase):
