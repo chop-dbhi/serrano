@@ -102,16 +102,16 @@ class FieldResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertTrue(content['values'])
-        self.assertTrue(len(content['values']), 7)
+        self.assertTrue(content['items'])
+        self.assertTrue(len(content['items']), 7)
 
         response = self.client.get(
             '/api/fields/2/values/?processor=first_title',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertTrue(content['values'])
-        self.assertTrue(len(content['values']), 1)
+        self.assertTrue(content['items'])
+        self.assertTrue(len(content['items']), 1)
 
     def test_values_no_limit(self):
         # title.name
@@ -119,7 +119,7 @@ class FieldResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         data = json.loads(response.content)
-        self.assertTrue(data['values'])
+        self.assertTrue(data['items'])
         self.assertFalse('previous' in data['_links'])
         self.assertFalse('next' in data['_links'])
 
@@ -154,21 +154,21 @@ class FieldResourceTestCase(BaseTestCase):
         response = self.client.get('/api/fields/2/values/?query=a',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(json.loads(response.content)['values'], [
+        self.assertEqual(json.loads(response.content)['items'], [
             {'label': 'Analyst', 'value': 'Analyst'},
             {'label': 'Guard', 'value': 'Guard'},
             {'label': 'Lawyer', 'value': 'Lawyer'},
             {'label': 'Programmer', 'value': 'Programmer'},
             {'label': 'QA', 'value': 'QA'},
         ])
-        message = Log.objects.get(event='values', object_id=2)
+        message = Log.objects.get(event='items', object_id=2)
         self.assertEqual(message.data['query'], 'a')
 
         response = self.client.get(
             '/api/fields/2/values/?query=a&processor=under_twenty_thousand',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(json.loads(response.content)['values'], [
+        self.assertEqual(json.loads(response.content)['items'], [
             {'label': 'Guard', 'value': 'Guard'},
             {'label': 'Programmer', 'value': 'Programmer'},
             {'label': 'QA', 'value': 'QA'},

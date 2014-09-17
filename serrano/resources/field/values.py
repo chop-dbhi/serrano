@@ -114,7 +114,7 @@ class FieldValues(FieldBase, PaginatorResource):
 
         # If a query term is supplied, perform the icontains search.
         if params['query']:
-            usage.log('values', instance=instance, request=request, data={
+            usage.log('items', instance=instance, request=request, data={
                 'query': params['query'],
             })
             values = self.get_search_values(
@@ -142,7 +142,7 @@ class FieldValues(FieldBase, PaginatorResource):
         }
         resp.update({
             '_links': links,
-            'values': page.object_list,
+            'items': page.object_list,
         })
 
         return resp

@@ -11,7 +11,7 @@ class PreviewResourceProcessorTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertEqual(content['object_count'], 6)
+        self.assertEqual(content['item_count'], 6)
 
         # The Parametizer cleaning process should set this to the default
         # value if the processor is not in the list of choices which, in our
@@ -21,13 +21,13 @@ class PreviewResourceProcessorTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertEqual(content['object_count'], 6)
+        self.assertEqual(content['item_count'], 6)
 
         response = self.client.get('/api/data/preview/?processor=manager',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertEqual(content['object_count'], 1)
+        self.assertEqual(content['item_count'], 1)
 
 
 class PreviewResourceTestCase(TestCase):
@@ -48,10 +48,10 @@ class PreviewResourceTestCase(TestCase):
             },
             'keys': [],
             'count': 0,
-            'object_count': 0,
-            'object_name': 'employee',
-            'object_name_plural': 'employees',
-            'objects': [],
+            'item_count': 0,
+            'item_name': 'employee',
+            'item_name_plural': 'employees',
+            'items': [],
             'page_num': 1,
             'num_pages': 1,
             'limit': 20,
@@ -77,10 +77,10 @@ class PreviewResourceTestCase(TestCase):
             },
             'keys': [],
             'count': 0,
-            'object_count': 0,
-            'object_name': 'employee',
-            'object_name_plural': 'employees',
-            'objects': [],
+            'item_count': 0,
+            'item_name': 'employee',
+            'item_name_plural': 'employees',
+            'items': [],
             'page_num': 1,
             'num_pages': 1,
             'limit': 20,

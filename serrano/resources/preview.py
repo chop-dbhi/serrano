@@ -103,10 +103,10 @@ class PreviewResource(BaseResource, PaginatorResource):
 
         resp.update({
             'keys': header,
-            'objects': objects,
-            'object_name': model_name,
-            'object_name_plural': model_name_plural,
-            'object_count': paginator.count,
+            'items': objects,
+            'item_name': model_name,
+            'item_name_plural': model_name_plural,
+            'item_count': paginator.count,
             '_links': links,
         })
 
