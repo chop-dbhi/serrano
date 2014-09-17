@@ -1,5 +1,6 @@
 import functools
 import logging
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.http import codes
@@ -11,7 +12,7 @@ from ..base import ThrottledResource
 from .. import templates
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
-stats_capable = lambda x: not x.searchable
+default_stats_capable = lambda x: not x.searchable
 log = logging.getLogger(__name__)
 
 
@@ -54,6 +55,8 @@ def field_posthook(instance, data, request):
                         args=[instance.pk])),
         }
 
+        stats_capable = getattr(
+            settings, 'STATS_CAPABLE', default_stats_capable)
         if stats_capable(instance):
             data['_links']['stats'] = {
                 'href': uri(reverse('serrano:field-stats',

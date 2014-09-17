@@ -14,6 +14,25 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 5)
 
+    def test_stats_capable_setting(self):
+        # Initially, the default stats_capable check will be used that allows
+        # for stats on all non-searchable fields so we will expect that
+        # endpoint to be included in the _links.
+        response = self.client.get('/api/fields/2/',
+                                   HTTP_ACCEPT='applicaton/json')
+        self.assertEqual(response.status_code, codes.ok)
+        content = json.loads(response.content)
+        self.assertTrue('stats' in content['_links'])
+
+        # Now, overriding that setting so that this field is not
+        # "stats_capable" should remove the stats endpoint from _links.
+        with self.settings(STATS_CAPABLE=lambda x: x.id != 2):
+            response = self.client.get('/api/fields/2/',
+                                       HTTP_ACCEPT='applicaton/json')
+            self.assertEqual(response.status_code, codes.ok)
+            content = json.loads(response.content)
+            self.assertFalse('stats' in content['_links'])
+
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
         # Orphan one of the fields we are about to retrieve
