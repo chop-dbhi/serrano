@@ -340,16 +340,16 @@ class FieldResourceTestCase(BaseTestCase):
             u'outliers': [],
             u'data': [{
                 u'count': 3,
-                u'values': [15000]
+                u'values': [{'label': '15000', 'value': 15000}]
             }, {
                 u'count': 1,
-                u'values': [10000]
+                u'values': [{'label': '10000', 'value': 10000}]
             }, {
                 u'count': 1,
-                u'values': [20000]
+                u'values': [{'label': '20000', 'value': 20000}]
             }, {
                 u'count': 1,
-                u'values': [200000]
+                u'values': [{'label': '200000', 'value': 200000}]
             }],
         }
 
@@ -377,6 +377,6 @@ class FieldResourceTestCase(BaseTestCase):
             u'outliers': [],
             u'data': [{
                 u'count': 1,
-                u'values': [15000]
+                u'values': [{'label': '15000', 'value': 15000}]
             }]
         })

@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db.models import Q
+from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
@@ -52,6 +53,7 @@ class FieldDistribution(FieldBase):
         processor = QueryProcessor(context=context, tree=tree)
 
         queryset = processor.get_queryset(request=request)
+        value_labels = tree_field.value_labels(queryset=queryset)
 
         # Explicit fields to group by, ignore ones that dont exist or the
         # user does not have permission to view. Default is to group by the
@@ -161,8 +163,18 @@ class FieldDistribution(FieldBase):
             'aware': params['aware'],
         })
 
+        labeled_points = []
+        for point in points:
+            labeled_points.append({
+                'count': point['count'],
+                'values': [{
+                    'label': value_labels.get(value, smart_unicode(value)),
+                    'value': value
+                } for value in point['values']]
+            })
+
         return {
-            'data': points,
+            'data': labeled_points,
             'clustered': clustered,
             'outliers': outliers,
             'size': length,
