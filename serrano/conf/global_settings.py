@@ -67,3 +67,10 @@ CHECK_ORPHANED_FIELDS = True
 # the request has been complete.
 EXPORT_COOKIE_NAME_TEMPLATE = 'export-type-{0}'
 EXPORT_COOKIE_DATA = 'complete'
+
+# Provides a method for determining whether a field supports stats or not. By
+# default, stats are not supported on searchable fields. When this method
+# returns True, the stats URL will be included in the _links collection as
+# generated in the base field resource. Setting this to None will disable
+# stats for all fields.
+STATS_CAPABLE = lambda x: not x.searchable

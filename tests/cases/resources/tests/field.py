@@ -26,7 +26,7 @@ class FieldResourceTestCase(BaseTestCase):
 
         # Now, overriding that setting so that this field is not
         # "stats_capable" should remove the stats endpoint from _links.
-        with self.settings(STATS_CAPABLE=lambda x: x.id != 2):
+        with self.settings(SERRANO_STATS_CAPABLE=lambda x: x.id != 2):
             response = self.client.get('/api/fields/2/',
                                        HTTP_ACCEPT='applicaton/json')
             self.assertEqual(response.status_code, codes.ok)

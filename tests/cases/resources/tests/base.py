@@ -146,7 +146,7 @@ class ThrottledResourceTestCase(BaseTestCase):
             self.assertEqual(response.status_code, codes.ok)
 
     def test_too_many_requests(self):
-        # Force these the requests to be unauthenitcated
+        # Force these the requests to be unauthenitcated.
         self.user = None
 
         # We execute a request before the actual test in order to initialize
