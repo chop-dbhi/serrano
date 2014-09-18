@@ -78,6 +78,7 @@ AVOCADO = {
         'under_twenty_thousand':
             'tests.processors.UnderTwentyThousandQueryProcessor',
         'first_title': 'tests.processors.FirstTitleQueryProcessor',
+        'first_two': 'tests.processors.FirstTwoByIdQueryProcessor',
     }
 }
 

@@ -1,8 +1,9 @@
 from django.core.urlresolvers import reverse
 from django.conf.urls import patterns, url
 from django.views.decorators.cache import never_cache
-from restlib2.params import Parametizer, BoolParam
+from restlib2.params import Parametizer, BoolParam, StrParam
 from avocado.models import DataContext, DataField
+from avocado.query import pipeline
 from .base import BaseResource, ThrottledResource
 
 
@@ -25,6 +26,7 @@ class StatsResource(BaseResource):
 
 class CountStatsParametizer(Parametizer):
     aware = BoolParam(False)
+    processor = StrParam('default', choices=pipeline.query_processors)
 
 
 class CountStatsResource(ThrottledResource):
@@ -45,6 +47,7 @@ class CountStatsResource(ThrottledResource):
 
         data = []
         models = set()
+        QueryProcessor = pipeline.query_processors[params['processor']]
 
         for app_name, model_name in model_names:
             # DataField used here to resolve foreign key-based fields.
@@ -58,8 +61,9 @@ class CountStatsResource(ThrottledResource):
             models.add(model)
 
             # Build a queryset through the context which is toggled by
-            # the parameter
-            queryset = context.apply(tree=model)
+            # the parameter.
+            processor = QueryProcessor(context=context, tree=model)
+            queryset = processor.get_queryset(request=request)
             count = queryset.values('pk').distinct().count()
 
             opts = model._meta
