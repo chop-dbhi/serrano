@@ -12,7 +12,8 @@ from serrano.conf import settings
 
 log = logging.getLogger(__name__)
 
-SHARED_QUERY_EMAIL_TITLE = '{site_name}: A query has been shared with you!'
+SHARED_QUERY_EMAIL_TITLE = '{site_name}: {query_name} has been shared with '\
+                           'you!'
 SHARED_QUERY_EMAIL_BODY = 'The query "{query_name}" has been shared with ' \
                           'you on {site_name} ({site_url})! You can view ' \
                           'the query by going to: {query_url}.'
@@ -96,6 +97,7 @@ class QueryForm(forms.ModelForm):
     # separated by a ','.
     usernames_or_emails = forms.CharField(widget=forms.Textarea,
                                           required=False)
+    message = forms.CharField(widget=forms.Textarea, required=False)
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
@@ -242,10 +244,13 @@ class QueryForm(forms.ModelForm):
             title = SHARED_QUERY_EMAIL_TITLE.format(query_name=instance.name,
                                                     site_name=site.name)
 
-            body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
-                                                  site_name=site.name,
-                                                  site_url=site_url,
-                                                  query_url=query_url)
+            if self.cleaned_data.get('message'):
+                body = self.cleaned_data.get('message')
+            else:
+                body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
+                                                      site_name=site.name,
+                                                      site_url=site_url,
+                                                      query_url=query_url)
 
             # Email and register all the new email addresses
             utils.send_mail(new_emails, title, body)

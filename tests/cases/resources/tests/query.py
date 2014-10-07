@@ -179,6 +179,26 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
                                     content_type='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
+    def test_post_with_email(self):
+        u1 = User(username='user1', email='user1@email.com')
+        u1.save()
+        u2 = User(username='user2', email='user2@email.com')
+        u2.save()
+
+        outbox_count = len(mail.outbox)
+        data = '{"name":"POST Query","message":"THIS IS ONLY A TEST!",'\
+               '"usernames_or_emails":"user1,user2@email.com"}'
+        response = self.client.post(
+            '/api/queries/', data=data, content_type='application/json')
+        self.assertEqual(response.status_code, codes.created)
+
+        self.assertEqual(len(mail.outbox), outbox_count + 1)
+        self.assertEqual(mail.outbox[0].subject,
+                         'example.com: POST Query has been shared with you!')
+        self.assertEqual(mail.outbox[0].body, 'THIS IS ONLY A TEST!')
+        self.assertSequenceEqual(
+            mail.outbox[0].to, ['user1@email.com', 'user2@email.com'])
+
 
 class PublicQueriesResourceTestCase(BaseTestCase):
     def test_get(self):
