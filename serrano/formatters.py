@@ -1,5 +1,5 @@
 from django.template import defaultfilters as filters
-from avocado.formatters import Formatter, process_multiple
+from avocado.formatters import Formatter, process_multiple, registry
 
 
 class HTMLFormatter(Formatter):
@@ -26,3 +26,6 @@ class HTMLFormatter(Formatter):
                 tok = unicode(value)
             toks.append(tok)
         return self.delimiter.join(toks)
+
+
+registry.register(HTMLFormatter, default=True)
