@@ -1,29 +1,41 @@
 from avocado.query.pipeline import QueryProcessor
-from modeltree.tree import trees
-from .models import Employee, Title
+from avocado.models import DataContext
 
 
 class FirstTwoByIdQueryProcessor(QueryProcessor):
     def get_queryset(self, queryset=None, **kwargs):
-        if self.context:
-            queryset = self.context.apply(queryset=queryset, tree=self.tree)
-
-        if queryset is None:
-            queryset = trees[self.tree].get_queryset()
+        queryset = super(FirstTwoByIdQueryProcessor, self)\
+            .get_queryset(queryset, **kwargs)
 
         return queryset.filter(id__lt=3)
 
 
 class FirstTitleQueryProcessor(QueryProcessor):
     def get_queryset(self, queryset=None, **kwargs):
-        return Title.objects.filter(id__lt=2)
+        queryset = super(FirstTitleQueryProcessor, self)\
+            .get_queryset(queryset, **kwargs)
+
+        return queryset.filter(id__lt=2)
 
 
 class UnderTwentyThousandQueryProcessor(QueryProcessor):
-    def get_queryset(self, queryset=None, **kwargs):
-        return Title.objects.filter(salary__lt=20000)
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = DataContext(json={
+            'field': 'tests.title.salary',
+            'operator': 'lt',
+            'value': 20000,
+        })
+
+        super(UnderTwentyThousandQueryProcessor, self)\
+            .__init__(*args, **kwargs)
 
 
 class ManagerQueryProcessor(QueryProcessor):
-    def get_queryset(self, queryset=None, **kwargs):
-        return Employee.objects.filter(is_manager=True)
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = DataContext(json={
+            'field': 'tests.employee.is_manager',
+            'operator': 'exact',
+            'value': True,
+        })
+
+        super(ManagerQueryProcessor, self).__init__(*args, **kwargs)

@@ -73,8 +73,7 @@ AVOCADO = {
     'QUERY_PROCESSORS': {
         'default': 'avocado.query.pipeline.QueryProcessor',
         'manager': 'tests.processors.ManagerQueryProcessor',
-        'under_twenty_thousand':
-            'tests.processors.UnderTwentyThousandQueryProcessor',
+        'under_twenty_thousand': 'tests.processors.UnderTwentyThousandQueryProcessor',  # noqa
         'first_title': 'tests.processors.FirstTitleQueryProcessor',
         'first_two': 'tests.processors.FirstTwoByIdQueryProcessor',
     }

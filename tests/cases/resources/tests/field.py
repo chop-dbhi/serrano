@@ -334,6 +334,37 @@ class FieldResourceTestCase(BaseTestCase):
             Log.objects.filter(event='stats', object_id=2).exists())
 
     def test_dist(self):
+        default_content = [
+            {'label': '10000', 'value': 10000, 'count': 1},
+            {'label': '15000', 'value': 15000, 'count': 3},
+            {'label': '20000', 'value': 20000, 'count': 1},
+            {'label': '100000', 'value': 100000, 'count': 1},
+            {'label': '200000', 'value': 200000, 'count': 1},
+        ]
+
+        # title.salary
+        response = self.client.get('/api/fields/3/dist/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(json.loads(response.content), default_content)
+        self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
+
+        # Using an invalid processor should fallback to the default processor.
+        response = self.client.get('/api/fields/3/dist/?processor=INVALID',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(json.loads(response.content), default_content)
+
+        # Using the custom query process, we should be limited to a smaller
+        # salary set.
+        response = self.client.get('/api/fields/3/dist/?processor=manager',  # noqa
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(json.loads(response.content), [
+            {'label': '15000', 'value': 15000, 'count': 1},
+        ])
+
+    def test_dims(self):
         default_content = {
             u'size': 4,
             u'clustered': False,
@@ -354,21 +385,21 @@ class FieldResourceTestCase(BaseTestCase):
         }
 
         # title.salary
-        response = self.client.get('/api/fields/3/dist/',
+        response = self.client.get('/api/fields/3/dims/',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), default_content)
-        self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
+        self.assertTrue(Log.objects.filter(event='dims', object_id=3).exists())
 
         # Using an invalid processor should fallback to the default processor.
-        response = self.client.get('/api/fields/3/dist/?processor=INVALID',
+        response = self.client.get('/api/fields/3/dims/?processor=INVALID',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), default_content)
 
         # Using the custom query process, we should be limited to a smaller
         # salary set.
-        response = self.client.get('/api/fields/3/dist/?processor=manager',
+        response = self.client.get('/api/fields/3/dims/?processor=manager',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), {
