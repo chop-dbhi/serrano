@@ -195,7 +195,9 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(len(mail.outbox), outbox_count + 1)
         self.assertEqual(mail.outbox[0].subject,
                          'example.com: POST Query has been shared with you!')
-        self.assertEqual(mail.outbox[0].body, 'THIS IS ONLY A TEST!')
+        self.assertEqual(mail.outbox[0].body,
+                         'THIS IS ONLY A TEST!\n\n--\nView the query at '
+                         'http://testserver/')
         self.assertSequenceEqual(
             mail.outbox[0].to, ['user1@email.com', 'user2@email.com'])
 

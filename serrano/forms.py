@@ -14,9 +14,7 @@ log = logging.getLogger(__name__)
 
 SHARED_QUERY_EMAIL_TITLE = '{site_name}: {query_name} has been shared with '\
                            'you!'
-SHARED_QUERY_EMAIL_BODY = 'The query "{query_name}" has been shared with ' \
-                          'you on {site_name} ({site_url})! You can view ' \
-                          'the query by going to: {query_url}.'
+SHARED_QUERY_EMAIL_BODY = 'View the query at {query_url}'
 
 
 class ContextForm(forms.ModelForm):
@@ -244,13 +242,11 @@ class QueryForm(forms.ModelForm):
             title = SHARED_QUERY_EMAIL_TITLE.format(query_name=instance.name,
                                                     site_name=site.name)
 
+            body = SHARED_QUERY_EMAIL_BODY.format(query_url=query_url)
+
             if self.cleaned_data.get('message'):
-                body = self.cleaned_data.get('message')
-            else:
-                body = SHARED_QUERY_EMAIL_BODY.format(query_name=instance.name,
-                                                      site_name=site.name,
-                                                      site_url=site_url,
-                                                      query_url=query_url)
+                body = '{0}\n\n--\n{1}'.format(
+                    self.cleaned_data.get('message'), body)
 
             # Email and register all the new email addresses
             utils.send_mail(new_emails, title, body)
