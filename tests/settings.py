@@ -71,7 +71,7 @@ MODELTREES = {
 
 AVOCADO = {
     'FORCE_SYNC_LOG': True,
-
+    'DATA_CACHE_ENABLED': False,
     'QUERY_PROCESSORS': {
         'default': 'avocado.query.pipeline.QueryProcessor',
         'manager': 'tests.processors.ManagerQueryProcessor',

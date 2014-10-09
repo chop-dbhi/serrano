@@ -123,6 +123,16 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertFalse('previous' in data['_links'])
         self.assertFalse('next' in data['_links'])
 
+    def test_zero_division_error(self):
+        # Delete everything for now
+        Title.objects.all().delete()
+
+        response = self.client.get('/api/fields/2/values/?limit=0',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        data = json.loads(response.content)
+        self.assertEqual(data['values'], [])
+
     def test_values_random(self):
         # Random values
         response = self.client.get('/api/fields/2/values/?random=3',
