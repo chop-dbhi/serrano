@@ -20,7 +20,8 @@ class PaginatorResource(Resource):
         # Perform count an update paginator to prevent redundant call
         if not limit:
             count = len(queryset)
-            paginator.per_page = count
+            # Prevent division by zero error in case count is zero
+            paginator.per_page = max(count, 1)
             paginator._count = count
 
         return paginator
