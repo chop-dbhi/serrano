@@ -35,30 +35,22 @@ class FieldStats(FieldBase):
         queryset = processor.get_queryset(request=request)
 
         if instance.simple_type == 'number':
-            # Since the call to max() returns an Aggregator object with the
-            # queryset stored internally, we don't pass the queryset to min()
-            # or avg() like we do when we call max() which is called on the
-            # instance itself not on an Aggregator like min() or avg() are
-            # called on.
-            stats = instance.max(queryset=queryset).min().avg()
+            resp = {
+                'max': instance.max(queryset=queryset),
+                'min': instance.min(queryset=queryset),
+                'avg': instance.avg(queryset=queryset)
+            }
         elif (instance.simple_type == 'date' or
               instance.simple_type == 'time' or
               instance.simple_type == 'datetime'):
-            # Since the call to max() returns an Aggregator object with the
-            # queryset stored internally, we don't pass the queryset to min()
-            # like we do when we call max() which is called on the instance
-            # itself not on an Aggregator like min() is called on.
-            stats = instance.max(queryset=queryset).min()
+            resp = {
+                'max': instance.max(queryset=queryset),
+                'min': instance.min(queryset=queryset)
+            }
         else:
-            stats = instance.count(queryset=queryset, distinct=True)
-
-        if stats is None:
-            resp = {}
-        else:
-            try:
-                resp = next(iter(stats))
-            except StopIteration:
-                resp = {}
+            resp = {
+                'count': instance.count(queryset=queryset, distinct=True)
+            }
 
         resp['_links'] = {
             'self': {
