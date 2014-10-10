@@ -131,7 +131,7 @@ class FieldResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         data = json.loads(response.content)
-        self.assertEqual(data['values'], [])
+        self.assertEqual(data['items'], [])
 
     def test_values_random(self):
         # Random values
