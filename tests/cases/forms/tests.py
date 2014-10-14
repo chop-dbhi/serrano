@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 import time
 from django.contrib.sessions.backends.file import SessionStore
@@ -10,6 +11,26 @@ from avocado.models import DataConcept, DataConceptField, DataContext, \
     DataField, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
 from ...models import Employee, MockHandler
+
+
+def retry_until_true(sleep_interval=0.1, tries=50):
+    assert tries
+
+    def wrapper(fun):
+        def retry_calls(*args, **kwargs):
+            for _ in xrange(tries):
+                result = fun(*args, **kwargs)
+                if result:
+                    break
+                time.sleep(sleep_interval)
+            return result
+        return retry_calls
+    return wrapper
+
+
+@retry_until_true()
+def wait_mail_sent():
+    return len(mail.outbox) == 1
 
 
 class BaseTestCase(TestCase):
@@ -152,7 +173,6 @@ class QueryFormTestCase(BaseTestCase):
     @override_settings(SERRANO_QUERY_REVERSE_NAME='results')
     def test_with_email(self):
         previous_user_count = User.objects.count()
-        previous_mail_count = len(mail.outbox)
 
         form = QueryForm(self.request, {'usernames_or_emails':
                                         'email1@email.com'})
@@ -161,13 +181,10 @@ class QueryFormTestCase(BaseTestCase):
 
         # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
-        time.sleep(5)
+        self.assertTrue(wait_mail_sent())
 
         # Make sure the user was created
         self.assertEqual(previous_user_count + 1, User.objects.count())
-
-        # Make sure the mail was sent
-        self.assertEqual(previous_mail_count + 1, len(mail.outbox))
 
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to, ['email1@email.com'])
@@ -183,10 +200,7 @@ class QueryFormTestCase(BaseTestCase):
 
         # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
-        time.sleep(5)
-
-        # Make sure the email was sent
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(wait_mail_sent())
 
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to, ['user_1@email.com'])
@@ -205,13 +219,10 @@ class QueryFormTestCase(BaseTestCase):
 
         # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
-        time.sleep(5)
+        self.assertTrue(wait_mail_sent())
 
         # Make sure the user was created
         self.assertEqual(previous_user_count + 1, User.objects.count())
-
-        # Make sure the mail was sent
-        self.assertEqual(len(mail.outbox), 1)
 
         # Make sure the recipient list is correct
         self.assertSequenceEqual(mail.outbox[0].to, ['user_1@email.com',
@@ -226,7 +237,7 @@ class QueryFormTestCase(BaseTestCase):
 
         # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
-        time.sleep(5)
+        time.sleep(1)
 
         # Make sure the user count is unaffected
         self.assertEqual(previous_user_count, User.objects.count())
@@ -332,7 +343,7 @@ class QueryFormTestCase(BaseTestCase):
 
         # Since save sends email asynchronously, wait for a while for the mail
         # to go through.
-        time.sleep(5)
+        time.sleep(1)
 
         # The instance should not be saved and shared_users should be
         # inaccessible on the model instance because the commit flag was False.
@@ -342,3 +353,25 @@ class QueryFormTestCase(BaseTestCase):
         # Make sure no users were created and no email was sent
         self.assertEqual(previous_user_count, User.objects.count())
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_message(self):
+        user = User.objects.create_user(username='user_1',
+                                        email='user_1@email.com')
+        user.save()
+
+        message = u'ĘƞĵôƔ ťƕîš ǫųęŕƳ'
+        form = QueryForm(self.request, {'usernames_or_emails': 'user_1',
+                                        'message': message})
+
+        instance = form.save()
+        self.assertEqual(instance.shared_users.count(), 1)
+
+        # Since save sends email asynchronously, wait for a while for the mail
+        # to go through.
+        self.assertTrue(wait_mail_sent())
+
+        # Make sure the recipient list is correct
+        self.assertSequenceEqual(mail.outbox[0].to, ['user_1@email.com'])
+
+        # Make sure the custom message is included in the body
+        self.assertRegexpMatches(mail.outbox[0].body, message)
