@@ -89,7 +89,7 @@ class FieldBase(ThrottledResource):
     def get_queryset(self, request):
         queryset = self.model.objects.all()
         if not can_change_field(request.user):
-            queryset = queryset.published()
+            queryset = queryset.published(user=request.user)
         return queryset
 
     def get_object(self, request, **kwargs):
