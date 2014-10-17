@@ -5,7 +5,9 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
+from restlib2.params import Parametizer, StrParam
 from preserialize.serialize import serialize
+from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
 from avocado.events import usage
 from avocado.models import DataContext
 from serrano.forms import ContextForm
@@ -17,15 +19,12 @@ from . import templates
 log = logging.getLogger(__name__)
 
 
-def context_posthook(instance, data, request):
+def context_posthook(instance, data, request, tree):
     uri = request.build_absolute_uri
 
-    # If this context is explicitly tied to a model (via the `count`)
-    # specify the object names.
-    if instance.model:
-        opts = instance.model._meta
-        data['object_name'] = opts.verbose_name.format()
-        data['object_name_plural'] = opts.verbose_name_plural.format()
+    opts = tree.root_model._meta
+    data['object_name'] = opts.verbose_name.format()
+    data['object_name_plural'] = opts.verbose_name_plural.format()
 
     data['_links'] = {
         'self': {
@@ -39,6 +38,10 @@ def context_posthook(instance, data, request):
     return data
 
 
+class ContextParametizer(Parametizer):
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
+
+
 class ContextBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
@@ -46,10 +49,15 @@ class ContextBase(ThrottledResource):
     model = DataContext
     template = templates.Context
 
-    def prepare(self, request, instance, template=None):
+    parametizer = ContextParametizer
+
+    def prepare(self, request, instance, tree, template=None):
         if template is None:
             template = self.template
-        posthook = functools.partial(context_posthook, request=request)
+
+        tree = trees[tree]
+        posthook = functools.partial(context_posthook, request=request,
+                                     tree=tree)
         return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):
@@ -105,6 +113,7 @@ class ContextBase(ThrottledResource):
 class ContextsResource(ContextBase):
     "Resource of contexts"
     def get(self, request):
+        params = self.get_params(request)
         queryset = self.get_queryset(request)
 
         # Only create a default if a session exists
@@ -116,24 +125,28 @@ class ContextsResource(ContextBase):
                 if default:
                     queryset.append(default)
 
-        return self.prepare(request, queryset)
+        return self.prepare(request, queryset, tree=params['tree'])
 
     def post(self, request):
+        params = self.get_params(request)
         form = ContextForm(request, request.data)
 
         if form.is_valid():
             instance = form.save()
             usage.log('create', instance=instance, request=request)
+
             request.session.modified = True
-            response = self.render(request, self.prepare(request, instance),
-                                   status=codes.created)
-        else:
-            data = {
-                'message': 'Error creating context',
-                'errors': dict(form.errors),
-            }
-            response = self.render(request, data,
-                                   status=codes.unprocessable_entity)
+
+            data = self.prepare(request, instance, tree=params['tree'])
+            return self.render(request, data, status=codes.created)
+
+        data = {
+            'message': 'Error creating context',
+            'errors': dict(form.errors),
+        }
+
+        response = self.render(request, data,
+                               status=codes.unprocessable_entity)
         return response
 
 
@@ -143,6 +156,7 @@ class ContextResource(ContextBase):
         return self.get_object(request, **kwargs) is None
 
     def get(self, request, **kwargs):
+        params = self.get_params(request)
         instance = self.get_object(request, **kwargs)
         usage.log('read', instance=instance, request=request)
 
@@ -151,9 +165,10 @@ class ContextResource(ContextBase):
         self.model.objects.filter(pk=instance.pk).update(
             accessed=datetime.now())
 
-        return self.prepare(request, instance)
+        return self.prepare(request, instance, tree=params['tree'])
 
     def put(self, request, **kwargs):
+        params = self.get_params(request)
         instance = self.get_object(request, **kwargs)
 
         form = ContextForm(request, request.data, instance=instance)
@@ -161,15 +176,18 @@ class ContextResource(ContextBase):
         if form.is_valid():
             instance = form.save()
             usage.log('update', instance=instance, request=request)
+
             request.session.modified = True
-            response = self.render(request, self.prepare(request, instance))
-        else:
-            data = {
-                'message': 'Error updating context',
-                'errors': dict(form.errors),
-            }
-            response = self.render(request, data,
-                                   status=codes.unprocessable_entity)
+
+            data = self.prepare(request, instance, tree=params['tree'])
+            return self.render(request, data)
+
+        data = {
+            'message': 'Error updating context',
+            'errors': dict(form.errors),
+        }
+        response = self.render(request, data,
+                               status=codes.unprocessable_entity)
         return response
 
     def delete(self, request, **kwargs):

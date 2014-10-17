@@ -24,6 +24,8 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
+        content = json.loads(response.content)
+        self.assertEqual(content['object_name'], 'employee')
         self.assertLess(ctx.accessed,
                         DataContext.objects.get(pk=ctx.pk).accessed)
 
