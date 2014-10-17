@@ -86,15 +86,17 @@ class FieldBase(ThrottledResource):
 
     template = templates.Field
 
-    def get_queryset(self, request):
+    def get_queryset(self, request, params):
         queryset = self.model.objects.all()
-        if not can_change_field(request.user):
-            queryset = queryset.published()
-        return queryset
+
+        if params.get('unpublished') and can_change_field(request.user):
+            return queryset
+
+        return queryset.published()
 
     def get_object(self, request, **kwargs):
         if not hasattr(request, 'instance'):
-            queryset = self.get_queryset(request)
+            queryset = self.get_queryset(request, self.get_params(request))
 
             try:
                 instance = queryset.get(**kwargs)
@@ -143,12 +145,7 @@ class FieldsResource(FieldResource):
 
     def get(self, request):
         params = self.get_params(request)
-        queryset = self.get_queryset(request)
-
-        # For privileged users, check if any filters are applied, otherwise
-        # only allow for published objects.
-        if not can_change_field(request.user) or not params['unpublished']:
-            queryset = queryset.published()
+        queryset = self.get_queryset(request, params)
 
         # If Haystack is installed, perform the search
         if params['query'] and OPTIONAL_DEPS['haystack']:

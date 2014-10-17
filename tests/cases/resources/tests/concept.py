@@ -221,10 +221,20 @@ class ConceptResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 3)
 
-        response = self.client.get('/api/concepts/2/',
+        response = self.client.get('/api/concepts/2/?unpublished=1',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
+
+        # Make sure the unpublished concepts are only exposed when explicitly
+        # asked for even when a superuser makes the request.
+        response = self.client.get('/api/concepts/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+        response = self.client.get('/api/concepts/2/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
 
 
 class ConceptFieldResourceTestCase(BaseTestCase):

@@ -91,10 +91,20 @@ class FieldResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 12)
 
-        response = self.client.get('/api/fields/1/',
+        response = self.client.get('/api/fields/1/?unpublished=1',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
+
+        # Make sure the unpublished fields are only exposed when explicitly
+        # asked for even when a superuser makes the request.
+        response = self.client.get('/api/fields/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(len(json.loads(response.content)), 5)
+
+        response = self.client.get('/api/fields/1/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_values(self):
         # title.name
