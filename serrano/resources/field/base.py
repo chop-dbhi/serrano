@@ -92,7 +92,7 @@ class FieldBase(ThrottledResource):
         if params.get('unpublished') and can_change_field(request.user):
             return queryset
 
-        return queryset.published()
+        return queryset.published(user=request.user)
 
     def get_object(self, request, **kwargs):
         if not hasattr(request, 'instance'):
