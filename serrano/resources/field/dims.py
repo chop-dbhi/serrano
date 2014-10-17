@@ -1,5 +1,5 @@
 from decimal import Decimal
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
@@ -72,14 +72,9 @@ class FieldDimensions(FieldBase):
             groupby = [tree.query_string_for_field(instance.field,
                                                    model=instance.model)]
 
-        # Perform a count aggregation of the tree model grouped by the
-        # specified dimensions
-        stats = tree_field.count(*groupby)
+        queryset = queryset.values(*groupby)
 
-        # Apply it relative to the queryset
-        stats = stats.apply(queryset)
-
-        # Exclude null values. Dependending on the downstream use of the data,
+        # Exclude null values. Depending on the downstream use of the data,
         # nulls may or may not be desirable.
         if not params['nulls']:
             q = Q()
@@ -87,7 +82,7 @@ class FieldDimensions(FieldBase):
             for field in groupby:
                 q = q | Q(**{field: None})
 
-            stats = stats.exclude(q)
+            queryset = queryset.exclude(q)
 
         # Begin constructing the response
         resp = {
@@ -97,8 +92,11 @@ class FieldDimensions(FieldBase):
             'size': 0,
         }
 
+        queryset = queryset.annotate(count=Count(tree_field.field.name))\
+            .values_list('count', *groupby)
+
         # Evaluate list of points
-        length = len(stats)
+        length = len(queryset)
 
         # Nothing to do
         if not length:
@@ -123,12 +121,12 @@ class FieldDimensions(FieldBase):
         # relative to the count of each group
         if (any([d.enumerable for d in fields]) and
                 not params['sort'] == 'count'):
-            stats = stats.order_by(*groupby)
+            queryset = queryset.order_by(*groupby)
         else:
-            stats = stats.order_by('-count')
+            queryset = queryset.order_by('-count')
 
         clustered = False
-        points = list(stats)
+        points = list(queryset)
         outliers = []
 
         # For N-dimensional continuous data, check if clustering should occur
@@ -137,7 +135,14 @@ class FieldDimensions(FieldBase):
             # Extract observations for clustering
             obs = []
 
-            for point in points:
+            for i, point in enumerate(points):
+                point = {
+                    'count': point[0],
+                    'values': point[1:],
+                }
+
+                points[i] = point
+
                 for i, dim in enumerate(point['values']):
                     if isinstance(dim, Decimal):
                         point['values'][i] = float(str(dim))
