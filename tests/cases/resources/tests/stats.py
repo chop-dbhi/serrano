@@ -1,5 +1,7 @@
 import json
+from django.core.cache import cache
 from restlib2.http import codes
+from tests.models import Title
 from .base import BaseTestCase
 
 
@@ -18,6 +20,7 @@ class StatsResourceTestCase(BaseTestCase):
 class CountStatsResourceTestCase(BaseTestCase):
     def setUp(self):
         super(CountStatsResourceTestCase, self).setUp()
+        cache.clear()
 
     def test_get(self):
         response = self.client.get('/api/stats/counts/',
@@ -85,4 +88,47 @@ class CountStatsResourceTestCase(BaseTestCase):
             'verbose_name': 'Title',
             'verbose_name_plural': 'Titles',
             'count': 3,
+        }])
+
+    def test_cache(self):
+        # Populate cache
+        self.client.get('/api/stats/counts/', HTTP_ACCEPT='application/json')
+
+        # Add another instance to alter count
+        Title(name='DevOps').save()
+
+        response = self.client.get('/api/stats/counts/',
+                                   HTTP_ACCEPT='application/json')
+
+        # Still old counts
+        self.assertEqual(json.loads(response.content), [{
+            'app_name': 'tests',
+            'model_name': 'project',
+            'verbose_name': 'Project',
+            'verbose_name_plural': 'Projects',
+            'count': 3,
+        }, {
+            'app_name': 'tests',
+            'model_name': 'title',
+            'verbose_name': 'Title',
+            'verbose_name_plural': 'Titles',
+            'count': 7,
+        }])
+
+        response = self.client.get('/api/stats/counts/?refresh=1',
+                                   HTTP_ACCEPT='application/json')
+
+        # Refreshed counts
+        self.assertEqual(json.loads(response.content), [{
+            'app_name': 'tests',
+            'model_name': 'project',
+            'verbose_name': 'Project',
+            'verbose_name_plural': 'Projects',
+            'count': 3,
+        }, {
+            'app_name': 'tests',
+            'model_name': 'title',
+            'verbose_name': 'Title',
+            'verbose_name_plural': 'Titles',
+            'count': 8,
         }])
