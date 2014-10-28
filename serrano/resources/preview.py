@@ -51,7 +51,7 @@ class PreviewResource(BaseResource, PaginatorResource):
         offset = max(0, page.start_index() - 1)
 
         # Prepare the exporter and iterable
-        iterable = processor.get_iterable()
+        iterable = processor.get_iterable(request=request)
 
         # Build up the header keys.
         # TODO: This is flawed since it assumes the output columns
