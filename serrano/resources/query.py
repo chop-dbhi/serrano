@@ -6,9 +6,12 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
+from restlib2.params import Parametizer, StrParam
 from preserialize.serialize import serialize
-from avocado.models import DataQuery
+from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
 from avocado.events import usage
+from avocado.models import DataQuery
+from avocado.query import pipeline
 from serrano import utils
 from serrano.forms import QueryForm
 from .base import ThrottledResource
@@ -64,12 +67,19 @@ def forked_query_posthook(instance, data, request):
     return data
 
 
+class QueryParametizer(Parametizer):
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
+    processor = StrParam('default', choices=pipeline.query_processors)
+
+
 class QueryBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
 
     model = DataQuery
     template = templates.Query
+
+    parametizer = QueryParametizer
 
     def prepare(self, request, instance, template=None):
         if template is None:
@@ -333,11 +343,16 @@ class QueryStatsResource(QueryBase):
         return self.get_object(request, **kwargs) is None
 
     def get(self, request, **kwargs):
+        params = self.get_params(request)
         instance = self.get_object(request, **kwargs)
 
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(tree=params['tree'])
+        queryset = processor.get_queryset(request=request)
+
         return {
-            'distinct_count': instance.context.apply().distinct().count(),
-            'record_count': instance.apply().count()
+            'distinct_count': instance.context.count(queryset=queryset),
+            'record_count': instance.count(queryset=queryset)
         }
 
 
