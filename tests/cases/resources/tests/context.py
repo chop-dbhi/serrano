@@ -1,10 +1,16 @@
 import json
 from restlib2.http import codes
-from avocado.models import DataContext
+from avocado.models import DataContext, DataField
 from .base import AuthenticatedBaseTestCase
 
 
 class ContextResourceTestCase(AuthenticatedBaseTestCase):
+    def setUp(self):
+        super(ContextResourceTestCase, self).setUp()
+
+        self.salary_field = DataField.objects.get_by_natural_key(
+            'tests', 'title', 'salary')
+
     def test_get_all(self):
         response = self.client.get('/api/contexts/',
                                    HTTP_ACCEPT='application/json')
@@ -62,8 +68,39 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
         response = self.client.get('/api/contexts/1/',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertTrue(response.content)
-        self.assertEqual(json.loads(response.content)['name'], 'POST Context')
+        content = json.loads(response.content)
+        self.assertTrue(content)
+        self.assertEqual(content['name'], 'POST Context')
+        self.assertEqual(content['count'], None)
+
+        data = '''
+        {{
+            "name": "JSON Context",
+            "json": {{
+                "field": {0},
+                "operator": "isnull",
+                "value": false
+            }}
+        }}'''.format(self.salary_field.id)
+
+        # Create a new context and include JSON so we get a count back.
+        response = self.client.post(
+            '/api/contexts/', data=data, content_type='application/json')
+        content = json.loads(response.content)
+        self.assertTrue(content)
+        self.assertEqual(content['name'], 'JSON Context')
+        self.assertEqual(content['count'], 6)
+
+        # Now, use JSON and a custom processor and our count should differ
+        # from the case where we just included JSON.
+        response = self.client.post(
+            '/api/contexts/?processor=manager',
+            data=data,
+            content_type='application/json')
+        content = json.loads(response.content)
+        self.assertTrue(content)
+        self.assertEqual(content['name'], 'JSON Context')
+        self.assertEqual(content['count'], 1)
 
         # Make a POST request with invalid JSON and make sure we get an
         # unprocessable status code back.
@@ -89,12 +126,54 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
             content_type='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
-        # Make sure our changes from the PUT request are persisted.
+        # Make sure our changes from the PUT request are persisted and that
+        # updating the name didn't trigger a count.
         response = self.client.get('/api/contexts/1/',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertTrue(response.content)
-        self.assertEqual(json.loads(response.content)['name'], 'New Name')
+        content = json.loads(response.content)
+        self.assertTrue(content)
+        self.assertEqual(content['name'], 'New Name')
+        self.assertEqual(content['count'], None)
+
+        data = '''
+        {{
+            "name": "JSON Context",
+            "json": {{
+                "field": {0},
+                "operator": "isnull",
+                "value": false
+            }}
+        }}'''.format(self.salary_field.id)
+
+        # Now, change the JSON and check that the count changed.
+        response = self.client.put(
+            '/api/contexts/1/', data=data, content_type='application/json')
+        content = json.loads(response.content)
+        self.assertTrue(content)
+        self.assertEqual(content['name'], 'JSON Context')
+        self.assertEqual(content['count'], 6)
+
+        data = '''
+        {{
+            "name": "JSON Context",
+            "json": {{
+                "field": {0},
+                "operator": "gt",
+                "value": 0
+            }}
+        }}'''.format(self.salary_field.id)
+
+        # Tweak the JSON and use a query processor which should trigger a
+        # count and also use the query processor's queryset when counting.
+        response = self.client.put(
+            '/api/contexts/1/?processor=manager',
+            data=data,
+            content_type='application/json')
+        content = json.loads(response.content)
+        self.assertTrue(content)
+        self.assertEqual(content['name'], 'JSON Context')
+        self.assertEqual(content['count'], 1)
 
         # Make a PUT request with invalid JSON and make sure we get an
         # unprocessable status code back.

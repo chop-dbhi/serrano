@@ -8,7 +8,9 @@ from django.contrib.sites.models import get_current_site
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.core.validators import validate_email
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS
 from avocado.models import DataContext, DataView, DataQuery
+from avocado.query import pipeline
 from serrano import utils
 from serrano.conf import settings
 
@@ -23,6 +25,9 @@ class ContextForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
         self.count_needs_update = kwargs.pop('force_count', None)
+        self.processor = kwargs.pop('processor', 'default')
+        self.tree = kwargs.pop('tree', MODELTREE_DEFAULT_ALIAS)
+
         super(ContextForm, self).__init__(*args, **kwargs)
 
     def clean_json(self):
@@ -47,12 +52,17 @@ class ContextForm(forms.ModelForm):
         else:
             instance.session_key = request.session.session_key
 
+        QueryProcessor = pipeline.query_processors[self.processor]
+        processor = QueryProcessor(tree=self.tree)
+        queryset = processor.get_queryset(request=request)
+
         # Only recalculated count if conditions exist. This is to
         # prevent re-counting the entire dataset. An alternative
         # solution may be desirable such as pre-computing and
         # caching the count ahead of time.
         if self.count_needs_update:
-            instance.count = instance.apply().distinct().count()
+            instance.count = \
+                instance.apply(queryset=queryset).distinct().count()
             self.count_needs_update = False
         else:
             instance.count = None
