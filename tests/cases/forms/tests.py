@@ -10,7 +10,7 @@ from django.test.utils import override_settings
 from avocado.models import DataConcept, DataConceptField, DataContext, \
     DataField, DataView
 from serrano.forms import ContextForm, QueryForm, ViewForm
-from ...models import Employee, MockHandler
+from ...models import MockHandler
 
 
 def retry_until_true(sleep_interval=0.1, tries=50):
@@ -57,12 +57,10 @@ class ContextFormTestCase(BaseTestCase):
     def test_session(self):
         form = ContextForm(self.request, {})
         self.assertTrue(form.is_valid())
-        self.assertFalse(form.count_needs_update)
         instance = form.save()
         self.assertIsNone(instance.user)
         self.assertEqual(instance.session_key,
                          self.request.session.session_key)
-        self.assertIsNone(instance.count)
 
     def test_user(self):
         user = User.objects.create_user(username='test', password='test')
@@ -75,22 +73,9 @@ class ContextFormTestCase(BaseTestCase):
         self.assertEqual(instance.session_key, None)
 
     def test_json(self):
-        expected_count = \
-            Employee.objects.filter(title__salary__gt=1000).count()
-
         form = ContextForm(self.request, {'json': {
             'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
         self.assertTrue(form.is_valid())
-
-        instance = form.save()
-        self.assertEqual(instance.count, expected_count)
-
-    def test_force_count(self):
-        expected_count = Employee.objects.distinct().count()
-        form = ContextForm(self.request, {}, force_count=True)
-        self.assertTrue(form.is_valid())
-        instance = form.save()
-        self.assertEqual(instance.count, expected_count)
 
     def test_no_commit(self):
         previous_context_count = DataContext.objects.count()
@@ -164,8 +149,6 @@ class QueryFormTestCase(BaseTestCase):
 
         form = QueryForm(self.request, {})
         self.assertTrue(form.is_valid())
-        self.assertFalse(form.count_needs_update_context)
-        self.assertFalse(form.count_needs_update_view)
         instance = form.save()
         self.assertEqual(instance.user, user)
         self.assertEqual(instance.session_key, None)
@@ -293,46 +276,21 @@ class QueryFormTestCase(BaseTestCase):
                          initial_warning_count + 1)
 
     def test_view_json(self):
-        expected_count = Employee.objects.count()
-
         form = QueryForm(self.request, {'view_json': [{'concept': 1}]})
         self.assertTrue(form.is_valid())
-        instance = form.save()
-        self.assertEqual(instance.record_count, expected_count)
 
     def test_context_json(self):
-        expected_count = \
-            Employee.objects.filter(title__salary__gt=1000).count()
-
         form = QueryForm(self.request, {'context_json': {
             'field': 'tests.title.salary', 'operator': 'gt', 'value': '1000'}})
         self.assertTrue(form.is_valid())
-        instance = form.save()
-        self.assertEqual(instance.distinct_count, expected_count)
 
     def test_both_json(self):
-        expected_count = \
-            Employee.objects.filter(title__salary__gt=1000).count()
-
         form = QueryForm(self.request, {
             'context_json': {
                 'field': 'tests.title.salary', 'operator': 'gt',
                 'value': '1000'},
             'view_json': [{'concept': 1}]})
         self.assertTrue(form.is_valid())
-        instance = form.save()
-        self.assertEqual(instance.distinct_count, expected_count)
-        self.assertEqual(instance.record_count, expected_count)
-
-    def test_force_count(self):
-        expected_count = Employee.objects.distinct().count()
-
-        form = QueryForm(self.request, {}, force_count=True)
-        self.assertTrue(form.is_valid())
-
-        instance = form.save()
-        self.assertEqual(instance.distinct_count, expected_count)
-        self.assertEqual(instance.record_count, expected_count)
 
     def test_no_commit(self):
         previous_user_count = User.objects.count()
