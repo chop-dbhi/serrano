@@ -22,21 +22,8 @@ SHARED_QUERY_EMAIL_BODY = 'View the query at {query_url}'
 class ContextForm(forms.ModelForm):
     def __init__(self, request, *args, **kwargs):
         self.request = request
-        self.count_needs_update = kwargs.pop('force_count', None)
+
         super(ContextForm, self).__init__(*args, **kwargs)
-
-    def clean_json(self):
-        json = self.cleaned_data.get('json')
-
-        if self.count_needs_update is None and self.instance:
-            existing = self.instance.json
-
-            if (existing or json and existing != json or json and
-                    self.instance.count is None):
-                self.count_needs_update = True
-            else:
-                self.count_needs_update = False
-        return json
 
     def save(self, commit=True):
         instance = super(ContextForm, self).save(commit=False)
@@ -46,16 +33,6 @@ class ContextForm(forms.ModelForm):
             instance.user = request.user
         else:
             instance.session_key = request.session.session_key
-
-        # Only recalculated count if conditions exist. This is to
-        # prevent re-counting the entire dataset. An alternative
-        # solution may be desirable such as pre-computing and
-        # caching the count ahead of time.
-        if self.count_needs_update:
-            instance.count = instance.apply().distinct().count()
-            self.count_needs_update = False
-        else:
-            instance.count = None
 
         if commit:
             instance.save()
@@ -101,31 +78,8 @@ class QueryForm(forms.ModelForm):
 
     def __init__(self, request, *args, **kwargs):
         self.request = request
-        self.count_needs_update_context = kwargs.pop('force_count', None)
-        self.count_needs_update_view = self.count_needs_update_context
+
         super(QueryForm, self).__init__(*args, **kwargs)
-
-    def clean_context_json(self):
-        json = self.cleaned_data.get('context_json')
-        if self.count_needs_update_context is None:
-            existing = self.instance.context_json
-            if (existing or json and existing != json or json and
-                    self.instance.count is None):
-                self.count_needs_update_context = True
-            else:
-                self.count_needs_update_context = False
-        return json
-
-    def clean_view_json(self):
-        json = self.cleaned_data.get('view_json')
-        if self.count_needs_update_view is None:
-            existing = self.instance.view_json
-            if (existing or json and existing != json or json and
-                    self.instance.count is None):
-                self.count_needs_update_view = True
-            else:
-                self.count_needs_update_view = False
-        return json
 
     def clean_usernames_or_emails(self):
         """
@@ -172,22 +126,6 @@ class QueryForm(forms.ModelForm):
             instance.user = request.user
         else:
             instance.session_key = request.session.session_key
-
-        # Only recalculated count if conditions exist. This is to
-        # prevent re-counting the entire dataset. An alternative
-        # solution may be desirable such as pre-computing and
-        # caching the count ahead of time.
-        if self.count_needs_update_context:
-            instance.distinct_count = instance.apply().distinct().count()
-            self.count_needs_update_context = False
-        else:
-            instance.distinct_count = None
-
-        if self.count_needs_update_view:
-            instance.record_count = instance.apply().count()
-            self.count_needs_update_view = False
-        else:
-            instance.record_count = None
 
         if commit:
             instance.save()
