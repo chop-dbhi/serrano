@@ -489,6 +489,22 @@ class QueryStatsResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(data['distinct_count'], 6)
         self.assertEqual(data['record_count'], 6)
 
+    def test_processor(self):
+        query = DataQuery(session=True, user=self.user)
+        query.save()
+
+        response = self.client.get('/api/queries/1/stats/',
+                                   HTTP_ACCEPT='application/json')
+        data = json.loads(response.content)
+        self.assertEqual(data['distinct_count'], 6)
+        self.assertEqual(data['record_count'], 6)
+
+        response = self.client.get('/api/queries/1/stats/?processor=manager',
+                                   HTTP_ACCEPT='application/json')
+        data = json.loads(response.content)
+        self.assertEqual(data['distinct_count'], 1)
+        self.assertEqual(data['record_count'], 1)
+
 
 class EmailTestCase(BaseTestCase):
     subject = 'Email_Subject'

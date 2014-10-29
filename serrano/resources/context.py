@@ -10,6 +10,7 @@ from preserialize.serialize import serialize
 from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
 from avocado.events import usage
 from avocado.models import DataContext
+from avocado.query import pipeline
 from serrano.forms import ContextForm
 from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
@@ -40,6 +41,7 @@ def context_posthook(instance, data, request, tree):
 
 class ContextParametizer(Parametizer):
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
+    processor = StrParam('default', choices=pipeline.query_processors)
 
 
 class ContextBase(ThrottledResource):
@@ -210,10 +212,15 @@ class ContextStatsResource(ContextBase):
         return self.get_object(request, **kwargs) is None
 
     def get(self, request, **kwargs):
+        params = self.get_params(request)
         instance = self.get_object(request, **kwargs)
 
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(tree=params['tree'])
+        queryset = processor.get_queryset(request=request)
+
         return {
-            'count': instance.apply().distinct().count()
+            'count': instance.count(queryset=queryset)
         }
 
 

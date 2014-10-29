@@ -155,6 +155,18 @@ class ContextStatsResourceTestCase(AuthenticatedBaseTestCase):
 
         self.assertEqual(json.loads(response.content)['count'], 6)
 
+    def test_processor(self):
+        cxt = DataContext(session=True, user=self.user)
+        cxt.save()
+
+        response = self.client.get('/api/contexts/1/stats/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(json.loads(response.content)['count'], 6)
+
+        response = self.client.get('/api/contexts/1/stats/?processor=manager',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(json.loads(response.content)['count'], 1)
+
 
 class ContextsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
