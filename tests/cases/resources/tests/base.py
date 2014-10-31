@@ -39,26 +39,24 @@ class RootResourceTestCase(TestCase):
         response = self.client.get('/api/', HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/data/export/>; rel="exporter", '
+            '<http://testserver/api/views/>; rel="views", '
+            '<http://testserver/api/concepts/>; rel="concepts", '
+            '<http://testserver/api/stats/>; rel="stats", '
+            '<http://testserver/api/categories/>; rel="categories", '
+            '<http://testserver/api/queries/public/>; rel="public_queries", '
+            '<http://testserver/api/sets/>; rel="sets", '
+            '<http://testserver/api/contexts/>; rel="contexts", '
+            '<http://testserver/api/fields/>; rel="fields", '
+            '<http://testserver/api/>; rel="self", '
+            '<http://testserver/api/ping/>; rel="ping", '
+            '<http://testserver/api/queries/>; rel="queries", '
+            '<http://testserver/api/data/preview/>; rel="preview"'
+        ))
         self.assertEqual(json.loads(response.content), {
             'title': 'Serrano Hypermedia API',
             'version': API_VERSION,
-            '_links': {
-                'exporter': {'href': 'http://testserver/api/data/export/'},
-                'views': {'href': 'http://testserver/api/views/'},
-                'contexts': {'href': 'http://testserver/api/contexts/'},
-                'queries': {'href': 'http://testserver/api/queries/'},
-                'public_queries': {
-                    'href': 'http://testserver/api/queries/public/'
-                },
-                'fields': {'href': 'http://testserver/api/fields/'},
-                'categories': {'href': 'http://testserver/api/categories/'},
-                'self': {'href': 'http://testserver/api/'},
-                'concepts': {'href': 'http://testserver/api/concepts/'},
-                'preview': {'href': 'http://testserver/api/data/preview/'},
-                'sets': {'href': 'http://testserver/api/sets/'},
-                'ping': {'href': 'http://testserver/api/ping/'},
-                'stats': {'href': 'http://testserver/api/stats/'},
-            },
         })
 
     @override_settings(SERRANO_AUTH_REQUIRED=True)
@@ -218,7 +216,7 @@ class RevisionResourceTestCase(AuthenticatedBaseTestCase):
         revision = json.loads(response.content)[0]
         self.assertEqual(revision['id'], 1)
         self.assertEqual(revision['object_id'], 1)
-        self.assertTrue('_links' in revision)
+        self.assertTrue(response['Link-Template'])
         self.assertFalse('content_type' in revision)
 
 

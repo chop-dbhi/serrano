@@ -11,19 +11,17 @@ from .base import BaseResource, ThrottledResource
 
 
 class StatsResource(BaseResource):
-    def get(self, request):
+    def get_links(self, request):
         uri = request.build_absolute_uri
 
         return {
+            'self': uri(reverse('serrano:stats:root')),
+            'counts': uri(reverse('serrano:stats:counts'))
+        }
+
+    def get(self, request):
+        return {
             'title': 'Serrano Stats Endpoint',
-            '_links': {
-                'self': {
-                    'href': uri(reverse('serrano:stats:root')),
-                },
-                'counts': {
-                    'href': uri(reverse('serrano:stats:counts')),
-                },
-            }
         }
 
 

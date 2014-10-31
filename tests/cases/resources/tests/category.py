@@ -30,6 +30,10 @@ class CategoryResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
+        self.assertEqual(response['Link-Template'], (
+            '<http://testserver/api/categories/{id}/>; rel="category", '
+            '<http://testserver/api/categories/{parent_id}/>; rel="parent"'
+        ))
         self.assertTrue(Log.objects.filter(event='read', object_id=1).exists())
 
     def test_get_privileged(self):

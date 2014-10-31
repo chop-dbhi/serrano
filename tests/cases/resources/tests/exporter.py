@@ -12,42 +12,23 @@ class ExporterResourceTestCase(TestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
 
-        expectedResponse = {
+        self.assertEqual(json.loads(response.content), {
             'title': 'Serrano Exporter Endpoints',
-            'version': API_VERSION,
-            '_links': {
-                'self': {'href': 'http://testserver/api/data/export/'},
-                'json': {
-                    'href': 'http://testserver/api/data/export/json/',
-                    'description': 'JavaScript Object Notation (JSON)',
-                    'title': 'JSON'
-                },
-                'r': {
-                    'href': 'http://testserver/api/data/export/r/',
-                    'description': 'R Programming Language',
-                    'title': 'R'
-                },
-                'sas': {
-                    'href': 'http://testserver/api/data/export/sas/',
-                    'description': 'Statistical Analysis System (SAS)',
-                    'title': 'SAS'
-                },
-                'csv': {
-                    'href': 'http://testserver/api/data/export/csv/',
-                    'description': 'Comma-Separated Values (CSV)',
-                    'title': 'CSV'
-                }
-            },
-        }
+            'version': API_VERSION
+        })
+
+        expected_links = (
+            '<http://testserver/api/data/export/sas/>; rel="sas"; description="Statistical Analysis System (SAS)"; title="SAS", '  # noqa
+            '<http://testserver/api/data/export/>; rel="self", '
+            '<http://testserver/api/data/export/csv/>; rel="csv"; description="Comma-Separated Values (CSV)"; title="CSV", '  # noqa
+            '<http://testserver/api/data/export/r/>; rel="r"; description="R Programming Language"; title="R", '  # noqa
+            '<http://testserver/api/data/export/json/>; rel="json"; description="JavaScript Object Notation (JSON)"; title="JSON"'  # noqa
+        )
 
         if OPTIONAL_DEPS['openpyxl']:
-            expectedResponse['_links']['excel'] = {
-                'href': 'http://testserver/api/data/export/excel/',
-                'description': 'Microsoft Excel 2007 Format',
-                'title': 'Excel'
-            }
+            expected_links += ', <http://testserver/api/data/export/excel/>; rel="excel"; description="Microsoft Excel 2007 Format"; title="Excel"'  # noqa
 
-        self.assertEqual(json.loads(response.content), expectedResponse)
+        self.assertEqual(response['Link'], expected_links)
 
     def test_export_bad_type(self):
         response = self.client.get('/api/data/export/bad_type/')

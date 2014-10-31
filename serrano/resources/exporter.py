@@ -16,26 +16,33 @@ EXPORT_TYPES = zip(*exporters.choices)[0]
 
 
 class ExporterRootResource(BaseResource):
-    def get(self, request):
+    def get_links(self, request):
         uri = request.build_absolute_uri
 
-        resp = {
-            'title': 'Serrano Exporter Endpoints',
-            'version': API_VERSION,
-            '_links': {
-                'self': {
-                    'href': uri(reverse('serrano:data:exporter')),
-                },
-            }
+        links = {
+            'self': uri(reverse('serrano:data:exporter')),
         }
 
         for export_type in EXPORT_TYPES:
-            resp['_links'][export_type] = {
-                'href': uri(reverse('serrano:data:exporter',
-                                    kwargs={'export_type': export_type})),
-                'title': exporters.get(export_type).short_name,
-                'description': exporters.get(export_type).long_name,
+            links[export_type] = {
+                'link': uri(reverse(
+                    'serrano:data:exporter',
+                    kwargs={'export_type': export_type}
+                )),
+                'data': {
+                    'title': exporters.get(export_type).short_name,
+                    'description': exporters.get(export_type).long_name,
+                }
             }
+
+        return links
+
+    def get(self, request):
+        resp = {
+            'title': 'Serrano Exporter Endpoints',
+            'version': API_VERSION
+        }
+
         return resp
 
 

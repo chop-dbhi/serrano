@@ -39,6 +39,11 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
 
+        self.assertEqual(response['Link-Template'], (
+            '<http://testserver/api/concepts/{id}/fields/>; rel="concept-fields", '   # noqa
+            '<http://testserver/api/concepts/{id}/>; rel="concept"'
+        ))
+
     def test_get_all_category_sort(self):
         # Create some temporary concepts and categories.
         cat1 = DataCategory(name='Category1', order=1.0, published=True)

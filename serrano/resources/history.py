@@ -1,31 +1,17 @@
 import functools
 from django.contrib.contenttypes.models import ContentType
-from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, BoolParam
 from avocado.history.models import Revision
 from .base import ThrottledResource
 from . import templates
+from ..links import reverse_tmpl
 
 __all__ = ('RevisionParametizer', 'RevisionsResource',
            'ObjectRevisionResource', 'ObjectRevisionsResource')
 
 
-def revision_posthook(instance, data, request, object_uri, object_template,
-                      embed=False):
-    uri = request.build_absolute_uri
-
-    data['_links'] = {
-        'self': {
-            'href': uri(reverse("{0}:revision_for_object".format(object_uri),
-                                args=[instance.object_id, instance.pk])),
-        },
-        'object': {
-            'href': uri(reverse("{0}:single".format(object_uri),
-                                args=[instance.object_id])),
-        }
-    }
-
+def revision_posthook(instance, data, request, object_template, embed=False):
     if embed:
         data['object'] = serialize(instance.content_object, **object_template)
 
@@ -52,13 +38,37 @@ class RevisionsResource(ThrottledResource):
 
     parametizer = RevisionParametizer
 
+    def get_link_templates(self, request):
+        if self.object_model is None:
+            return {}
+
+        uri = request.build_absolute_uri
+        object_uri = self.object_model_base_uri
+
+        return {
+            'self': reverse_tmpl(
+                uri,
+                '{0}:revision_for_object'.format(object_uri),
+                {
+                    'object_pk': (int, 'object_id'),
+                    'revision_pk': (int, 'id')
+                }
+            ),
+            'object': reverse_tmpl(
+                uri,
+                '{0}:single'.format(object_uri),
+                {'pk': (int, 'id')}
+            )
+        }
+
     def prepare(self, request, instance, template=None, embed=False):
         if template is None:
             template = self.template
+
         posthook = functools.partial(
             revision_posthook, request=request,
-            object_uri=self.object_model_base_uri,
             object_template=self.object_model_template, embed=embed)
+
         return serialize(instance, posthook=posthook, **template)
 
     def get_queryset(self, request, **kwargs):

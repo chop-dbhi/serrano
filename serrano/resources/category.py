@@ -1,39 +1,15 @@
 import logging
-import functools
 from django.conf.urls import patterns, url
-from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.params import Parametizer, BoolParam
 from avocado.events import usage
 from avocado.models import DataCategory
 from .base import ThrottledResource, SAFE_METHODS
+from ..links import reverse_tmpl
 from . import templates
 
 can_change_category = lambda u: u.has_perm('avocado.change_datacategory')
 log = logging.getLogger(__name__)
-
-
-def category_posthook(instance, data, request):
-    """Category serialization post-hook for augmenting per-instance data.
-
-    The only two arguments the post-hook takes is instance and data. The
-    remaining arguments must be partially applied using `functools.partial`
-    during the request/response cycle.
-    """
-    uri = request.build_absolute_uri
-
-    data['_links'] = {
-        'self': {
-            'href': uri(reverse('serrano:category', args=[instance.pk])),
-        },
-    }
-
-    if data['parent_id']:
-        data['_links']['parent'] = {
-            'href': uri(reverse('serrano:category', args=[data['parent_id']])),
-        }
-
-    return data
 
 
 class CategoryParametizer(Parametizer):
@@ -50,6 +26,18 @@ class CategoryBase(ThrottledResource):
     template = templates.Category
 
     parametizer = CategoryParametizer
+
+    def get_link_templates(self, request):
+        uri = request.build_absolute_uri
+
+        templates = {
+            'category': reverse_tmpl(
+                uri, 'serrano:category', {'pk': (int, 'id')}),
+            'parent': reverse_tmpl(
+                uri, 'serrano:category', {'pk': (int, 'parent_id')}),
+        }
+
+        return templates
 
     def get_queryset(self, request, params):
         queryset = self.model.objects.all()
@@ -73,8 +61,7 @@ class CategoryBase(ThrottledResource):
         return request.instance
 
     def prepare(self, request, objects, template=None, **params):
-        posthook = functools.partial(category_posthook, request=request)
-        return serialize(objects, posthook=posthook, **self.template)
+        return serialize(objects, **self.template)
 
     def is_forbidden(self, request, response, *args, **kwargs):
         "Ensure non-privileged users cannot make any changes."

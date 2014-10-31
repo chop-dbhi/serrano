@@ -1,10 +1,11 @@
 import logging
-from django.core.urlresolvers import reverse
+from restlib2.http import codes
 from restlib2.params import Parametizer, BoolParam, StrParam
 from avocado.events import usage
 from avocado.query import pipeline
+from serrano.conf import settings
 from .base import FieldBase
-
+from ...links import reverse_tmpl
 
 log = logging.getLogger(__name__)
 
@@ -19,9 +20,26 @@ class FieldStats(FieldBase):
 
     parametizer = FieldStatsParametizer
 
-    def get(self, request, pk):
+    def get_link_templates(self, request):
         uri = request.build_absolute_uri
+
+        return {
+            'self': reverse_tmpl(
+                uri, 'serrano:field-stats', {'pk': (int, 'id')}),
+            'parent': reverse_tmpl(
+                uri, 'serrano:field', {'pk': (int, 'parent_id')}),
+        }
+
+    def get(self, request, pk):
         instance = self.get_object(request, pk=pk)
+
+        stats_capable = settings.STATS_CAPABLE
+        if stats_capable and not stats_capable(instance):
+            data = {
+                'message': 'This field does not support stats reporting.'
+            }
+            return self.render(
+                request, data, status=codes.unprocessable_entity)
 
         params = self.get_params(request)
 
@@ -51,16 +69,6 @@ class FieldStats(FieldBase):
             resp = {
                 'count': instance.count(queryset=queryset, distinct=True)
             }
-
-        resp['_links'] = {
-            'self': {
-                'href': uri(
-                    reverse('serrano:field-stats', args=[instance.pk])),
-            },
-            'parent': {
-                'href': uri(reverse('serrano:field', args=[instance.pk])),
-            },
-        }
 
         usage.log('stats', instance=instance, request=request)
         return resp

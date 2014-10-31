@@ -14,24 +14,31 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 5)
 
+        self.assertEqual(response['Link-Template'], (
+            '<http://testserver/api/fields/{id}/stats/>; rel="stats", '
+            '<http://testserver/api/fields/{id}/>; rel="self", '
+            '<http://testserver/api/fields/{id}/values/>; rel="values", '
+            '<http://testserver/api/fields/{id}/dist/>; rel="distribution"'
+        ))
+
     def test_stats_capable_setting(self):
         # Initially, the default stats_capable check will be used that allows
-        # for stats on all non-searchable fields so we will expect that
-        # endpoint to be included in the _links.
-        response = self.client.get('/api/fields/2/',
+        # for stats on all non-searchable fields so we will expect that the
+        # stats endpoint will return normally.
+        response = self.client.get('/api/fields/2/stats/',
                                    HTTP_ACCEPT='applicaton/json')
         self.assertEqual(response.status_code, codes.ok)
-        content = json.loads(response.content)
-        self.assertTrue('stats' in content['_links'])
+        self.assertEqual(response['Link-Template'], (
+            '<http://testserver/api/fields/{id}/stats/>; rel="self", '
+            '<http://testserver/api/fields/{parent_id}/>; rel="parent"'
+        ))
 
         # Now, overriding that setting so that this field is not
-        # "stats_capable" should remove the stats endpoint from _links.
+        # "stats_capable" should 'disable' the stats endpoint for that field.
         with self.settings(SERRANO_STATS_CAPABLE=lambda x: x.id != 2):
-            response = self.client.get('/api/fields/2/',
+            response = self.client.get('/api/fields/2/stats/',
                                        HTTP_ACCEPT='applicaton/json')
-            self.assertEqual(response.status_code, codes.ok)
-            content = json.loads(response.content)
-            self.assertFalse('stats' in content['_links'])
+            self.assertEqual(response.status_code, codes.unprocessable_entity)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
@@ -130,8 +137,11 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         data = json.loads(response.content)
         self.assertTrue(data['items'])
-        self.assertFalse('previous' in data['_links'])
-        self.assertFalse('next' in data['_links'])
+        self.assertFalse('previous' in response['Link'])
+        self.assertFalse('next' in response['Link'])
+        self.assertTrue('parent' in response['Link-Template'])
+        self.assertTrue(
+            'self' in response['Link'] and 'base' in response['Link'])
 
     def test_zero_division_error(self):
         # Delete everything for now

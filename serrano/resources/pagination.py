@@ -58,28 +58,17 @@ class PaginatorResource(Resource):
         path_format = '{0}?{1}'.format(path, '&'.join(pairs))
 
         links = {
-            'self': {
-                'href': uri(path_format.format(page=page.number,
-                                               limit=limit)),
-            },
-            'base': {
-                'href': uri(path),
-            }
+            'self': uri(path_format.format(page=page.number, limit=limit)),
+            'base': uri(path),
         }
 
         if page.has_previous():
-            links['prev'] = {
-                'href': uri(
-                    path_format.format(page=page.previous_page_number(),
-                                       limit=limit)),
-            }
+            links['prev'] = uri(path_format.format(
+                page=page.previous_page_number(), limit=limit))
 
         if page.has_next():
-            links['next'] = {
-                'href': uri(
-                    path_format.format(page=page.next_page_number(),
-                                       limit=limit)),
-            }
+            links['next'] = uri(path_format.format(
+                page=page.next_page_number(), limit=limit))
 
         return links
 

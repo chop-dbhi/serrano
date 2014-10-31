@@ -37,15 +37,6 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
-            '_links': {
-                'self': {
-                    'href': 'http://testserver/api/data/preview/?'
-                            'limit=20&page=1',
-                },
-                'base': {
-                    'href': 'http://testserver/api/data/preview/',
-                }
-            },
             'keys': [],
             'count': 0,
             'item_count': 0,
@@ -56,6 +47,10 @@ class PreviewResourceTestCase(TestCase):
             'num_pages': 1,
             'limit': 20,
         })
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
+            '<http://testserver/api/data/preview/>; rel="base"'
+        ))
 
     def test_get_with_user(self):
         self.user = User.objects.create_user(username='test', password='test')
@@ -66,15 +61,6 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
-            '_links': {
-                'self': {
-                    'href': 'http://testserver/api/data/preview/?'
-                            'limit=20&page=1',
-                },
-                'base': {
-                    'href': 'http://testserver/api/data/preview/',
-                }
-            },
             'keys': [],
             'count': 0,
             'item_count': 0,
@@ -85,3 +71,7 @@ class PreviewResourceTestCase(TestCase):
             'num_pages': 1,
             'limit': 20,
         })
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
+            '<http://testserver/api/data/preview/>; rel="base"'
+        ))

@@ -8,6 +8,7 @@ from serrano.conf import settings
 from django.contrib.auth import authenticate, login
 from ..tokens import get_request_token
 from .. import cors
+from .. import links
 
 __all__ = ('BaseResource', 'ThrottledResource')
 
@@ -205,8 +206,22 @@ class BaseResource(Resource):
     def process_response(self, request, response):
         response = super(BaseResource, self).process_response(
             request, response)
+
         response = cors.patch_response(request, response, self.allowed_methods)
+
+        response = links.patch_response(
+            request, response, self.get_links(request),
+            self.get_link_templates(request))
+
         return response
+
+    def get_links(self, request):
+        "Returns the links to include in the headers of responses"
+        return {}
+
+    def get_link_templates(self, request):
+        "Returns the link templates to include in the headers of responses"
+        return {}
 
     def get_params(self, request):
         "Returns cleaned set of GET parameters."

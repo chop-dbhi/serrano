@@ -70,7 +70,7 @@ EXPORT_COOKIE_DATA = 'complete'
 
 # Provides a method for determining whether a field supports stats or not. By
 # default, stats are not supported on searchable fields. When this method
-# returns True, the stats URL will be included in the _links collection as
+# returns True, the stats URL will be included in the Link Header as
 # generated in the base field resource. Setting this to None will disable
 # stats for all fields.
 STATS_CAPABLE = lambda x: not x.searchable
