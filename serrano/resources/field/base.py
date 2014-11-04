@@ -68,6 +68,8 @@ class FieldBase(ThrottledResource):
                 uri, 'serrano:field-values', {'pk': (int, 'id')}),
             'distribution': reverse_tmpl(
                 uri, 'serrano:field-distribution', {'pk': (int, 'id')}),
+            'dimensions': reverse_tmpl(
+                uri, 'serrano:field-dimensions', {'pk': (int, 'id')}),
             'stats': reverse_tmpl(
                 uri, 'serrano:field-stats', {'pk': (int, 'id')})
         }

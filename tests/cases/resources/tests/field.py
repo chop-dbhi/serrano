@@ -18,7 +18,8 @@ class FieldResourceTestCase(BaseTestCase):
             '<http://testserver/api/fields/{id}/stats/>; rel="stats", '
             '<http://testserver/api/fields/{id}/>; rel="self", '
             '<http://testserver/api/fields/{id}/values/>; rel="values", '
-            '<http://testserver/api/fields/{id}/dist/>; rel="distribution"'
+            '<http://testserver/api/fields/{id}/dist/>; rel="distribution", '
+            '<http://testserver/api/fields/{id}/dims/>; rel="dimensions"'
         ))
 
     def test_stats_capable_setting(self):
