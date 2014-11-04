@@ -1,8 +1,6 @@
-import functools
 import logging
 from datetime import datetime
 from django.conf.urls import patterns, url
-from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from preserialize.serialize import serialize
@@ -13,18 +11,9 @@ from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
     ObjectRevisionResource
 from . import templates
+from ..links import reverse_tmpl
 
 log = logging.getLogger(__name__)
-
-
-def view_posthook(instance, data, request):
-    uri = request.build_absolute_uri
-    data['_links'] = {
-        'self': {
-            'href': uri(reverse('serrano:views:single', args=[instance.pk])),
-        }
-    }
-    return data
 
 
 class ViewBase(ThrottledResource):
@@ -34,11 +23,19 @@ class ViewBase(ThrottledResource):
     model = DataView
     template = templates.View
 
+    def get_link_templates(self, request):
+        uri = request.build_absolute_uri
+
+        return {
+            'view': reverse_tmpl(
+                uri, 'serrano:views:single', {'pk': (int, 'id')})
+        }
+
     def prepare(self, request, instance, template=None):
         if template is None:
             template = self.template
-        posthook = functools.partial(view_posthook, request=request)
-        return serialize(instance, posthook=posthook, **template)
+
+        return serialize(instance, **template)
 
     def get_queryset(self, request, **kwargs):
         "Constructs a QuerySet for this user or session."

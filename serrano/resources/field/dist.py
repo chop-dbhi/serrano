@@ -1,8 +1,9 @@
 from django.utils.encoding import smart_unicode
+from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam
 from avocado.events import usage
 from avocado.query import pipeline
-from .base import FieldBase
+from .base import FieldBase, is_field_orphaned
 
 
 class FieldDistParametizer(Parametizer):
@@ -17,6 +18,13 @@ class FieldDistribution(FieldBase):
 
     def get(self, request, pk):
         instance = self.get_object(request, pk=pk)
+
+        if is_field_orphaned(instance):
+            data = {
+                'message': 'Orphaned fields do not support distribution calls.'
+            }
+            return self.render(
+                request, data, status=codes.unprocessable_entity)
 
         params = self.get_params(request)
 

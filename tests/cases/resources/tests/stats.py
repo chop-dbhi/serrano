@@ -14,7 +14,10 @@ class StatsResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
 
         self.assertEqual(response.status_code, codes.ok)
-        self.assertTrue('_links' in json.loads(response.content))
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/stats/>; rel="self", '
+            '<http://testserver/api/stats/counts/>; rel="counts"'
+        ))
 
 
 class CountStatsResourceTestCase(BaseTestCase):

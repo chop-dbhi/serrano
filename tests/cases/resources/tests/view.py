@@ -14,6 +14,11 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertFalse(json.loads(response.content))
 
+        self.assertEqual(
+            response['Link-Template'],
+            '<http://testserver/api/views/{id}/>; rel="view"'
+        )
+
     def test_get_all_default(self):
         view = DataView(template=True, default=True, json=[])
         view.save()
@@ -239,12 +244,7 @@ class ViewsRevisionsResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         revision_view = json.loads(response.content)
 
-        # We can't just compare the objects directly to one another because the
-        # object returned from the call to /api/views/1/ will have '_links'
-        # while the embeded object will not because the link location is
-        # different for Revisions.
-        for key in embed_revision['object']:
-            self.assertEqual(revision_view[key], embed_revision['object'][key])
+        self.assertEqual(revision_view, embed_revision['object'])
 
 
 class ViewRevisionsResourceTestCase(AuthenticatedBaseTestCase):

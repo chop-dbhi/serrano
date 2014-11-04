@@ -2,7 +2,6 @@ import functools
 import logging
 from datetime import datetime
 from django.conf.urls import patterns, url
-from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam
@@ -15,27 +14,17 @@ from serrano.forms import ContextForm
 from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
     ObjectRevisionResource
+from ..links import reverse_tmpl
 from . import templates
 
 log = logging.getLogger(__name__)
 
 
 def context_posthook(instance, data, request, tree):
-    uri = request.build_absolute_uri
-
     opts = tree.root_model._meta
     data['object_name'] = opts.verbose_name.format()
     data['object_name_plural'] = opts.verbose_name_plural.format()
 
-    data['_links'] = {
-        'self': {
-            'href': uri(
-                reverse('serrano:contexts:single', args=[instance.pk])),
-        },
-        'stats': {
-            'href': uri(reverse('serrano:contexts:stats', args=[instance.pk])),
-        }
-    }
     return data
 
 
@@ -52,6 +41,16 @@ class ContextBase(ThrottledResource):
     template = templates.Context
 
     parametizer = ContextParametizer
+
+    def get_link_templates(self, request):
+        uri = request.build_absolute_uri
+
+        return {
+            'context': reverse_tmpl(
+                uri, 'serrano:contexts:single', {'pk': (int, 'id')}),
+            'stats': reverse_tmpl(
+                uri, 'serrano:contexts:stats', {'pk': (int, 'id')}),
+        }
 
     def prepare(self, request, instance, tree, template=None):
         if template is None:

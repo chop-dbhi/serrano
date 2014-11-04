@@ -10,6 +10,7 @@ from avocado.export import HTMLExporter
 from restlib2.params import StrParam
 from .base import BaseResource
 from .pagination import PaginatorResource, PaginatorParametizer
+from ..links import patch_response
 
 
 class PreviewParametizer(PaginatorParametizer):
@@ -96,21 +97,21 @@ class PreviewResource(BaseResource, PaginatorResource):
         model_name = opts.verbose_name.format()
         model_name_plural = opts.verbose_name_plural.format()
 
-        resp = self.get_page_response(request, paginator, page)
+        data = self.get_page_response(request, paginator, page)
 
-        path = reverse('serrano:data:preview')
-        links = self.get_page_links(request, path, page, extra=params)
-
-        resp.update({
+        data.update({
             'keys': header,
             'items': objects,
             'item_name': model_name,
             'item_name_plural': model_name_plural,
-            'item_count': paginator.count,
-            '_links': links,
+            'item_count': paginator.count
         })
 
-        return resp
+        path = reverse('serrano:data:preview')
+        links = self.get_page_links(request, path, page, extra=params)
+        response = self.render(request, content=data)
+
+        return patch_response(request, response, links, {})
 
     # POST mimics GET to support sending large request bodies for on-the-fly
     # context and view data.

@@ -1,7 +1,6 @@
 import logging
 import functools
 from django.conf.urls import patterns, url
-from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, BoolParam, StrParam, IntParam
@@ -12,6 +11,8 @@ from serrano.resources.field import FieldResource
 from .base import ThrottledResource, SAFE_METHODS
 from . import templates
 from .field import base as FieldResources
+from ..links import reverse_tmpl
+
 
 can_change_concept = lambda u: u.has_perm('avocado.change_dataconcept')
 log = logging.getLogger(__name__)
@@ -37,8 +38,6 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
     remaining arguments must be partially applied using `functools.partial`
     during the request/response cycle.
     """
-    uri = request.build_absolute_uri
-
     if categories is None:
         categories = {}
 
@@ -58,17 +57,6 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
             # bound in Avocado's DataCategory parent field.
             if data['category']['parent']:
                 data['category']['parent'].pop('parent_id')
-
-    if not brief:
-        data['_links'] = {
-            'self': {
-                'href': uri(reverse('serrano:concept', args=[instance.pk])),
-            },
-            'fields': {
-                'href': uri(
-                    reverse('serrano:concept-fields', args=[instance.pk])),
-            }
-        }
 
     # Embeds the related fields directly in the concept output
     if not brief and embed:
@@ -98,6 +86,21 @@ class ConceptBase(ThrottledResource):
     template = templates.Concept
 
     parametizer = ConceptParametizer
+
+    def get_link_templates(self, request):
+        uri = request.build_absolute_uri
+
+        params = self.get_params(request)
+
+        templates = {}
+
+        if not params['brief']:
+            templates['concept'] = reverse_tmpl(
+                uri, 'serrano:concept', {'pk': (int, 'id')})
+            templates['concept-fields'] = reverse_tmpl(
+                uri, 'serrano:concept-fields', {'pk': (int, 'id')})
+
+        return templates
 
     def get_queryset(self, request, params):
         queryset = self.model.objects.all()

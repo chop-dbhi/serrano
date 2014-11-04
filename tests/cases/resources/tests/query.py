@@ -23,6 +23,11 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         response = self.client.get('/api/queries/',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
+        self.assertEqual(response['Link-Template'], (
+            '<http://testserver/api/queries/{id}/>; rel="self", '
+            '<http://testserver/api/queries/{id}/stats/>; rel="stats", '
+            '<http://testserver/api/queries/{id}/forks/>; rel="forks"'
+        ))
 
         content = json.loads(response.content)[0]
         self.assertEqual(len(content['shared_users']), 2)
@@ -327,6 +332,10 @@ class QueryForksResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
         self.assertEqual(len(json.loads(response.content)), 3)
+        self.assertEqual(response['Link-Template'], (
+            '<http://testserver/api/queries/{id}/>; rel="self", '
+            '<http://testserver/api/queries/{parent_id}/>; rel="parent"'
+        ))
 
     def test_get_unauthorized(self):
         url = '/api/queries/{0}/forks/'.format(self.private_query.pk)
@@ -354,12 +363,25 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
 
         # When we access a query it should contain a valid link to the forks
         # of that query.
-        data = json.loads(response.content)
-        response = self.client.get(data['_links']['forks']['href'],
-                                   HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.ok)
-        self.assertTrue(response.content)
-        self.assertEqual(len(json.loads(response.content)), 2)
+        self.assertTrue('forks' in response['Link-Template'])
+        links = response['Link-Template'].split(',')
+
+        for link in links:
+            if 'forks' in link:
+                # NOTE: This link template formatting would normally be done
+                # on the client side but we do it manually once here to extract
+                # and format the link to the forks.
+                fields = link.split(';')
+                href = fields[0].replace('<', '')\
+                                .replace('>', '')\
+                                .replace('{id}', str(query.pk))\
+                                .strip()
+
+                response = self.client.get(
+                    href, HTTP_ACCEPT='application/json')
+                self.assertEqual(response.status_code, codes.ok)
+                self.assertTrue(response.content)
+                self.assertEqual(len(json.loads(response.content)), 2)
 
         # Make sure we get a codes.not_found when accessing a query that
         # doesn't exist

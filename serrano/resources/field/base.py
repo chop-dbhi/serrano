@@ -1,15 +1,14 @@
 import functools
 import logging
-from django.core.urlresolvers import reverse
 from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from avocado.conf import OPTIONAL_DEPS
 from avocado.models import DataField
 from avocado.events import usage
-from serrano.conf import settings
 from ..base import ThrottledResource
 from .. import templates
+from ...links import reverse_tmpl
 
 can_change_field = lambda u: u.has_perm('avocado.change_datafield')
 log = logging.getLogger(__name__)
@@ -30,36 +29,10 @@ def field_posthook(instance, data, request):
     during the request/response cycle.
     """
 
-    uri = request.build_absolute_uri
-
-    # Augment the links
-    data['_links'] = {
-        'self': {
-            'href': uri(reverse('serrano:field',
-                        args=[instance.pk])),
-        }
-    }
-
     # Add flag denoting the field is orphaned, otherwise add links to
     # supplementary resources.
     if is_field_orphaned(instance):
         data['orphaned'] = True
-    else:
-        data['_links']['values'] = {
-            'href': uri(reverse('serrano:field-values',
-                        args=[instance.pk])),
-        }
-        data['_links']['distribution'] = {
-            'href': uri(reverse('serrano:field-distribution',
-                        args=[instance.pk])),
-        }
-
-        stats_capable = settings.STATS_CAPABLE
-        if stats_capable and stats_capable(instance):
-            data['_links']['stats'] = {
-                'href': uri(reverse('serrano:field-stats',
-                            args=[instance.pk])),
-            }
 
     return data
 
@@ -85,6 +58,19 @@ class FieldBase(ThrottledResource):
     parametizer = FieldParametizer
 
     template = templates.Field
+
+    def get_link_templates(self, request):
+        uri = request.build_absolute_uri
+
+        return {
+            'self': reverse_tmpl(uri, 'serrano:field', {'pk': (int, 'id')}),
+            'values': reverse_tmpl(
+                uri, 'serrano:field-values', {'pk': (int, 'id')}),
+            'distribution': reverse_tmpl(
+                uri, 'serrano:field-distribution', {'pk': (int, 'id')}),
+            'stats': reverse_tmpl(
+                uri, 'serrano:field-stats', {'pk': (int, 'id')})
+        }
 
     def get_queryset(self, request, params):
         queryset = self.model.objects.all()
