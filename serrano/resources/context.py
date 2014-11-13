@@ -46,7 +46,7 @@ class ContextBase(ThrottledResource):
         uri = request.build_absolute_uri
 
         return {
-            'context': reverse_tmpl(
+            'self': reverse_tmpl(
                 uri, 'serrano:contexts:single', {'pk': (int, 'id')}),
             'stats': reverse_tmpl(
                 uri, 'serrano:contexts:stats', {'pk': (int, 'id')}),

@@ -31,7 +31,7 @@ class CategoryBase(ThrottledResource):
         uri = request.build_absolute_uri
 
         templates = {
-            'category': reverse_tmpl(
+            'self': reverse_tmpl(
                 uri, 'serrano:category', {'pk': (int, 'id')}),
             'parent': reverse_tmpl(
                 uri, 'serrano:category', {'pk': (int, 'parent_id')}),

@@ -27,7 +27,7 @@ class ViewBase(ThrottledResource):
         uri = request.build_absolute_uri
 
         return {
-            'view': reverse_tmpl(
+            'self': reverse_tmpl(
                 uri, 'serrano:views:single', {'pk': (int, 'id')})
         }
 

@@ -40,8 +40,8 @@ class ConceptResourceTestCase(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 2)
 
         self.assertEqual(response['Link-Template'], (
-            '<http://testserver/api/concepts/{id}/fields/>; rel="concept-fields", '   # noqa
-            '<http://testserver/api/concepts/{id}/>; rel="concept"'
+            '<http://testserver/api/concepts/{id}/fields/>; rel="fields", '   # noqa
+            '<http://testserver/api/concepts/{id}/>; rel="self"'
         ))
 
     def test_get_all_category_sort(self):

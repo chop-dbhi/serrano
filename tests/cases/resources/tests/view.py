@@ -16,7 +16,7 @@ class ViewResourceTestCase(AuthenticatedBaseTestCase):
 
         self.assertEqual(
             response['Link-Template'],
-            '<http://testserver/api/views/{id}/>; rel="view"'
+            '<http://testserver/api/views/{id}/>; rel="self"'
         )
 
     def test_get_all_default(self):

@@ -10,8 +10,8 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertFalse(json.loads(response.content))
         self.assertEqual(response['Link-Template'], (
-            '<http://testserver/api/contexts/{id}/stats/>; rel="stats", '
-            '<http://testserver/api/contexts/{id}/>; rel="context"'
+            '<http://testserver/api/contexts/{id}/>; rel="self", '
+            '<http://testserver/api/contexts/{id}/stats/>; rel="stats"'
         ))
 
     def test_get_all_default(self):

@@ -95,9 +95,9 @@ class ConceptBase(ThrottledResource):
         templates = {}
 
         if not params['brief']:
-            templates['concept'] = reverse_tmpl(
+            templates['self'] = reverse_tmpl(
                 uri, 'serrano:concept', {'pk': (int, 'id')})
-            templates['concept-fields'] = reverse_tmpl(
+            templates['fields'] = reverse_tmpl(
                 uri, 'serrano:concept-fields', {'pk': (int, 'id')})
 
         return templates
