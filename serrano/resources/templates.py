@@ -45,16 +45,6 @@ Concept = {
     'allow_missing': True,
 }
 
-ConceptField = {
-    'fields': ['alt_name', 'alt_plural_name', 'order'],
-    'aliases': {
-        'alt_name': '__unicode__',
-        'alt_plural_name': 'get_plural_name',
-    },
-    'allow_missing': True,
-}
-
-
 Context = {
     'exclude': ['user', 'session_key'],
     'allow_missing': True,
