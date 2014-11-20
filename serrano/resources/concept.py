@@ -7,7 +7,6 @@ from restlib2.params import Parametizer, BoolParam, StrParam, IntParam
 from avocado.events import usage
 from avocado.models import DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
-from serrano.resources.field import FieldResource
 from .base import ThrottledResource, SAFE_METHODS
 from . import templates
 from .field import base as FieldResources
@@ -31,7 +30,7 @@ def has_orphaned_field(instance):
     return has_orphan
 
 
-def concept_posthook(instance, data, request, embed, brief, categories=None):
+def concept_posthook(instance, data, request, categories=None):
     """Concept serialization post-hook for augmenting per-instance data.
 
     The only two arguments the post-hook takes is instance and data. The
@@ -58,10 +57,17 @@ def concept_posthook(instance, data, request, embed, brief, categories=None):
             if data['category']['parent']:
                 data['category']['parent'].pop('parent_id')
 
-    # Embeds the related fields directly in the concept output
-    if not brief and embed:
-        resource = ConceptFieldsResource()
-        data['fields'] = resource.prepare(request, instance)
+    fields = []
+    for cf in instance.concept_fields.select_related('field').iterator():
+        fields.append({
+            'description': cf.field.description,
+            'name': cf.field.name,
+            'pk': cf.field.pk,
+            'alt_name': cf.__unicode__(),
+            'alt_plural_name': cf.get_plural_name(),
+        })
+
+    data['fields'] = fields
 
     return data
 
@@ -72,7 +78,6 @@ class ConceptParametizer(Parametizer):
     sort = StrParam()
     order = StrParam('asc')
     unpublished = BoolParam(False)
-    embed = BoolParam(False)
     brief = BoolParam(False)
     query = StrParam()
     limit = IntParam()
@@ -97,8 +102,6 @@ class ConceptBase(ThrottledResource):
         if not params['brief']:
             templates['self'] = reverse_tmpl(
                 uri, 'serrano:concept', {'pk': (int, 'id')})
-            templates['fields'] = reverse_tmpl(
-                uri, 'serrano:concept-fields', {'pk': (int, 'id')})
 
         return templates
 
@@ -133,8 +136,7 @@ class ConceptBase(ThrottledResource):
         """
         return dict((x.pk, x) for x in list(DataCategory.objects.all()))
 
-    def prepare(self, request, objects, template=None, embed=False,
-                brief=False, **params):
+    def prepare(self, request, objects, template=None, brief=False, **params):
 
         if template is None:
             template = templates.BriefConcept if brief else self.template
@@ -145,8 +147,7 @@ class ConceptBase(ThrottledResource):
             categories = self._get_categories(request, objects)
 
         posthook = functools.partial(
-            concept_posthook, request=request, embed=embed, brief=brief,
-            categories=categories)
+            concept_posthook, request=request, categories=categories)
 
         return serialize(objects, posthook=posthook, **template)
 
@@ -163,11 +164,9 @@ class ConceptBase(ThrottledResource):
 class ConceptResource(ConceptBase):
     "Resource for interacting with Concept instances."
     def get(self, request, pk):
-        params = self.get_params(request)
         instance = self.get_object(request, pk=pk)
 
-        if (self.checks_for_orphans and params['embed'] and
-                has_orphaned_field(instance)):
+        if (self.checks_for_orphans and has_orphaned_field(instance)):
             data = {
                 'message': 'One or more orphaned fields exist'
             }
@@ -175,43 +174,21 @@ class ConceptResource(ConceptBase):
                                status=codes.internal_server_error)
 
         usage.log('read', instance=instance, request=request)
-        return self.prepare(request, instance, embed=params['embed'])
-
-
-class ConceptFieldsResource(ConceptBase):
-    "Resource for interacting with fields specific to a Concept instance."
-    def prepare(self, request, instance, template=None, **params):
-        if template is None:
-            template = templates.ConceptField
-
-        fields = []
-        resource = FieldResource()
-
-        if self.checks_for_orphans and has_orphaned_field(instance):
-            data = {
-                'message': 'One or more orphaned fields exist'
-            }
-            return self.render(request, data,
-                               status=codes.internal_server_error)
-
-        for cf in instance.concept_fields.select_related('field').iterator():
-            field = resource.prepare(request, cf.field)
-            # Add the alternate name specific to the relationship between the
-            # concept and the field.
-            field.update(serialize(cf, **template))
-            fields.append(field)
-
-        return fields
-
-    def get(self, request, pk):
-        instance = self.get_object(request, pk=pk)
-        usage.log('fields', instance=instance, request=request)
         return self.prepare(request, instance)
 
 
 class ConceptsResource(ConceptBase):
     def is_not_found(self, request, response, *args, **kwargs):
         return False
+
+    def _get_non_orphans(self, queryset):
+        pks = []
+
+        for obj in queryset:
+            if not has_orphaned_field(obj):
+                pks.append(obj.pk)
+
+        return queryset.filter(pk__in=pks)
 
     def get(self, request, pk=None):
         params = self.get_params(request)
@@ -226,10 +203,14 @@ class ConceptsResource(ConceptBase):
             usage.log('search', model=self.model, request=request, data={
                 'query': params['query'],
             })
-            results = self.model.objects.search(
+            queryset = self.model.objects.search(
                 params['query'], queryset=queryset,
                 max_results=params['limit'], partial=True)
-            objects = (x.object for x in results)
+
+            if self.checks_for_orphans:
+                queryset = self._get_non_orphans(queryset)
+
+            objects = (x.object for x in queryset)
         else:
             if params['sort'] == 'name':
                 order.append('-name' if params['order'] == 'desc'
@@ -239,23 +220,18 @@ class ConceptsResource(ConceptBase):
             # querysets cannot be ordered post-slice.
             queryset = queryset.order_by(*order)
 
+            if self.checks_for_orphans:
+                queryset = self._get_non_orphans(queryset)
+
             if params['limit']:
                 queryset = queryset[:params['limit']]
 
             objects = queryset
 
-        if self.checks_for_orphans and params['embed']:
-            pks = []
-            for obj in objects:
-                if not has_orphaned_field(obj):
-                    pks.append(obj.pk)
-            objects = self.model.objects.filter(pk__in=pks)
-
         return self.prepare(request, objects, **params)
 
 
 concept_resource = ConceptResource()
-concept_fields_resource = ConceptFieldsResource()
 concepts_resource = ConceptsResource()
 
 # Resource endpoints
@@ -263,6 +239,4 @@ urlpatterns = patterns(
     '',
     url(r'^$', concepts_resource, name='concepts'),
     url(r'^(?P<pk>\d+)/$', concept_resource, name='concept'),
-    url(r'^(?P<pk>\d+)/fields/$',
-        concept_fields_resource, name='concept-fields'),
 )
