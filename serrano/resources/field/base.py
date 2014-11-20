@@ -6,6 +6,7 @@ from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
 from avocado.conf import OPTIONAL_DEPS
 from avocado.models import DataField
 from avocado.events import usage
+from serrano.conf import settings
 from ..base import ThrottledResource
 from .. import templates
 from ...links import reverse_tmpl
@@ -33,6 +34,12 @@ def field_posthook(instance, data, request):
     # supplementary resources.
     if is_field_orphaned(instance):
         data['orphaned'] = True
+
+    # Add a flag indicating the field supports stats so clients know it is
+    # OK to call that endpoint.
+    stats_capable = settings.STATS_CAPABLE
+    if stats_capable and stats_capable(instance):
+        data['stats_capable'] = True
 
     return data
 

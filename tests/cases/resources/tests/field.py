@@ -26,6 +26,12 @@ class FieldResourceTestCase(BaseTestCase):
         # Initially, the default stats_capable check will be used that allows
         # for stats on all non-searchable fields so we will expect that the
         # stats endpoint will return normally.
+        response = self.client.get('/api/fields/2/',
+                                   HTTP_ACCEPT='applicaton/json')
+        content = json.loads(response.content)
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue('stats_capable' in content)
+
         response = self.client.get('/api/fields/2/stats/',
                                    HTTP_ACCEPT='applicaton/json')
         self.assertEqual(response.status_code, codes.ok)
@@ -37,6 +43,12 @@ class FieldResourceTestCase(BaseTestCase):
         # Now, overriding that setting so that this field is not
         # "stats_capable" should 'disable' the stats endpoint for that field.
         with self.settings(SERRANO_STATS_CAPABLE=lambda x: x.id != 2):
+            response = self.client.get('/api/fields/2/',
+                                       HTTP_ACCEPT='applicaton/json')
+            content = json.loads(response.content)
+            self.assertEqual(response.status_code, codes.ok)
+            self.assertFalse('stats_capable' in content)
+
             response = self.client.get('/api/fields/2/stats/',
                                        HTTP_ACCEPT='applicaton/json')
             self.assertEqual(response.status_code, codes.unprocessable_entity)
