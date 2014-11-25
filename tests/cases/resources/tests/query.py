@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import json
 import time
 from django.contrib.auth.models import User
@@ -435,7 +437,9 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
     def test_delete(self):
-        query = DataQuery(user=self.user, name="TestQuery")
+        query_name = u'ĘƞĵôƔ ťƕîš ǫųęŕƳ'
+
+        query = DataQuery(user=self.user, name=query_name)
         query.save()
         session_query = DataQuery(user=self.user, name="SessionQuery",
                                   session=True)
@@ -470,7 +474,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(len(mail.outbox), 1)
         # Make sure the subject is correct
         self.assertEqual(mail.outbox[0].subject,
-                         "'TestQuery' has been deleted")
+                         u"'{0}' has been deleted".format(query_name))
         # Make sure the recipient list is correct
         self.assertSequenceEqual(
             mail.outbox[0].to, ['share@example.com', '', 'share3@example.com'])
