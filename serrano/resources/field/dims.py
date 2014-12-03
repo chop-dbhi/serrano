@@ -126,7 +126,12 @@ class FieldDimensions(FieldBase):
             queryset = queryset.order_by('-count')
 
         clustered = False
-        points = list(queryset)
+
+        points = [{
+            'count': point[0],
+            'values': point[1:],
+        } for point in list(queryset)]
+
         outliers = []
 
         # For N-dimensional continuous data, check if clustering should occur
@@ -136,13 +141,6 @@ class FieldDimensions(FieldBase):
             obs = []
 
             for i, point in enumerate(points):
-                point = {
-                    'count': point[0],
-                    'values': point[1:],
-                }
-
-                points[i] = point
-
                 for i, dim in enumerate(point['values']):
                     if isinstance(dim, Decimal):
                         point['values'][i] = float(str(dim))
