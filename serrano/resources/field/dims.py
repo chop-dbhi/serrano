@@ -141,11 +141,24 @@ class FieldDimensions(FieldBase):
             # Extract observations for clustering
             obs = []
 
+            null_points = []
+            numeric_points = []
+
             for i, point in enumerate(points):
+                # We need to handle points that have null dimensions
+                # differently than those that are all numeric as the kmeans
+                # module currently cannot handle mixed type dimensions so we
+                # only allow fully numeric points to be passed to the kmeans
+                # module.
+                if None in point['values']:
+                    null_points.append(point)
+                    continue
+
                 for i, dim in enumerate(point['values']):
                     if isinstance(dim, Decimal):
                         point['values'][i] = float(str(dim))
 
+                numeric_points.append(point)
                 obs.append(point['values'])
 
             # Perform k-means clustering. Determine centroids and calculate
@@ -154,7 +167,7 @@ class FieldDimensions(FieldBase):
             if params['cluster'] and length >= MINIMUM_OBSERVATIONS:
                 clustered = True
 
-                counts = [p['count'] for p in points]
+                counts = [p['count'] for p in numeric_points]
                 points, outliers = kmeans.weighted_counts(
                     obs, counts, params['n'])
             else:
@@ -163,10 +176,15 @@ class FieldDimensions(FieldBase):
                 outliers = []
 
                 for idx in indexes:
-                    outliers.append(points[idx])
-                    points[idx] = None
+                    outliers.append(numeric_points[idx])
+                    numeric_points[idx] = None
 
-                points = [p for p in points if p is not None]
+                points = [p for p in numeric_points if p is not None]
+
+            # Now that we have done the analysis using the purely numeric
+            # points, we can add the mixed/null dimensionality points back in
+            # to the list before returning results.
+            points += null_points
 
         usage.log('dims', instance=instance, request=request, data={
             'size': length,
