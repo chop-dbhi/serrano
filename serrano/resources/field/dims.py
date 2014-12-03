@@ -36,7 +36,8 @@ class FieldDimensions(FieldBase):
 
         tree = trees[params.get('tree')]
         opts = tree.root_model._meta
-        tree_field = DataField(app_name=opts.app_label,
+        tree_field = DataField(pk='{0}:{1}'.format(tree, pk),
+                               app_name=opts.app_label,
                                model_name=opts.module_name,
                                field_name=opts.pk.name)
 
