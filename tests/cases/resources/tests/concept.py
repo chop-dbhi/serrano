@@ -144,21 +144,17 @@ class ConceptResourceTestCase(BaseTestCase):
         DataField.objects.filter(pk=self.salary_field.pk) \
             .update(field_name='XXX')
 
-        response = self.client.get('/api/concepts/',
-                                   HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(len(json.loads(response.content)), 1)
+        with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=True):
+            response = self.client.get('/api/concepts/',
+                                       HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.ok)
+            self.assertEqual(len(json.loads(response.content)), 1)
 
-    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
-    def test_get_all_orphan_check_off(self):
-        # Orphan one of the fields of the concepts we are about to retrieve.
-        DataField.objects.filter(pk=self.salary_field.pk) \
-            .update(field_name='XXX')
-
-        response = self.client.get('/api/concepts/',
-                                   HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(len(json.loads(response.content)), 2)
+        with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=False):
+            response = self.client.get('/api/concepts/',
+                                       HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.ok)
+            self.assertEqual(len(json.loads(response.content)), 2)
 
     def test_get_one(self):
         response = self.client.get('/api/concepts/999/',
@@ -177,19 +173,42 @@ class ConceptResourceTestCase(BaseTestCase):
         DataField.objects.filter(pk=self.salary_field.pk) \
             .update(field_name='XXX')
 
-        response = self.client.get('/api/concepts/1/',
-                                   HTTP_ACCEPT='application/json')
-        self.assertEqual(response.status_code, codes.internal_server_error)
+        with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=True):
+            response = self.client.get('/api/concepts/1/',
+                                       HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.internal_server_error)
 
-    @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
-    def test_get_one_orphan_check_off(self):
-        # Orphan one of the fields on the concept before we retrieve it.
-        DataField.objects.filter(pk=self.salary_field.pk) \
-            .update(field_name='XXX')
+        with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=False):
+            response = self.client.get('/api/concepts/1/',
+                                       HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.ok)
 
-        response = self.client.get('/api/concepts/1/',
+    def test_search(self):
+        response = self.client.get('/api/concepts/?query=XYZ',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 0)
+
+        response = self.client.get('/api/concepts/?query=itle',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
+        # Orphan one of the fields on the concept we are searching for.
+        DataField.objects.filter(pk=self.name_field.pk) \
+            .update(field_name='XXX')
+
+        with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=True):
+            response = self.client.get('/api/concepts/?query=itle',
+                                       HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.ok)
+            self.assertEqual(len(json.loads(response.content)), 0)
+
+        with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=False):
+            response = self.client.get('/api/concepts/?query=itle',
+                                       HTTP_ACCEPT='application/json')
+            self.assertEqual(response.status_code, codes.ok)
+            self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_get_privileged(self):
         # Superuser sees everything
