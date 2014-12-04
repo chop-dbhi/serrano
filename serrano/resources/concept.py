@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 def has_orphaned_field(instance):
     has_orphan = False
+
     for field in instance.fields.iterator():
         if FieldResources.is_field_orphaned(field):
             log.error('Concept has orphaned field.',
@@ -198,19 +199,25 @@ class ConceptsResource(ConceptBase):
 
         queryset = self.get_queryset(request, params)
 
-        # If Haystack is installed, perform the search
-        if params['query'] and OPTIONAL_DEPS['haystack']:
+        if params['query']:
             usage.log('search', model=self.model, request=request, data={
                 'query': params['query'],
             })
-            queryset = self.model.objects.search(
-                params['query'], queryset=queryset,
-                max_results=params['limit'], partial=True)
 
             if self.checks_for_orphans:
                 queryset = self._get_non_orphans(queryset)
 
-            objects = (x.object for x in queryset)
+            queryset = self.model.objects.search(
+                params['query'], queryset=queryset,
+                max_results=params['limit'], partial=True)
+
+            # If we searched using haystack then we need to extract the objects
+            # from the returned queryset. Otherwise, we can just use the
+            # queryset directly.
+            if OPTIONAL_DEPS['haystack']:
+                objects = (x.object for x in queryset)
+            else:
+                objects = queryset
         else:
             if params['sort'] == 'name':
                 order.append('-name' if params['order'] == 'desc'
