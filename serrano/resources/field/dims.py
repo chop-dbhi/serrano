@@ -74,17 +74,17 @@ class FieldDimensions(FieldBase):
             groupby = [tree.query_string_for_field(instance.field,
                                                    model=instance.model)]
 
-        queryset = queryset.values(*groupby)
-
         # Exclude null values. Depending on the downstream use of the data,
         # nulls may or may not be desirable.
         if not params['nulls']:
             q = Q()
 
             for field in groupby:
-                q = q | Q(**{field: None})
+                q = q & Q(**{'{0}__isnull'.format(field): False})
 
-            queryset = queryset.exclude(q)
+            queryset = queryset.filter(q)
+
+        queryset = queryset.values(*groupby)
 
         # Begin constructing the response
         resp = {
@@ -139,7 +139,7 @@ class FieldDimensions(FieldBase):
         # For N-dimensional continuous data, check if clustering should occur
         # to down-sample the data.
         if all([d.simple_type == 'number' for d in fields]):
-            # Extract observations for clustering
+            # Extract observations for clustering.
             obs = []
 
             null_points = []
