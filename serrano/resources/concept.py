@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 
 def has_orphaned_field(instance):
     has_orphan = False
+
     for field in instance.fields.iterator():
         if FieldResources.is_field_orphaned(field):
             log.error('Concept has orphaned field.',
@@ -203,12 +204,13 @@ class ConceptsResource(ConceptBase):
             usage.log('search', model=self.model, request=request, data={
                 'query': params['query'],
             })
-            queryset = self.model.objects.search(
-                params['query'], queryset=queryset,
-                max_results=params['limit'], partial=True)
 
             if self.checks_for_orphans:
                 queryset = self._get_non_orphans(queryset)
+
+            queryset = self.model.objects.search(
+                params['query'], queryset=queryset,
+                max_results=params['limit'], partial=True)
 
             objects = (x.object for x in queryset)
         else:
