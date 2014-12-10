@@ -60,6 +60,9 @@ class PaginatorResource(Resource):
         links = {
             'self': uri(path_format.format(page=page.number, limit=limit)),
             'base': uri(path),
+            'first': uri(path_format.format(page=1, limit=limit)),
+            'last': uri(path_format.format(
+                page=page.paginator.num_pages, limit=limit)),
         }
 
         if page.has_previous():

@@ -36,7 +36,9 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(json.loads(response.content), [])
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
-            '<http://testserver/api/data/preview/>; rel="base"'
+            '<http://testserver/api/data/preview/>; rel="base", '
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="last", '   # noqa
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="first"'    # noqa
         ))
 
     def test_get_with_user(self):
@@ -50,5 +52,7 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(json.loads(response.content), [])
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
-            '<http://testserver/api/data/preview/>; rel="base"'
+            '<http://testserver/api/data/preview/>; rel="base", '
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="last", '   # noqa
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="first"'    # noqa
         ))
