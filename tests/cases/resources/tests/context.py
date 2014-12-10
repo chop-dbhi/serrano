@@ -9,6 +9,11 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
         response = self.client.get('/api/contexts/',
                                    HTTP_ACCEPT='application/json')
         self.assertFalse(json.loads(response.content))
+
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/contexts/>; rel="self"'
+        ))
+
         self.assertEqual(response['Link-Template'], (
             '<http://testserver/api/contexts/{id}/>; rel="self", '
             '<http://testserver/api/contexts/{id}/stats/>; rel="stats"'

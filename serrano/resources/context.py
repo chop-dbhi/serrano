@@ -2,6 +2,7 @@ import functools
 import logging
 from datetime import datetime
 from django.conf.urls import patterns, url
+from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam
@@ -113,6 +114,13 @@ class ContextBase(ThrottledResource):
 
 class ContextsResource(ContextBase):
     "Resource of contexts"
+    def get_links(self, request):
+        uri = request.build_absolute_uri
+
+        return {
+            'self': uri(reverse('serrano:contexts:active')),
+        }
+
     def get(self, request):
         params = self.get_params(request)
         queryset = self.get_queryset(request)
