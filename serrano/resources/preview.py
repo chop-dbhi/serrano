@@ -35,23 +35,23 @@ class PreviewResource(BaseResource, PaginatorResource):
         limit = params.get('limit')
         tree = params.get('tree')
 
-        # Get the request's view and context.
+        # Get the request's view and context
         view = self.get_view(request)
         context = self.get_context(request)
 
-        # Initialize a query processor.
+        # Initialize a query processor
         QueryProcessor = pipeline.query_processors[params['processor']]
         processor = QueryProcessor(context=context, view=view, tree=tree)
 
-        # Build a queryset for pagination and other downstream use.
+        # Build a queryset for pagination and other downstream use
         queryset = processor.get_queryset(request=request)
 
-        # Get paginator and page.
+        # Get paginator and page
         paginator = self.get_paginator(queryset, limit=limit)
         page = paginator.page(page)
         offset = max(0, page.start_index() - 1)
 
-        # Prepare the exporter and iterable.
+        # Prepare the exporter and iterable
         iterable = processor.get_iterable(request=request)
 
         # Build up the header keys.
@@ -69,14 +69,14 @@ class PreviewResource(BaseResource, PaginatorResource):
                 obj['direction'] = ordering[concept.id]
             header.append(obj)
 
-        # Prepare an HTMLExporter.
+        # Prepare an HTMLExporter
         exporter = processor.get_exporter(HTMLExporter)
         pk_name = queryset.model._meta.pk.name
 
         objects = []
 
         # 0 limit means all for pagination, however the read method requires
-        # an explicit limit or None.
+        # an explicit limit or None
         read_limit = limit or None
 
         for row in exporter.read(iterable, request=request, offset=offset,
@@ -92,9 +92,24 @@ class PreviewResource(BaseResource, PaginatorResource):
 
             objects.append({'pk': pk, 'values': values})
 
+        # Various model options
+        opts = queryset.model._meta
+        model_name = opts.verbose_name.format()
+        model_name_plural = opts.verbose_name_plural.format()
+
+        data = self.get_page_response(request, paginator, page)
+
+        data.update({
+            'keys': header,
+            'items': objects,
+            'item_name': model_name,
+            'item_name_plural': model_name_plural,
+            'item_count': paginator.count
+        })
+
         path = reverse('serrano:data:preview')
         links = self.get_page_links(request, path, page, extra=params)
-        response = self.render(request, content=objects)
+        response = self.render(request, content=data)
 
         return patch_response(request, response, links, {})
 

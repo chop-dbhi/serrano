@@ -10,7 +10,8 @@ class PreviewResourceProcessorTestCase(BaseTestCase):
         response = self.client.get('/api/data/preview/',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(len(json.loads(response.content)), 6)
+        content = json.loads(response.content)
+        self.assertEqual(content['item_count'], 6)
 
         # The Parametizer cleaning process should set this to the default
         # value if the processor is not in the list of choices which, in our
@@ -19,12 +20,14 @@ class PreviewResourceProcessorTestCase(BaseTestCase):
         response = self.client.get('/api/data/preview/?processor=INVALID',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(len(json.loads(response.content)), 6)
+        content = json.loads(response.content)
+        self.assertEqual(content['item_count'], 6)
 
         response = self.client.get('/api/data/preview/?processor=manager',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
-        self.assertEqual(len(json.loads(response.content)), 1)
+        content = json.loads(response.content)
+        self.assertEqual(content['item_count'], 1)
 
 
 class PreviewResourceTestCase(TestCase):
@@ -33,7 +36,17 @@ class PreviewResourceTestCase(TestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(response.content), [])
+        self.assertEqual(json.loads(response.content), {
+            'keys': [],
+            'count': 0,
+            'item_count': 0,
+            'item_name': 'employee',
+            'item_name_plural': 'employees',
+            'items': [],
+            'page_num': 1,
+            'num_pages': 1,
+            'limit': 20,
+        })
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
             '<http://testserver/api/data/preview/>; rel="base", '
@@ -49,7 +62,17 @@ class PreviewResourceTestCase(TestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(response.content), [])
+        self.assertEqual(json.loads(response.content), {
+            'keys': [],
+            'count': 0,
+            'item_count': 0,
+            'item_name': 'employee',
+            'item_name_plural': 'employees',
+            'items': [],
+            'page_num': 1,
+            'num_pages': 1,
+            'limit': 20,
+        })
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
             '<http://testserver/api/data/preview/>; rel="base", '
