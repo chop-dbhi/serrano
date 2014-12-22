@@ -26,32 +26,32 @@ These resources correspond to the `DataConcept` model in Avocado.
 - `/api/concepts/:int/`
 - `/api/concepts/:int/fields/`
 
-### [View]({{ site.baseurl }}{% post_url 2013-06-12-view-resources %})
+### View
 
 These resources correspond to the `DataView` model in Avocado.
 
 - `/api/views/`
 - `/api/views/:int/`
 
-### [Context]({{ site.baseurl }}{% post_url 2013-06-12-context-resources %})
+### Context
 
 These resources correspond to the `DataContext` model in Avocado.
 
 - `/api/contexts/`
 - `/api/contexts/:int/`
 
-### [Query]({{ site.baseurl }}{% post_url 2013-06-12-query-resources %})
+### Query
 
 These resources correspond to the `DataQuery` model in Avocado.
 
 - `/api/queries/`
 - `/api/queries/:int/`
 
-### [Preview]({{ site.baseurl }}{% post_url 2013-06-12-preview-resources %})
+### Preview
 
 - `/api/data/preview/`
 
-### [Export]({{ site.baseurl }}{% post_url 2013-06-12-export-resources %})
+### Export
 
 These resources correspond to the `DataContext` model in Avocado.
 

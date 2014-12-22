@@ -82,4 +82,4 @@ Content-Type: application/json
 
 To get started using Serrano, follow the [install & setup guide]({{ site.baseurl }}{% post_url 2013-06-12-install-setup %}).
 
-For more information on what endpoints are defined, view the [list of endpoint]({{ site.baseurl }}{% post_url 2013-07-27-endpoints %}).
+For more information on what endpoints are defined, view the [list of endpoint]({{ site.baseurl }}{% post_url 2013-07-26-endpoints %}).
