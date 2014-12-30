@@ -1,4 +1,7 @@
+from django.core.cache import cache
 from django.core.paginator import Paginator
+from avocado.core.cache import cache_key
+from avocado.conf import settings
 from restlib2.params import Parametizer, IntParam
 from restlib2.resources import Resource
 
@@ -17,12 +20,25 @@ class PaginatorResource(Resource):
         paginator = Paginator(queryset, per_page=limit)
         paginator.has_limit = bool(limit)
 
-        # Perform count an update paginator to prevent redundant call
-        if not limit:
+        # Cache count for paginator to prevent redundant calls between requests
+        if settings.DATA_CACHE_ENABLED:
+            key = cache_key('paginator', kwargs={
+                'queryset': queryset
+            })
+
+            count = cache.get(key)
+
+            if count is None:
+                count = len(queryset)
+                cache.set(key, count)
+        else:
             count = len(queryset)
+
+        paginator._count = count
+
+        if not limit:
             # Prevent division by zero error in case count is zero
             paginator.per_page = max(count, 1)
-            paginator._count = count
 
         return paginator
 
