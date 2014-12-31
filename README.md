@@ -4,4 +4,10 @@
 
 Serrano is a [hypermedia](https://en.wikipedia.org/wiki/Hypermedia) implementation for [Avocado](http://avocado.harvest.io) that adheres to the constraints of [REST](https://en.wikipedia.org/wiki/Representational_state_transfer).
 
-Documentation at http://serrano.harvest.io
+## Documentation
+
+http://serrano.harvest.io
+
+## Development
+
+See the [contributing](https://github.com/chop-dbhi/serrano/blob/master/CONTRIBUTING.md) guide.
