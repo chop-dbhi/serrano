@@ -98,24 +98,50 @@ class ExporterResource(BaseResource):
             file_tag = 'all'
 
         QueryProcessor = pipeline.query_processors[params['processor']]
-        processor = QueryProcessor(context=context, view=view, tree=tree,
+
+        processor = QueryProcessor(context=context,
+                                   view=view,
+                                   tree=tree,
                                    include_pk=False)
 
         exporter = processor.get_exporter(exporters[export_type])
-        iterable = processor.get_iterable()
 
-        # Write the data to the response
-        exporter.write(iterable, resp, request=request, offset=offset,
-                       limit=limit)
+        view_node = view.parse()
 
-        filename = '{0}-{1}-data.{2}'.format(
-            file_tag, datetime.now(), exporter.file_extension)
+        # This is an optimization when concepts are selected for ordering
+        # only. There is not guarantee to how many rows are required to get
+        # the desired `limit` of rows, so the query is unbounded. If all
+        # ordering facets are visible, the limit and offset can be pushed
+        # down to the query.
+        order_only = lambda f: not f.get('visible', True)
+
+        if filter(order_only, view_node.facets):
+            iterable = processor.get_iterable(request=request)
+
+            # Write the data to the response
+            exporter.write(iterable,
+                           resp,
+                           request=request,
+                           offset=offset,
+                           limit=limit)
+        else:
+            iterable = processor.get_iterable(request=request,
+                                              limit=limit,
+                                              offset=offset)
+
+            exporter.write(iterable,
+                           resp,
+                           request=request)
+
+        filename = '{0}-{1}-data.{2}'.format(file_tag,
+                                             datetime.now(),
+                                             exporter.file_extension)
 
         cookie_name = settings.EXPORT_COOKIE_NAME_TEMPLATE.format(export_type)
         resp.set_cookie(cookie_name, settings.EXPORT_COOKIE_DATA)
 
-        resp['Content-Disposition'] = 'attachment; filename="{0}"'.format(
-            filename)
+        resp['Content-Disposition'] = 'attachment; filename="{0}"'\
+                                      .format(filename)
         resp['Content-Type'] = exporter.content_type
 
         usage.log('export', request=request, data={
