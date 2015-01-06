@@ -51,8 +51,7 @@ class PreviewResource(BaseResource, PaginatorResource):
         page = paginator.page(page)
         offset = max(0, page.start_index() - 1)
 
-        # Prepare the exporter and iterable
-        iterable = processor.get_iterable(request=request)
+        view_node = view.parse()
 
         # Build up the header keys.
         # TODO: This is flawed since it assumes the output columns
@@ -60,13 +59,17 @@ class PreviewResource(BaseResource, PaginatorResource):
         # be built during the first iteration of the read, but would also
         # depend on data to exist!
         header = []
-        view_node = view.parse()
         ordering = OrderedDict(view_node.ordering)
 
         for concept in view_node.get_concepts_for_select():
-            obj = {'id': concept.id, 'name': concept.name}
+            obj = {
+                'id': concept.id,
+                'name': concept.name
+            }
+
             if concept.id in ordering:
                 obj['direction'] = ordering[concept.id]
+
             header.append(obj)
 
         # Prepare an HTMLExporter
@@ -76,11 +79,31 @@ class PreviewResource(BaseResource, PaginatorResource):
         objects = []
 
         # 0 limit means all for pagination, however the read method requires
-        # an explicit limit or None
-        read_limit = limit or None
+        # an explicit limit of None
+        limit = limit or None
 
-        for row in exporter.read(iterable, request=request, offset=offset,
-                                 limit=read_limit):
+        # This is an optimization when concepts are selected for ordering
+        # only. There is not guarantee to how many rows are required to get
+        # the desired `limit` of rows, so the query is unbounded. If all
+        # ordering facets are visible, the limit and offset can be pushed
+        # down to the query.
+        order_only = lambda f: not f.get('visible', True)
+
+        if filter(order_only, view_node.facets):
+            iterable = processor.get_iterable(request=request)
+
+            exported = exporter.read(iterable,
+                                     request=request,
+                                     offset=offset,
+                                     limit=limit)
+        else:
+            iterable = processor.get_iterable(request=request,
+                                              limit=limit,
+                                              offset=offset)
+
+            exported = exporter.read(iterable, request=request)
+
+        for row in exported:
             pk = None
             values = []
 
@@ -90,10 +113,14 @@ class PreviewResource(BaseResource, PaginatorResource):
                 else:
                     values.extend(output.values())
 
-            objects.append({'pk': pk, 'values': values})
+            objects.append({
+                'pk': pk,
+                'values': values,
+            })
 
         # Various model options
         opts = queryset.model._meta
+
         model_name = opts.verbose_name.format()
         model_name_plural = opts.verbose_name_plural.format()
 
