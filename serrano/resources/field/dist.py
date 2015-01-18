@@ -1,6 +1,7 @@
 from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.events import usage
 from avocado.query import pipeline
 from .base import FieldBase, is_field_orphaned
@@ -8,6 +9,7 @@ from .base import FieldBase, is_field_orphaned
 
 class FieldDistParametizer(Parametizer):
     aware = BoolParam(False)
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
     processor = StrParam('default', choices=pipeline.query_processors)
 
 

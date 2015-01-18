@@ -1,8 +1,10 @@
 import functools
 import logging
+from django.db.models import Q
 from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam, BoolParam, IntParam
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.conf import OPTIONAL_DEPS
 from avocado.models import DataField
 from avocado.events import usage
@@ -47,6 +49,7 @@ def field_posthook(instance, data, request):
 class FieldParametizer(Parametizer):
     "Supported params and their defaults for Field endpoints."
 
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
     sort = StrParam()
     order = StrParam('asc')
     unpublished = BoolParam(False)
@@ -82,7 +85,14 @@ class FieldBase(ThrottledResource):
         }
 
     def get_queryset(self, request, params):
-        queryset = self.model.objects.all()
+        tree = trees[params['tree']]
+        q = Q()
+
+        # No public method for accessing the local models on the tree
+        for app_name, model_name in tree._models:
+            q |= Q(app_name=app_name, model_name=model_name)
+
+        queryset = self.model.objects.filter(q)
 
         if params.get('unpublished') and can_change_field(request.user):
             return queryset

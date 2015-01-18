@@ -1,11 +1,13 @@
 import logging
 import functools
+from django.db.models import Q
 from django.conf.urls import patterns, url
 from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, BoolParam, StrParam, IntParam
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.events import usage
-from avocado.models import DataConcept, DataCategory
+from avocado.models import DataField, DataConcept, DataCategory
 from avocado.conf import OPTIONAL_DEPS
 from .base import ThrottledResource, SAFE_METHODS
 from . import templates
@@ -76,6 +78,7 @@ def concept_posthook(instance, data, request, categories=None):
 class ConceptParametizer(Parametizer):
     "Supported params and their defaults for Concept endpoints."
 
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
     sort = StrParam()
     order = StrParam('asc')
     unpublished = BoolParam(False)
@@ -107,7 +110,19 @@ class ConceptBase(ThrottledResource):
         return templates
 
     def get_queryset(self, request, params):
-        queryset = self.model.objects.all()
+        # Filter by the selected tree.
+        tree = trees[params['tree']]
+
+        q = Q()
+
+        # No public method for accessing the local models on the tree
+        # Exclude concepts that contain any unrelated fields.
+        for app_name, model_name in tree._models:
+            q &= ~Q(app_name=app_name, model_name=model_name)
+
+        unrelated_fields = DataField.objects.filter(q)
+
+        queryset = self.model.objects.exclude(fields__in=unrelated_fields)
 
         if params.get('unpublished') and can_change_concept(request.user):
             return queryset

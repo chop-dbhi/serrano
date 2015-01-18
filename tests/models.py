@@ -57,3 +57,7 @@ class Project(models.Model):
 class Team(ObjectSet):
     employees = models.ManyToManyField(Employee)
     context_json = jsonfield.JSONField(null=True, blank=True)
+
+
+class Unrelated(models.Model):
+    name = models.CharField(max_length=100)

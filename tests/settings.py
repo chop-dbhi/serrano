@@ -1,6 +1,7 @@
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
     }
 }
 
@@ -64,7 +65,10 @@ SECRET_KEY = 'abc123'
 MODELTREES = {
     'default': {
         'model': 'tests.Employee',
-    }
+    },
+    'unrelated': {
+        'model': 'tests.Unrelated',
+    },
 }
 
 AVOCADO = {

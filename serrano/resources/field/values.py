@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.utils.encoding import smart_unicode
 from restlib2.http import codes
 from restlib2.params import StrParam, IntParam, BoolParam
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.events import usage
 from avocado.query import pipeline
 from .base import FieldBase, is_field_orphaned
@@ -17,6 +18,7 @@ log = logging.getLogger(__name__)
 class FieldValuesParametizer(PaginatorParametizer):
     aware = BoolParam(False)
     limit = IntParam(10)
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
     processor = StrParam('default', choices=pipeline.query_processors)
     query = StrParam()
     random = IntParam()
