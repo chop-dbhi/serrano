@@ -43,6 +43,37 @@ class ConceptResourceTestCase(BaseTestCase):
             '<http://testserver/api/concepts/{id}/>; rel="self"'
         ))
 
+    def test_get_all_unrelated(self):
+        # Publish unrelated field and concept
+        f = DataField.objects.get(model_name='unrelated')
+        f.published = True
+        f.save()
+
+        c = DataConcept(name='Unrelated', published=True)
+        c.save()
+
+        DataConceptField(concept=c, field=f, order=1).save()
+
+        # Concept from two unrelated fields.. this will never show.
+        # TODO don't allow this
+        c = DataConcept(name='Unrelated', published=True)
+        c.save()
+
+        DataConceptField(concept=c, field=f, order=1).save()
+        DataConceptField(concept=c, field=self.boss_field, order=2).save()
+
+        # Still 2 concepts visible by default tree
+        response = self.client.get('/api/concepts/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 2)
+
+        # 1 concept visible for unrelated tree
+        response = self.client.get('/api/concepts/?tree=unrelated',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
     def test_get_all_category_sort(self):
         # Create some temporary concepts and categories.
         cat1 = DataCategory(name='Category1', order=1.0, published=True)

@@ -1,6 +1,7 @@
 import logging
 from restlib2.http import codes
 from restlib2.params import Parametizer, BoolParam, StrParam
+from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.events import usage
 from avocado.query import pipeline
 from serrano.conf import settings
@@ -12,6 +13,7 @@ log = logging.getLogger(__name__)
 
 class FieldStatsParametizer(Parametizer):
     aware = BoolParam(False)
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
     processor = StrParam('default', choices=pipeline.query_processors)
 
 

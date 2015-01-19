@@ -22,6 +22,22 @@ class FieldResourceTestCase(BaseTestCase):
             '<http://testserver/api/fields/{id}/dims/>; rel="dimensions"'
         ))
 
+    def test_get_all_unrelated(self):
+        # Publish unrelated field
+        DataField.objects.filter(model_name='unrelated').update(published=True)
+
+        # Should not appear in default request since it's not related
+        response = self.client.get('/api/fields/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 5)
+
+        # Switch the tree, now it should be the only one
+        response = self.client.get('/api/fields/?tree=unrelated',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(len(json.loads(response.content)), 1)
+
     def test_stats_capable_setting(self):
         # Initially, the default stats_capable check will be used that allows
         # for stats on all non-searchable fields so we will expect that the
@@ -88,7 +104,9 @@ class FieldResourceTestCase(BaseTestCase):
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_one_orphan(self):
         # Orphan the field before we retrieve it.
-        DataField.objects.filter(pk=2).update(model_name="XXX")
+        # NOTE: Used to be model_name, but changed due to the tree
+        # filtering removing it from the set.
+        DataField.objects.filter(pk=2).update(field_name="XXX")
 
         response = self.client.get('/api/fields/2/',
                                    HTTP_ACCEPT='application/json')
