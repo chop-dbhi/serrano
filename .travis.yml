@@ -7,8 +7,11 @@ python:
 sudo: false
 
 env:
-    - DJANGO=1.5.12
-    - DJANGO=1.6.10
+    - DJANGO=1.5.12 TEST_DATABASE_NAME=serrano TEST_DATABASE_USER=postgres
+    - DJANGO=1.6.10 TEST_DATABASE_NAME=serrano TEST_DATABASE_USER=postgres
+
+addons:
+    postgresql: "9.3"
 
 services:
     - memcached
@@ -21,6 +24,9 @@ before_install:
 install:
     - pip install -q coverage Django==$DJANGO
     - pip install -q -r requirements.txt
+
+before_script:
+    - psql -U postgres -c 'CREATE DATABASE serrano;'
 
 script:
     - coverage run test_suite.py

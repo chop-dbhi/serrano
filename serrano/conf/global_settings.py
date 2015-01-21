@@ -74,3 +74,6 @@ EXPORT_COOKIE_DATA = 'complete'
 # generated in the base field resource. Setting this to None will disable
 # stats for all fields.
 STATS_CAPABLE = lambda x: not x.searchable
+
+# Time to wait when performing a single count on the stats endpoint.
+STATS_COUNT_TIMEOUT = 5

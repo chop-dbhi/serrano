@@ -1,3 +1,4 @@
+from multiprocessing.pool import ThreadPool
 from django.core.urlresolvers import reverse
 from django.core.cache import cache
 from django.conf.urls import patterns, url
@@ -7,7 +8,37 @@ from avocado.models import DataContext, DataField
 from avocado.query import pipeline
 from avocado.core.cache import cache_key
 from avocado.core.cache.model import NEVER_EXPIRE
+from ..conf import settings
 from .base import BaseResource, ThrottledResource
+
+
+def get_count(request, model, refresh, processor, context):
+    opts = model._meta
+
+    # Build a queryset through the context which is toggled by
+    # the parameter.
+    processor = processor(context=context, tree=model)
+    queryset = processor.get_queryset(request=request)
+
+    # Get count from cache or database
+    label = ':'.join([opts.app_label, opts.module_name, 'count'])
+    key = cache_key(label, kwargs={'queryset': queryset})
+
+    if refresh:
+        count = None
+    else:
+        count = cache.get(key)
+
+    if count is None:
+        count = queryset.values('pk').distinct().count()
+        cache.set(key, count, timeout=NEVER_EXPIRE)
+
+    # Close the connection in the thread to prevent 'idle in transaction'
+    # situtations.
+    from django.db import connection
+    connection.close()
+
+    return count
 
 
 class StatsResource(BaseResource):
@@ -47,25 +78,24 @@ class CountStatsResource(ThrottledResource):
             .values_list('app_name', 'model_name')\
             .order_by('model_name').distinct()
 
+        results = []
         data = []
         models = set()
+
         QueryProcessor = pipeline.query_processors[params['processor']]
+
+        # Pool of threads to execute the counts in parallel
+        pool = ThreadPool()
 
         for app_name, model_name in model_names:
             # DataField used here to resolve foreign key-based fields.
             model = DataField(app_name=app_name, model_name=model_name).model
 
-            # Foreign-key based fields may resolve to models that are already
-            # accounted for.
+            # No redundant counts
             if model in models:
                 continue
 
             models.add(model)
-
-            # Build a queryset through the context which is toggled by
-            # the parameter.
-            processor = QueryProcessor(context=context, tree=model)
-            queryset = processor.get_queryset(request=request)
 
             opts = model._meta
 
@@ -81,26 +111,35 @@ class CountStatsResource(ThrottledResource):
             if verbose_name_plural.islower():
                 verbose_name_plural = verbose_name_plural.title()
 
-            # Get count from cache or database
-            label = ':'.join([opts.app_label, opts.module_name, 'count'])
-            key = cache_key(label, kwargs={'queryset': queryset})
-
-            if params['refresh']:
-                count = None
-            else:
-                count = cache.get(key)
-
-            if count is None:
-                count = queryset.values('pk').distinct().count()
-                cache.set(key, count, timeout=NEVER_EXPIRE)
-
+            # Placeholder with the model name. The count will be replaced if
+            # successful.
             data.append({
-                'count': count,
+                'count': None,
                 'app_name': app_name,
                 'model_name': model_name,
                 'verbose_name': verbose_name,
                 'verbose_name_plural': verbose_name_plural,
             })
+
+            # Asynchronously execute the count
+            result = pool.apply_async(get_count, args=(
+                request,
+                model,
+                params['refresh'],
+                QueryProcessor,
+                context
+            ))
+
+            results.append(result)
+
+        pool.close()
+
+        for i, r in enumerate(results):
+            try:
+                count = r.get(timeout=settings.STATS_COUNT_TIMEOUT)
+                data[i]['count'] = count
+            except Exception:
+                pass
 
         return data
 
