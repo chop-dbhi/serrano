@@ -34,19 +34,23 @@ def wait_mail_sent():
 
 
 class BaseTestCase(TestCase):
-    fixtures = ['test_data.json']
+    fixtures = ['tests/fixtures/test_data.json']
 
     def setUp(self):
         management.call_command('avocado', 'init', 'tests', quiet=True)
 
-        f1 = DataField.objects.get(pk=1)
-        f2 = DataField.objects.get(pk=2)
+        f1 = DataField.objects.get_by_natural_key('tests',
+                                                  'employee',
+                                                  'first_name')
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'employee',
+                                                  'last_name')
 
-        c1 = DataConcept()
-        c1.save()
+        self.c = DataConcept()
+        self.c.save()
 
-        DataConceptField(concept=c1, field=f1).save()
-        DataConceptField(concept=c1, field=f2).save()
+        DataConceptField(concept=self.c, field=f1).save()
+        DataConceptField(concept=self.c, field=f2).save()
 
         self.request = HttpRequest()
         self.request.session = SessionStore()
@@ -109,7 +113,9 @@ class ViewFormTestCase(BaseTestCase):
     def test_json(self):
         previous_view_count = DataView.objects.count()
 
-        form = ViewForm(self.request, {'json': [{'concept': 1}]})
+        form = ViewForm(self.request, {
+            'json': [{'concept': self.c.pk}]
+        })
         self.assertTrue(form.is_valid())
 
         form.save()
@@ -157,8 +163,10 @@ class QueryFormTestCase(BaseTestCase):
     def test_with_email(self):
         previous_user_count = User.objects.count()
 
-        form = QueryForm(self.request, {'usernames_or_emails':
-                                        'email1@email.com'})
+        form = QueryForm(self.request, {
+            'usernames_or_emails': 'email1@email.com',
+        })
+
         instance = form.save()
         self.assertEqual(instance.shared_users.count(), 1)
 
@@ -276,7 +284,10 @@ class QueryFormTestCase(BaseTestCase):
                          initial_warning_count + 1)
 
     def test_view_json(self):
-        form = QueryForm(self.request, {'view_json': [{'concept': 1}]})
+        form = QueryForm(self.request, {
+            'view_json': [{'concept': self.c.pk}],
+        })
+
         self.assertTrue(form.is_valid())
 
     def test_context_json(self):
@@ -289,7 +300,7 @@ class QueryFormTestCase(BaseTestCase):
             'context_json': {
                 'field': 'tests.title.salary', 'operator': 'gt',
                 'value': '1000'},
-            'view_json': [{'concept': 1}]})
+            'view_json': [{'concept': self.c.pk}]})
         self.assertTrue(form.is_valid())
 
     def test_no_commit(self):

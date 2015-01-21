@@ -6,7 +6,7 @@ from ...models import Team, Employee
 
 
 class SetResourcesTest(TestCase):
-    fixtures = ['test_data.json']
+    fixtures = ['tests/fixtures/test_data.json']
 
     def setUp(self):
         management.call_command('avocado', 'init', 'tests', quiet=True)

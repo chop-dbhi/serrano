@@ -2,7 +2,7 @@ import json
 from django.core.cache import cache
 from restlib2.http import codes
 from tests.models import Title
-from .base import BaseTestCase
+from .base import BaseTestCase, TransactionBaseTestCase
 
 
 class StatsResourceTestCase(BaseTestCase):
@@ -20,7 +20,7 @@ class StatsResourceTestCase(BaseTestCase):
         ))
 
 
-class CountStatsResourceTestCase(BaseTestCase):
+class CountStatsResourceTestCase(TransactionBaseTestCase):
     def setUp(self):
         super(CountStatsResourceTestCase, self).setUp()
         cache.clear()

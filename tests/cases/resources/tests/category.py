@@ -9,11 +9,11 @@ class CategoryResourceTestCase(BaseTestCase):
     def setUp(self):
         super(CategoryResourceTestCase, self).setUp()
 
-        c1 = DataCategory(name='Title', published=True)
-        c1.save()
+        self.c1 = DataCategory(name='Title', published=True)
+        self.c1.save()
 
-        c2 = DataCategory(name='Other', published=False)
-        c2.save()
+        self.c2 = DataCategory(name='Other', published=False)
+        self.c2.save()
 
     def test_get_all(self):
         response = self.client.get('/api/categories/',
@@ -26,7 +26,7 @@ class CategoryResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
-        response = self.client.get('/api/categories/1/',
+        response = self.client.get('/api/categories/{0}/'.format(self.c1.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
@@ -34,17 +34,19 @@ class CategoryResourceTestCase(BaseTestCase):
             '<http://testserver/api/categories/{id}/>; rel="self", '
             '<http://testserver/api/categories/{parent_id}/>; rel="parent"'
         ))
-        self.assertTrue(Log.objects.filter(event='read', object_id=1).exists())
+
+        event = Log.objects.filter(event='read', object_id=self.c1.pk)
+        self.assertTrue(event.exists())
 
     def test_get_privileged(self):
-        # Superuser sees everything
         self.client.login(username='root', password='password')
 
         response = self.client.get('/api/categories/?unpublished=1',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
-        response = self.client.get('/api/categories/2/?unpublished=1',
+        response = self.client.get('/api/categories/{0}/?unpublished=1'
+                                   .format(self.c2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
@@ -55,6 +57,6 @@ class CategoryResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 1)
 
-        response = self.client.get('/api/categories/2/',
+        response = self.client.get('/api/categories/{0}/'.format(self.c2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
