@@ -39,16 +39,18 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_stats_capable_setting(self):
+        f = DataField.objects.get_by_natural_key('tests', 'title', 'name')
+
         # Initially, the default stats_capable check will be used that allows
         # for stats on all non-searchable fields so we will expect that the
         # stats endpoint will return normally.
-        response = self.client.get('/api/fields/2/',
+        response = self.client.get('/api/fields/{0}/'.format(f.pk),
                                    HTTP_ACCEPT='applicaton/json')
         content = json.loads(response.content)
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue('stats_capable' in content)
 
-        response = self.client.get('/api/fields/2/stats/',
+        response = self.client.get('/api/fields/{0}/stats/'.format(f.pk),
                                    HTTP_ACCEPT='applicaton/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Link-Template'], (
@@ -58,21 +60,23 @@ class FieldResourceTestCase(BaseTestCase):
 
         # Now, overriding that setting so that this field is not
         # "stats_capable" should 'disable' the stats endpoint for that field.
-        with self.settings(SERRANO_STATS_CAPABLE=lambda x: x.id != 2):
-            response = self.client.get('/api/fields/2/',
+        with self.settings(SERRANO_STATS_CAPABLE=lambda x: x.id != f.pk):
+            response = self.client.get('/api/fields/{0}/'.format(f.pk),
                                        HTTP_ACCEPT='applicaton/json')
             content = json.loads(response.content)
             self.assertEqual(response.status_code, codes.ok)
             self.assertFalse('stats_capable' in content)
 
-            response = self.client.get('/api/fields/2/stats/',
+            response = self.client.get('/api/fields/{0}/stats/'.format(f.pk),
                                        HTTP_ACCEPT='applicaton/json')
             self.assertEqual(response.status_code, codes.unprocessable_entity)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_all_orphan(self):
+        f = DataField.objects.get_by_natural_key('tests', 'title', 'name')
+
         # Orphan one of the fields we are about to retrieve
-        DataField.objects.filter(pk=2).update(field_name="XXX")
+        DataField.objects.filter(pk=f.pk).update(field_name="XXX")
 
         response = self.client.get('/api/fields/',
                                    HTTP_ACCEPT='application/json')
@@ -81,8 +85,10 @@ class FieldResourceTestCase(BaseTestCase):
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
     def test_get_all_orphan_check_off(self):
+        f = DataField.objects.get_by_natural_key('tests', 'title', 'name')
+
         # Orphan one of the fields we are about to retrieve
-        DataField.objects.filter(pk=2).update(field_name="XXX")
+        DataField.objects.filter(pk=f.pk).update(field_name="XXX")
 
         response = self.client.get('/api/fields/',
                                    HTTP_ACCEPT='application/json')
@@ -90,38 +96,58 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 5)
 
     def test_get_one(self):
+        f1 = DataField.objects.get_by_natural_key('tests',
+                                                  'office',
+                                                  'location')
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
+
         # Not allowed to see
-        response = self.client.get('/api/fields/1/',
+        response = self.client.get('/api/fields/{0}/'.format(f1.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
-        response = self.client.get('/api/fields/2/',
+        response = self.client.get('/api/fields/{0}/'.format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
-        self.assertTrue(Log.objects.filter(event='read', object_id=2).exists())
+
+        event = Log.objects.filter(event='read', object_id=f2.pk)
+        self.assertTrue(event.exists())
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_one_orphan(self):
+        f = DataField.objects.get_by_natural_key('tests',
+                                                 'title',
+                                                 'name')
         # Orphan the field before we retrieve it.
         # NOTE: Used to be model_name, but changed due to the tree
         # filtering removing it from the set.
-        DataField.objects.filter(pk=2).update(field_name="XXX")
+        DataField.objects.filter(pk=f.pk).update(field_name="XXX")
 
-        response = self.client.get('/api/fields/2/',
+        response = self.client.get('/api/fields/{0}/'.format(f.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.internal_server_error)
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=False)
     def test_get_one_orphan_check_off(self):
-        # Orphan one of the fields we are about to retrieve
-        DataField.objects.filter(pk=2).update(field_name="XXX")
+        f = DataField.objects.get_by_natural_key('tests',
+                                                 'title',
+                                                 'name')
 
-        response = self.client.get('/api/fields/2/',
+        # Orphan one of the fields we are about to retrieve
+        DataField.objects.filter(pk=f.pk).update(field_name="XXX")
+
+        response = self.client.get('/api/fields/{0}/'.format(f.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
     def test_get_privileged(self):
+        f1 = DataField.objects.get_by_natural_key('tests',
+                                                  'office',
+                                                  'location')
+
         # Superuser sees everything
         self.client.login(username='root', password='password')
 
@@ -129,7 +155,8 @@ class FieldResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 12)
 
-        response = self.client.get('/api/fields/1/?unpublished=1',
+        response = self.client.get('/api/fields/{0}/?unpublished=1'
+                                   .format(f1.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
@@ -140,13 +167,16 @@ class FieldResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 5)
 
-        response = self.client.get('/api/fields/1/',
+        response = self.client.get('/api/fields/{0}/'.format(f1.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
     def test_values(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         # title.name
-        response = self.client.get('/api/fields/2/values/',
+        response = self.client.get('/api/fields/{0}/values/'.format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
@@ -154,7 +184,7 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertTrue(len(content['items']), 7)
 
         response = self.client.get(
-            '/api/fields/2/values/?processor=first_title',
+            '/api/fields/{0}/values/?processor=first_title'.format(f2.pk),
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
@@ -162,8 +192,13 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertTrue(len(content['items']), 1)
 
     def test_values_no_limit(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
+
         # title.name
-        response = self.client.get('/api/fields/2/values/?limit=0',
+        response = self.client.get('/api/fields/{0}/values/?limit=0'
+                                   .format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         data = json.loads(response.content)
@@ -175,18 +210,26 @@ class FieldResourceTestCase(BaseTestCase):
             'self' in response['Link'] and 'base' in response['Link'])
 
     def test_zero_division_error(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         # Delete everything for now
         Title.objects.all().delete()
 
-        response = self.client.get('/api/fields/2/values/?limit=0',
+        response = self.client.get('/api/fields/{0}/values/?limit=0'
+                                   .format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         data = json.loads(response.content)
         self.assertEqual(data['items'], [])
 
     def test_values_random(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         # Random values
-        response = self.client.get('/api/fields/2/values/?random=3',
+        response = self.client.get('/api/fields/{0}/values/?random=3'
+                                   .format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 3)
@@ -196,13 +239,19 @@ class FieldResourceTestCase(BaseTestCase):
         # only that single value since all values in the population should be
         # returned when the random sample size is bigger than population size.
         response = self.client.get(
-            '/api/fields/2/values/?random=3&processor=first_title',
+            '/api/fields/{0}/values/?random=3&processor=first_title'
+            .format(f2.pk),
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
 
     def test_values_query(self):
-        response = self.client.get('/api/fields/2/values/?query=a',
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
+
+        response = self.client.get('/api/fields/{0}/values/?query=a'
+                                   .format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content)['items'], [
@@ -212,11 +261,12 @@ class FieldResourceTestCase(BaseTestCase):
             {'label': 'Programmer', 'value': 'Programmer'},
             {'label': 'QA', 'value': 'QA'},
         ])
-        message = Log.objects.get(event='items', object_id=2)
+        message = Log.objects.get(event='items', object_id=f2.pk)
         self.assertEqual(message.data['query'], 'a')
 
         response = self.client.get(
-            '/api/fields/2/values/?query=a&processor=under_twenty_thousand',
+            '/api/fields/{0}/values/?query=a&processor=under_twenty_thousand'
+            .format(f2.pk),
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content)['items'], [
@@ -226,9 +276,12 @@ class FieldResourceTestCase(BaseTestCase):
         ])
 
     def test_values_validate(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         # Valid, single dict
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps({'value': 'IT'}),
             content_type='application/json',
             HTTP_ACCEPT='application/json')
@@ -239,12 +292,12 @@ class FieldResourceTestCase(BaseTestCase):
             'label': 'IT',
             'valid': True,
         })
-        message = Log.objects.get(event='validate', object_id=2)
+        message = Log.objects.get(event='validate', object_id=f2.pk)
         self.assertEqual(message.data['count'], 1)
 
         # Invalid
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps({'value': 'Bartender'}),
             content_type='application/json',
             HTTP_ACCEPT='application/json')
@@ -258,7 +311,7 @@ class FieldResourceTestCase(BaseTestCase):
 
         # Mixed, list
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps([
                 {'value': 'IT'},
                 {'value': 'Bartender'},
@@ -276,7 +329,7 @@ class FieldResourceTestCase(BaseTestCase):
 
         # Error - no value
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps({}),
             content_type='application/json',
             HTTP_ACCEPT='application/json')
@@ -284,16 +337,19 @@ class FieldResourceTestCase(BaseTestCase):
 
         # Error - type
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps(None),
             content_type='application/json',
             HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
     def test_labels_validate(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         # Valid, single dict
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps({'label': 'IT'}),
             content_type='application/json',
             HTTP_ACCEPT='application/json')
@@ -306,8 +362,11 @@ class FieldResourceTestCase(BaseTestCase):
         })
 
     def test_mixed_validate(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         response = self.client.post(
-            '/api/fields/2/values/',
+            '/api/fields/{0}/values/'.format(f2.pk),
             data=json.dumps([
                 {'label': 'IT'},
                 {'label': 'Bartender'},
@@ -324,28 +383,36 @@ class FieldResourceTestCase(BaseTestCase):
         ])
 
     def test_stats(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
+
+        f3 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'salary')
         # title.name
-        response = self.client.get('/api/fields/2/stats/',
+        response = self.client.get('/api/fields/{0}/stats/'.format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(
-            Log.objects.filter(event='stats', object_id=2).exists())
+            Log.objects.filter(event='stats', object_id=f2.pk).exists())
 
         # title.salary
-        response = self.client.get('/api/fields/3/stats/',
+        response = self.client.get('/api/fields/{0}/stats/'.format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         stats = json.loads(response.content)
         self.assertTrue(stats)
         self.assertTrue(
-            Log.objects.filter(event='stats', object_id=3).exists())
+            Log.objects.filter(event='stats', object_id=f3.pk).exists())
         self.assertEqual(stats['min'], 10000)
         self.assertEqual(stats['max'], 200000)
         self.assertAlmostEqual(stats['avg'], 53571.42857, places=5)
 
         # Using an invalid query processor should fall back to the default.
-        response = self.client.get('/api/fields/3/stats/?processor=INVALID',
+        response = self.client.get('/api/fields/{0}/stats/?processor=INVALID'
+                                   .format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         stats = json.loads(response.content)
         self.assertEqual(stats['min'], 10000)
@@ -354,7 +421,8 @@ class FieldResourceTestCase(BaseTestCase):
 
         # Using a valid query processor should affect the stats.
         response = self.client.get(
-            '/api/fields/3/stats/?processor=under_twenty_thousand',
+            '/api/fields/{0}/stats/?processor=under_twenty_thousand'
+            .format(f3.pk),
             HTTP_ACCEPT='application/json')
         stats = json.loads(response.content)
         self.assertEqual(stats['min'], 10000)
@@ -362,7 +430,10 @@ class FieldResourceTestCase(BaseTestCase):
         self.assertEqual(stats['avg'], 13750)
 
         # project.due_date
-        response = self.client.get('/api/fields/11/stats/',
+        f11 = DataField.objects.get_by_natural_key('tests',
+                                                   'project',
+                                                   'due_date')
+        response = self.client.get('/api/fields/{0}/stats/'.format(f11.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
@@ -370,21 +441,28 @@ class FieldResourceTestCase(BaseTestCase):
 
         self.assertTrue(stats)
         self.assertTrue(
-            Log.objects.filter(event='stats', object_id=11).exists())
+            Log.objects.filter(event='stats', object_id=f11.pk).exists())
         self.assertEqual(stats['min'], '2000-01-01')
         self.assertEqual(stats['max'], '2010-01-01')
 
     def test_empty_stats(self):
+        f2 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'name')
         Title.objects.all().delete()
 
-        response = self.client.get('/api/fields/2/stats/',
+        response = self.client.get('/api/fields/{0}/stats/'.format(f2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
         self.assertTrue(
-            Log.objects.filter(event='stats', object_id=2).exists())
+            Log.objects.filter(event='stats', object_id=f2.pk).exists())
 
     def test_dist(self):
+        f3 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'salary')
+
         default_content = [
             {'label': '10000', 'value': 10000, 'count': 1},
             {'label': '15000', 'value': 15000, 'count': 3},
@@ -394,21 +472,25 @@ class FieldResourceTestCase(BaseTestCase):
         ]
 
         # title.salary
-        response = self.client.get('/api/fields/3/dist/',
+        response = self.client.get('/api/fields/{0}/dist/'.format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), default_content)
-        self.assertTrue(Log.objects.filter(event='dist', object_id=3).exists())
+
+        event = Log.objects.filter(event='dist', object_id=f3.pk)
+        self.assertTrue(event.exists())
 
         # Using an invalid processor should fallback to the default processor.
-        response = self.client.get('/api/fields/3/dist/?processor=INVALID',
+        response = self.client.get('/api/fields/{0}/dist/?processor=INVALID'
+                                   .format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), default_content)
 
         # Using the custom query process, we should be limited to a smaller
         # salary set.
-        response = self.client.get('/api/fields/3/dist/?processor=manager',  # noqa
+        response = self.client.get('/api/fields/{0}/dist/?processor=manager'
+                                   .format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), [
@@ -416,6 +498,10 @@ class FieldResourceTestCase(BaseTestCase):
         ])
 
     def test_dims(self):
+        f3 = DataField.objects.get_by_natural_key('tests',
+                                                  'title',
+                                                  'salary')
+
         default_content = {
             u'size': 4,
             u'clustered': False,
@@ -436,21 +522,25 @@ class FieldResourceTestCase(BaseTestCase):
         }
 
         # title.salary
-        response = self.client.get('/api/fields/3/dims/',
+        response = self.client.get('/api/fields/{0}/dims/'.format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), default_content)
-        self.assertTrue(Log.objects.filter(event='dims', object_id=3).exists())
+
+        event = Log.objects.filter(event='dims', object_id=f3.pk)
+        self.assertTrue(event.exists())
 
         # Using an invalid processor should fallback to the default processor.
-        response = self.client.get('/api/fields/3/dims/?processor=INVALID',
+        response = self.client.get('/api/fields/{0}/dims/?processor=INVALID'
+                                   .format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), default_content)
 
         # Using the custom query process, we should be limited to a smaller
         # salary set.
-        response = self.client.get('/api/fields/3/dims/?processor=manager',
+        response = self.client.get('/api/fields/{0}/dims/?processor=manager'
+                                   .format(f3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(json.loads(response.content), {

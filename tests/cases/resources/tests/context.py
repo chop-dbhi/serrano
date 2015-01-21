@@ -29,7 +29,7 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
     def test_get(self):
         ctx = DataContext(user=self.user)
         ctx.save()
-        response = self.client.get('/api/contexts/1/',
+        response = self.client.get('/api/contexts/{0}/'.format(ctx.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
@@ -68,9 +68,10 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
             data=u'{"name":"POST Context"}',
             content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
+        data = json.loads(response.content)
 
         # Make sure the changes from the POST request are persisted.
-        response = self.client.get('/api/contexts/1/',
+        response = self.client.get('/api/contexts/{0}/'.format(data['id']),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
@@ -88,20 +89,20 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
         # Add a context so we can try to update it later.
         ctx = DataContext(user=self.user, name='Context 1')
         ctx.save()
-        response = self.client.get('/api/contexts/1/',
+        response = self.client.get('/api/contexts/{0}/'.format(ctx.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
 
         # Attempt to update the name via a PUT request.
         response = self.client.put(
-            '/api/contexts/1/',
+            '/api/contexts/{0}/'.format(ctx.pk),
             data=u'{"name":"New Name"}',
             content_type='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
         # Make sure our changes from the PUT request are persisted.
-        response = self.client.get('/api/contexts/1/',
+        response = self.client.get('/api/contexts/{0}/'.format(ctx.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
@@ -110,25 +111,25 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
         # Make a PUT request with invalid JSON and make sure we get an
         # unprocessable status code back.
         response = self.client.put(
-            '/api/contexts/1/',
+            '/api/contexts/{0}/'.format(ctx.pk),
             data=u'{"json":"]]]"}',
             content_type='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
 
     def test_delete(self):
-        ctx = DataContext(user=self.user, name='Context 1')
-        ctx.save()
-        ctx = DataContext(user=self.user, name='Context 2')
-        ctx.save()
-        ctx = DataContext(user=self.user, name='Context 3', session=True)
-        ctx.save()
+        ctx1 = DataContext(user=self.user, name='Context 1')
+        ctx1.save()
+        ctx2 = DataContext(user=self.user, name='Context 2')
+        ctx2.save()
+        ctx3 = DataContext(user=self.user, name='Context 3', session=True)
+        ctx3.save()
 
         response = self.client.get('/api/contexts/',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 3)
 
-        response = self.client.delete('/api/contexts/1/')
+        response = self.client.delete('/api/contexts/{0}/'.format(ctx1.pk))
         self.assertEqual(response.status_code, codes.no_content)
 
         response = self.client.get('/api/contexts/',
@@ -136,7 +137,8 @@ class ContextResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 2)
 
-        response = self.client.delete('/api/contexts/3/')
+        # Cannot delete the session
+        response = self.client.delete('/api/contexts/{0}/'.format(ctx3.pk))
         self.assertEqual(response.status_code, codes.bad_request)
 
         response = self.client.get('/api/contexts/',
@@ -150,7 +152,7 @@ class ContextStatsResourceTestCase(AuthenticatedBaseTestCase):
         cxt = DataContext(session=True, user=self.user)
         cxt.save()
 
-        response = self.client.get('/api/contexts/1/stats/',
+        response = self.client.get('/api/contexts/{0}/stats/'.format(cxt.pk),
                                    HTTP_ACCEPT='application/json')
 
         self.assertEqual(json.loads(response.content)['count'], 6)
@@ -168,11 +170,12 @@ class ContextStatsResourceTestCase(AuthenticatedBaseTestCase):
         cxt = DataContext(session=True, user=self.user)
         cxt.save()
 
-        response = self.client.get('/api/contexts/1/stats/',
+        response = self.client.get('/api/contexts/{0}/stats/'.format(cxt.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(json.loads(response.content)['count'], 6)
 
-        response = self.client.get('/api/contexts/1/stats/?processor=manager',
+        response = self.client.get('/api/contexts/{0}/stats/?processor=manager'
+                                   .format(cxt.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(json.loads(response.content)['count'], 1)
 

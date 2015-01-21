@@ -171,9 +171,10 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
                                     data=u'{"name":"POST Query"}',
                                     content_type='application/json')
         self.assertEqual(response.status_code, codes.created)
+        data = json.loads(response.content)
 
         # Make sure the changes from the POST request are persisted
-        response = self.client.get('/api/queries/1/',
+        response = self.client.get('/api/queries/{0}/'.format(data['id']),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
@@ -411,19 +412,19 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         # Add a query so we can try to update it later
         query = DataQuery(user=self.user, name='Query 1')
         query.save()
-        response = self.client.get('/api/queries/1/',
+        response = self.client.get('/api/queries/{0}/'.format(query.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
 
         # Attempt to update the name via a PUT request
-        response = self.client.put('/api/queries/1/',
+        response = self.client.put('/api/queries/{0}/'.format(query.pk),
                                    data=u'{"name":"New Name"}',
                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.ok)
 
         # Make sure our changes from the PUT request are persisted
-        response = self.client.get('/api/queries/1/',
+        response = self.client.get('/api/queries/{0}/'.format(query.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.content)
@@ -431,7 +432,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
 
         # Make a PUT request with invalid JSON and make sure we get an
         # unprocessable status code back.
-        response = self.client.put('/api/queries/1/',
+        response = self.client.put('/api/queries/{0}/'.format(query.pk),
                                    data=u'{"view_json":"[~][~]"}',
                                    content_type='application/json')
         self.assertEqual(response.status_code, codes.unprocessable_entity)
@@ -462,7 +463,7 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
-        response = self.client.delete('/api/queries/1/',
+        response = self.client.delete('/api/queries/{0}/'.format(query.pk),
                                       HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.no_content)
 
@@ -484,7 +485,8 @@ class QueryResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(len(json.loads(response.content)), 1)
 
         # Make sure that we cannot delete the session query
-        response = self.client.delete('/api/queries/2/')
+        response = self.client.delete('/api/queries/{0}/'
+                                      .format(session_query.pk))
         self.assertEqual(response.status_code, codes.bad_request)
 
         response = self.client.get('/api/queries/',
@@ -497,7 +499,7 @@ class QueryStatsResourceTestCase(AuthenticatedBaseTestCase):
         query = DataQuery(session=True, user=self.user)
         query.save()
 
-        response = self.client.get('/api/queries/1/stats/',
+        response = self.client.get('/api/queries/{0}/stats/'.format(query.pk),
                                    HTTP_ACCEPT='application/json')
 
         data = json.loads(response.content)
@@ -519,13 +521,14 @@ class QueryStatsResourceTestCase(AuthenticatedBaseTestCase):
         query = DataQuery(session=True, user=self.user)
         query.save()
 
-        response = self.client.get('/api/queries/1/stats/',
+        response = self.client.get('/api/queries/{0}/stats/'.format(query.pk),
                                    HTTP_ACCEPT='application/json')
         data = json.loads(response.content)
         self.assertEqual(data['distinct_count'], 6)
         self.assertEqual(data['record_count'], 6)
 
-        response = self.client.get('/api/queries/1/stats/?processor=manager',
+        response = self.client.get('/api/queries/{0}/stats/?processor=manager'
+                                   .format(query.pk),
                                    HTTP_ACCEPT='application/json')
         data = json.loads(response.content)
         self.assertEqual(data['distinct_count'], 1)

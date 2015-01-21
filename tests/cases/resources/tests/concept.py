@@ -18,20 +18,28 @@ class ConceptResourceTestCase(BaseTestCase):
         self.boss_field = DataField.objects.get_by_natural_key(
             'tests', 'title', 'boss')
 
-        c1 = DataConcept(name='Title', published=True)
+        cat = DataCategory(name='Test', published=True, order=1.0)
+        cat.save()
+
+        c1 = DataConcept(name='Title', published=True, category=cat)
         c1.save()
         DataConceptField(concept=c1, field=self.name_field, order=1).save()
         DataConceptField(concept=c1, field=self.salary_field, order=2).save()
         DataConceptField(concept=c1, field=self.boss_field, order=3).save()
 
-        c2 = DataConcept(name='Salary')
+        # Not published
+        c2 = DataConcept(name='Salary', category=cat)
         c2.save()
         DataConceptField(concept=c2, field=self.salary_field, order=1).save()
         DataConceptField(concept=c2, field=self.boss_field, order=2).save()
 
-        c3 = DataConcept(name='Name', published=True)
+        c3 = DataConcept(name='Name', published=True, category=cat)
         c3.save()
         DataConceptField(concept=c3, field=self.name_field, order=1).save()
+
+        self.c1 = c1
+        self.c2 = c2
+        self.c3 = c3
 
     def test_get_all(self):
         response = self.client.get('/api/concepts/',
@@ -76,20 +84,20 @@ class ConceptResourceTestCase(BaseTestCase):
 
     def test_get_all_category_sort(self):
         # Create some temporary concepts and categories.
-        cat1 = DataCategory(name='Category1', order=1.0, published=True)
+        cat1 = DataCategory(name='Category1', order=2.0, published=True)
         cat1.save()
 
-        c1 = DataConcept(name='B', published=True, category=cat1)
+        c1 = DataConcept(name='B', published=True, category=cat1, order=1)
         c1.save()
         field1 = DataConceptField(concept=c1, field=self.name_field, order=1)
         field1.save()
 
-        c2 = DataConcept(name='C', published=True, category=cat1)
+        c2 = DataConcept(name='C', published=True, category=cat1, order=2)
         c2.save()
         field2 = DataConceptField(concept=c2, field=self.name_field, order=1)
         field2.save()
 
-        c3 = DataConcept(name='A', published=True, category=cat1)
+        c3 = DataConcept(name='A', published=True, category=cat1, order=3)
         c3.save()
         field3 = DataConceptField(concept=c3, field=self.name_field, order=1)
         field3.save()
@@ -192,11 +200,13 @@ class ConceptResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
-        response = self.client.get('/api/concepts/3/',
+        response = self.client.get('/api/concepts/{0}/'.format(self.c3.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
-        self.assertTrue(Log.objects.filter(event='read', object_id=3).exists())
+
+        event = Log.objects.filter(event='read', object_id=self.c3.pk)
+        self.assertTrue(event.exists())
 
     @override_settings(SERRANO_CHECK_ORPHANED_FIELDS=True)
     def test_get_one_orphan(self):
@@ -205,12 +215,12 @@ class ConceptResourceTestCase(BaseTestCase):
             .update(field_name='XXX')
 
         with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=True):
-            response = self.client.get('/api/concepts/1/',
+            response = self.client.get('/api/concepts/{0}/'.format(self.c1.pk),
                                        HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.internal_server_error)
 
         with self.settings(SERRANO_CHECK_ORPHANED_FIELDS=False):
-            response = self.client.get('/api/concepts/1/',
+            response = self.client.get('/api/concepts/{0}/'.format(self.c1.pk),
                                        HTTP_ACCEPT='application/json')
             self.assertEqual(response.status_code, codes.ok)
 
@@ -249,7 +259,8 @@ class ConceptResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 3)
 
-        response = self.client.get('/api/concepts/2/?unpublished=1',
+        response = self.client.get('/api/concepts/{0}/?unpublished=1'
+                                   .format(self.c2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(json.loads(response.content))
@@ -260,6 +271,6 @@ class ConceptResourceTestCase(BaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(len(json.loads(response.content)), 2)
 
-        response = self.client.get('/api/concepts/2/',
+        response = self.client.get('/api/concepts/{0}/'.format(self.c2.pk),
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
