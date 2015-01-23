@@ -2,10 +2,10 @@ import json
 from django.contrib.auth.models import User
 from django.test import TestCase
 from restlib2.http import codes
-from .base import BaseTestCase
+from .base import TransactionBaseTestCase
 
 
-class PreviewResourceProcessorTestCase(BaseTestCase):
+class PreviewResourceProcessorTestCase(TransactionBaseTestCase):
     def test_no_processor(self):
         response = self.client.get('/api/data/preview/',
                                    HTTP_ACCEPT='application/json')

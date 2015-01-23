@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from restlib2.params import Parametizer, IntParam, StrParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from avocado.export import registry as exporters
-from avocado.query import pipeline
+from avocado.query import pipeline, utils
 from avocado.events import usage
 from ..conf import settings
 from . import API_VERSION
@@ -111,9 +111,18 @@ class ExporterResource(BaseResource):
                                    tree=tree,
                                    include_pk=False)
 
-        exporter = processor.get_exporter(exporters[export_type])
+        queryset = processor.get_queryset(request=request)
 
-        view_node = view.parse()
+        # Isolate this query and subsequent queries to a named connection.
+        # Cancel the outstanding query if one is present.
+        # Use a separate name for each for export type.
+        query_name = '{0}:{1}'.format(request.session.session_key, export_type)
+        utils.cancel_query(query_name)
+
+        queryset = utils.isolate_queryset(query_name, queryset)
+
+        # Get the exporter for this type.
+        exporter = processor.get_exporter(exporters[export_type])
 
         # This is an optimization when concepts are selected for ordering
         # only. There is not guarantee to how many rows are required to get
@@ -122,8 +131,11 @@ class ExporterResource(BaseResource):
         # down to the query.
         order_only = lambda f: not f.get('visible', True)
 
+        view_node = view.parse()
+
         if filter(order_only, view_node.facets):
-            iterable = processor.get_iterable(request=request)
+            iterable = processor.get_iterable(queryset=queryset,
+                                              request=request)
 
             # Write the data to the response
             exporter.write(iterable,
@@ -132,7 +144,8 @@ class ExporterResource(BaseResource):
                            offset=offset,
                            limit=limit)
         else:
-            iterable = processor.get_iterable(request=request,
+            iterable = processor.get_iterable(queryset=queryset,
+                                              request=request,
                                               limit=limit,
                                               offset=offset)
 
@@ -168,6 +181,11 @@ class ExporterResource(BaseResource):
         return self._export(request, export_type, view, context, **kwargs)
 
     post = get
+
+    def delete(self, request, export_type, **kwargs):
+        query_name = '{0}:{1}'.format(request.session.session_key, export_type)
+        canceled = utils.cancel_query(query_name)
+        return self.render(request, {'canceled': canceled})
 
 
 exporter_resource = ExporterResource()
