@@ -1,3 +1,4 @@
+from django.db.models.query import QuerySet
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from avocado.core.cache import cache_key
@@ -29,7 +30,11 @@ class PaginatorResource(Resource):
             count = cache.get(key)
 
             if count is None:
-                count = len(queryset)
+                if isinstance(queryset, QuerySet):
+                    count = queryset.count()
+                else:
+                    count = len(queryset)
+
                 cache.set(key, count)
         else:
             count = len(queryset)
