@@ -1,3 +1,4 @@
+from django.db.models.query import QuerySet
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from avocado.core.cache import cache_key
@@ -6,6 +7,13 @@ from restlib2.params import Parametizer, IntParam
 from restlib2.resources import Resource
 
 __all__ = ('PaginatorResource', 'PaginatorParametizer')
+
+
+def _count(s):
+    if isinstance(s, QuerySet):
+        return s.count()
+
+    return len(s)
 
 
 class PaginatorParametizer(Parametizer):
@@ -29,10 +37,10 @@ class PaginatorResource(Resource):
             count = cache.get(key)
 
             if count is None:
-                count = len(queryset)
+                count = _count(queryset)
                 cache.set(key, count)
         else:
-            count = len(queryset)
+            count = _count(queryset)
 
         paginator._count = count
 
