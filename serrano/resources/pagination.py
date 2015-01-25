@@ -9,6 +9,13 @@ from restlib2.resources import Resource
 __all__ = ('PaginatorResource', 'PaginatorParametizer')
 
 
+def _count(s):
+    if isinstance(s, QuerySet):
+        return s.count()
+
+    return len(s)
+
+
 class PaginatorParametizer(Parametizer):
     page = IntParam(1)
     limit = IntParam(20)
@@ -30,14 +37,10 @@ class PaginatorResource(Resource):
             count = cache.get(key)
 
             if count is None:
-                if isinstance(queryset, QuerySet):
-                    count = queryset.count()
-                else:
-                    count = len(queryset)
-
+                count = _count(queryset)
                 cache.set(key, count)
         else:
-            count = len(queryset)
+            count = _count(queryset)
 
         paginator._count = count
 
