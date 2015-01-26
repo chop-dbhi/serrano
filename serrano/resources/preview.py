@@ -5,7 +5,7 @@ except ImportError:
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
-from avocado.query import pipeline
+from avocado.query import pipeline, utils
 from avocado.export import HTMLExporter
 from restlib2.params import StrParam
 from .base import BaseResource
@@ -45,6 +45,13 @@ class PreviewResource(BaseResource, PaginatorResource):
 
         # Build a queryset for pagination and other downstream use
         queryset = processor.get_queryset(request=request)
+
+        # Isolate this query and subsequent queries to a named connection.
+        # Cancel the outstanding query if one is present.
+        query_name = request.session.session_key
+        utils.cancel_query(query_name)
+
+        queryset = utils.isolate_queryset(query_name, queryset)
 
         # Get paginator and page
         paginator = self.get_paginator(queryset, limit=limit)
@@ -90,14 +97,16 @@ class PreviewResource(BaseResource, PaginatorResource):
         order_only = lambda f: not f.get('visible', True)
 
         if filter(order_only, view_node.facets):
-            iterable = processor.get_iterable(request=request)
+            iterable = processor.get_iterable(queryset=queryset,
+                                              request=request)
 
             exported = exporter.read(iterable,
                                      request=request,
                                      offset=offset,
                                      limit=limit)
         else:
-            iterable = processor.get_iterable(request=request,
+            iterable = processor.get_iterable(queryset=queryset,
+                                              request=request,
                                               limit=limit,
                                               offset=offset)
 
@@ -143,6 +152,11 @@ class PreviewResource(BaseResource, PaginatorResource):
     # POST mimics GET to support sending large request bodies for on-the-fly
     # context and view data.
     post = get
+
+    def delete(self, request):
+        query_name = request.session.session_key
+        canceled = utils.cancel_query(query_name)
+        return self.render(request, {'canceled': canceled})
 
 
 preview_resource = PreviewResource()
