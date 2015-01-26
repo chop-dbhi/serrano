@@ -1,3 +1,5 @@
+import weakref
+import threading
 from multiprocessing.pool import ThreadPool
 from django.core.urlresolvers import reverse
 from django.core.cache import cache
@@ -83,6 +85,11 @@ class CountStatsResource(ThrottledResource):
         models = set()
 
         QueryProcessor = pipeline.query_processors[params['processor']]
+
+        # Workaround for a Python bug for versions 2.7.5 and below
+        # http://bugs.python.org/issue10015
+        if not hasattr(threading.current_thread(), '_children'):
+            threading.current_thread()._children = weakref.WeakKeyDictionary()
 
         # Pool of threads to execute the counts in parallel
         pool = ThreadPool()
