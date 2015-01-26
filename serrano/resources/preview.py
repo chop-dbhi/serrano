@@ -89,7 +89,8 @@ class PreviewResource(BaseResource, PaginatorResource):
         order_only = lambda f: not f.get('visible', True)
 
         if filter(order_only, view_node.facets):
-            iterable = processor.get_iterable(request=request)
+            iterable = processor.get_iterable(request=request,
+                                              queryset=queryset)
 
             exported = exporter.read(iterable,
                                      request=request,
@@ -97,6 +98,7 @@ class PreviewResource(BaseResource, PaginatorResource):
                                      limit=limit)
         else:
             iterable = processor.get_iterable(request=request,
+                                              queryset=queryset,
                                               limit=limit,
                                               offset=offset)
 

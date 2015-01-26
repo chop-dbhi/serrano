@@ -104,6 +104,8 @@ class ExporterResource(BaseResource):
                                    tree=tree,
                                    include_pk=False)
 
+        queryset = processor.get_queryset(request=request)
+
         exporter = processor.get_exporter(exporters[export_type])
 
         view_node = view.parse()
@@ -116,7 +118,8 @@ class ExporterResource(BaseResource):
         order_only = lambda f: not f.get('visible', True)
 
         if filter(order_only, view_node.facets):
-            iterable = processor.get_iterable(request=request)
+            iterable = processor.get_iterable(request=request,
+                                              queryset=queryset)
 
             # Write the data to the response
             exporter.write(iterable,
@@ -126,6 +129,7 @@ class ExporterResource(BaseResource):
                            limit=limit)
         else:
             iterable = processor.get_iterable(request=request,
+                                              queryset=queryset,
                                               limit=limit,
                                               offset=offset)
 
