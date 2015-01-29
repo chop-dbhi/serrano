@@ -35,9 +35,10 @@ class FieldDistribution(FieldBase):
 
         tree = trees[params.get('tree')]
         opts = tree.root_model._meta
-        tree_field = DataField(
-            app_name=opts.app_label, model_name=opts.module_name,
-            field_name=opts.pk.name)
+        tree_field = DataField(pk='{0}:{1}'.format(params.get('tree'), pk),
+                               app_name=opts.app_label,
+                               model_name=opts.module_name,
+                               field_name=opts.pk.name)
 
         # This will eventually make it's way in the parametizer, but lists
         # are not supported
