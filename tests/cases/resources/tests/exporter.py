@@ -36,28 +36,28 @@ class ExporterResourceTestCase(TestCase):
 
     def test_export_all_pages(self):
         response = self.client.get('/api/data/export/csv/')
-        self.assertEqual(response.status_code, codes.no_content)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.get('Content-Disposition').startswith(
             'attachment; filename="all'))
         self.assertEqual(response.get('Content-Type'), 'text/csv')
 
     def test_export_one_page(self):
         response = self.client.get('/api/data/export/csv/1/')
-        self.assertEqual(response.status_code, codes.no_content)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.get('Content-Disposition').startswith(
             'attachment; filename="p1'))
         self.assertEqual(response.get('Content-Type'), 'text/csv')
 
     def test_export_page_range(self):
         response = self.client.get('/api/data/export/csv/1...2/')
-        self.assertEqual(response.status_code, codes.no_content)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.get('Content-Disposition').startswith(
             'attachment; filename="p1-2'))
         self.assertEqual(response.get('Content-Type'), 'text/csv')
 
     def test_export_equal_page_range(self):
         response = self.client.get('/api/data/export/csv/1...1/')
-        self.assertEqual(response.status_code, codes.no_content)
+        self.assertEqual(response.status_code, codes.ok)
         self.assertTrue(response.get('Content-Disposition').startswith(
             'attachment; filename="p1'))
         self.assertEqual(response.get('Content-Type'), 'text/csv')

@@ -1,14 +1,18 @@
 import os
 import getpass
 
-TEST_DATABASE_USER = os.environ.get('TEST_DATABASE_USER', getpass.getuser())
-TEST_DATABASE_NAME = os.environ.get('TEST_DATABASE_NAME', 'serrano')
+DATABASE_USER = os.environ.get('TEST_DATABASE_USER', getpass.getuser())
+DATABASE_NAME = os.environ.get('TEST_DATABASE_NAME', 'serrano')
+DATABASE_HOST = os.environ.get('TEST_DATABASE_HOST', '127.0.0.1')
+DATABASE_PORT = os.environ.get('TEST_DATABASE_PORT', '5432')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': TEST_DATABASE_NAME,
-        'USER': TEST_DATABASE_USER,
+        'NAME': DATABASE_NAME,
+        'USER': DATABASE_USER,
+        'HOST': DATABASE_HOST,
+        'PORT': DATABASE_PORT,
     }
 }
 

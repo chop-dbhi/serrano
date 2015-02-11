@@ -49,6 +49,7 @@ class ExporterRootResource(BaseResource):
 class ExporterParametizer(Parametizer):
     limit = IntParam(50)
     processor = StrParam('default', choices=pipeline.query_processors)
+    reader = StrParam('cached_threaded')
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
@@ -137,21 +138,33 @@ class ExporterResource(BaseResource):
             iterable = processor.get_iterable(queryset=queryset,
                                               request=request)
 
-            # Write the data to the response
-            exporter.write(iterable,
-                           resp,
-                           request=request,
-                           offset=offset,
-                           limit=limit)
+            rows = exporter.manual_read(iterable,
+                                        request=request,
+                                        offset=offset,
+                                        limit=limit)
         else:
             iterable = processor.get_iterable(queryset=queryset,
                                               request=request,
                                               limit=limit,
                                               offset=offset)
 
-            exporter.write(iterable,
-                           resp,
-                           request=request)
+            # Select the requested reader
+            reader = params['reader']
+
+            if reader == 'threaded':
+                method = exporter.threaded_read
+            elif reader == 'cached':
+                method = exporter.cached_read
+            elif reader == 'cached_threaded':
+                method = exporter.cached_threaded_read
+            else:
+                method = exporter.read
+
+            rows = method(iterable, request=request)
+
+        exporter.write(rows,
+                       buff=resp,
+                       request=request)
 
         filename = '{0}-{1}-data.{2}'.format(file_tag,
                                              datetime.now(),
