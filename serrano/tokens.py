@@ -43,7 +43,7 @@ class TokenGenerator(object):
         # The number of seconds in a day
         SEC_PER_DAY = 24 * 3600
         # The number of microseconds in a second
-        MICROSEC_PER_SEC = 10**6
+        MICROSEC_PER_SEC = 10 ** 6
 
         timedelta = (dt - datetime(2001, 1, 1))
 

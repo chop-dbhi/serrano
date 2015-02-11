@@ -254,7 +254,7 @@ urlpatterns = patterns(
     url(r'^session/$', single_resource, {'session': True}, name='session'),
 
     # Stats for a single context
-    url(r'^(?P<pk>\d+)/stats/$', stats_resource,  name='stats'),
+    url(r'^(?P<pk>\d+)/stats/$', stats_resource, name='stats'),
     url(r'^session/stats/$', stats_resource, {'session': True}, name='stats'),
 
     # Revision related endpoints
