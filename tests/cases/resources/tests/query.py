@@ -28,7 +28,8 @@ class QueriesResourceTestCase(AuthenticatedBaseTestCase):
         self.assertEqual(response['Link-Template'], (
             '<http://testserver/api/queries/{id}/>; rel="self", '
             '<http://testserver/api/queries/{id}/stats/>; rel="stats", '
-            '<http://testserver/api/queries/{id}/forks/>; rel="forks"'
+            '<http://testserver/api/queries/{id}/forks/>; rel="forks", '
+            '<http://testserver/api/queries/{id}/results/>; rel="results"'
         ))
 
         content = json.loads(response.content)[0]
@@ -593,3 +594,83 @@ class QueriesRevisionsResourceTestCase(AuthenticatedBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(len(json.loads(response.content)), 1)
+
+
+class QueryResultsResourceTestCase(AuthenticatedBaseTestCase):
+    def setUp(self):
+        super(QueryResultsResourceTestCase, self).setUp()
+
+        self.query = DataQuery(user=self.user)
+        self.query.save()
+
+    def test_get(self):
+        response = self.client.get(
+            '/api/queries/{0}/results/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+
+        # Let's just make sure that we didn't break anything regarding making
+        # sure the query exists.
+        response = self.client.get('api/queries/999/results/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+    def test_page(self):
+        # Page numbers must be greater than or equal to 1.
+        response = self.client.get(
+            '/api/queries/{0}/results/0/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+        # Pages greater than 0 should be fine.
+        response = self.client.get(
+            '/api/queries/{0}/results/3/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+
+    def test_page_range(self):
+        # When using a page range, a 0 page should still be invalid.
+        response = self.client.get(
+            '/api/queries/{0}/results/0...3/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+        # Stop pages less than start pages aren't a valid range.
+        response = self.client.get(
+            '/api/queries/{0}/results/3...1/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
+        # Stop pages >= start pages should be valid.
+        response = self.client.get(
+            '/api/queries/{0}/results/3...50/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+
+    def test_delete(self):
+        # There is nothing to delete here so we should be OK.
+        response = self.client.delete(
+            '/api/queries/{0}/results/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(
+            json.loads(response.content),
+            {'canceled': None}
+        )
+
+        # This should start an isolated query.
+        response = self.client.get(
+            '/api/queries/{0}/results/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+
+        # The above GET request should have created an isolated query. So, we
+        # get a value indicating that we have canceled it here.
+        response = self.client.delete(
+            '/api/queries/{0}/results/'.format(self.query.id),
+            HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(
+            json.loads(response.content),
+            {'canceled': True}
+        )

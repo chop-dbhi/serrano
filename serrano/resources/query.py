@@ -5,15 +5,17 @@ import logging
 from datetime import datetime
 from django.conf.urls import patterns, url
 from django.db.models import Q
+from django.http import Http404, HttpResponse
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
-from restlib2.params import Parametizer, StrParam
+from restlib2.params import IntParam, Parametizer, StrParam
 from preserialize.serialize import serialize
 from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
 from avocado.events import usage
+from avocado.export import JSONExporter
 from avocado.models import DataQuery
-from avocado.query import pipeline
-from serrano import utils
+from avocado.query import pipeline, utils as query_utils
+from serrano.utils import send_mail
 from serrano.forms import QueryForm
 from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
@@ -46,6 +48,10 @@ class QueryParametizer(Parametizer):
     processor = StrParam('default', choices=pipeline.query_processors)
 
 
+class QueryResultsParametizer(QueryParametizer):
+    limit = IntParam(50)
+
+
 class QueryBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
@@ -71,6 +77,8 @@ class QueryBase(ThrottledResource):
                 uri, 'serrano:queries:forks', {'pk': (int, 'id')}),
             'stats': reverse_tmpl(
                 uri, 'serrano:queries:stats', {'pk': (int, 'id')}),
+            'results': reverse_tmpl(
+                uri, 'serrano:queries:results', {'pk': (int, 'id')}),
         }
 
     def get_queryset(self, request, **kwargs):
@@ -324,9 +332,9 @@ class QueryResource(QueryBase):
             }
             return self.render(request, data, status=codes.bad_request)
 
-        utils.send_mail(instance.shared_users.values_list('email', flat=True),
-                        DELETE_QUERY_EMAIL_TITLE.format(instance.name),
-                        DELETE_QUERY_EMAIL_BODY.format(instance.name))
+        send_mail(instance.shared_users.values_list('email', flat=True),
+                  DELETE_QUERY_EMAIL_TITLE.format(instance.name),
+                  DELETE_QUERY_EMAIL_BODY.format(instance.name))
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
@@ -351,11 +359,132 @@ class QueryStatsResource(QueryBase):
         }
 
 
+class QueryResultsResource(QueryBase):
+    QUERY_NAME_TEMPLATE = 'query_result:{pk}'
+
+    parametizer = QueryResultsParametizer
+
+    def get_object(self, request, pk=None, session=None, **kwargs):
+        if not pk and not session:
+            raise ValueError('A pk or session must used for the lookup')
+
+        if not hasattr(request, 'instance'):
+            # Don't pass on page or stop_page.
+            filters = dict(kwargs)
+            filters.pop('page', None)
+            filters.pop('stop_page', None)
+
+            queryset = self.get_queryset(request, **filters)
+
+            try:
+                if pk:
+                    instance = queryset.get(pk=pk)
+                else:
+                    instance = queryset.get(session=True)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
+
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        context = request.instance.context
+        view = request.instance.view
+
+        params = self.get_params(request)
+
+        limit = params.get('limit')
+        tree = params.get('tree')
+
+        page = kwargs.get('page')
+        stop_page = kwargs.get('stop_page')
+
+        offset = None
+
+        if page:
+            page = int(page)
+
+            # Pages are 1-based.
+            if page < 1:
+                raise Http404
+
+            # Change to 0-base for calculating offset.
+            offset = limit * (page - 1)
+
+            if stop_page:
+                stop_page = int(stop_page)
+
+                # Cannot have a lower index stop page than start page.
+                if stop_page < page:
+                    raise Http404
+
+                # 4...5 means 4 and 5, not everything up to 5 like with
+                # list slices, so 4...4 is equivalent to just 4
+                if stop_page > page:
+                    limit = limit * stop_page
+        else:
+            # When no page or range is specified, the limit does not apply.
+            limit = None
+
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(context=context, view=view, tree=tree)
+        queryset = processor.get_queryset(request=request)
+
+        # Isolate this query to a named connection. This will cancel an
+        # outstanding queries of the same name if one is present.
+        query_name = self.QUERY_NAME_TEMPLATE.format(pk=request.instance.pk)
+        query_utils.cancel_query(query_name)
+        queryset = query_utils.isolate_queryset(query_name, queryset)
+
+        exporter = processor.get_exporter(JSONExporter)
+
+        # This is an optimization when concepts are selected for ordering
+        # only. There is not guarantee to how many rows are required to get
+        # the desired `limit` of rows, so the query is unbounded. If all
+        # ordering facets are visible, the limit and offset can be pushed
+        # down to the query.
+        order_only = lambda f: not f.get('visible', True)
+        view_node = view.parse()
+        resp = HttpResponse()
+
+        if filter(order_only, view_node.facets):
+            iterable = processor.get_iterable(queryset=queryset,
+                                              request=request)
+
+            # Write the data to the response
+            exporter.write(iterable,
+                           resp,
+                           request=request,
+                           offset=offset,
+                           limit=limit)
+        else:
+            iterable = processor.get_iterable(queryset=queryset,
+                                              request=request,
+                                              limit=limit,
+                                              offset=offset)
+
+            exporter.write(iterable,
+                           resp,
+                           request=request)
+
+        return resp
+
+    def delete(self, request, **kwargs):
+        query_name = self.QUERY_NAME_TEMPLATE.format(pk=request.instance.pk)
+        canceled = query_utils.cancel_query(query_name)
+        return self.render(request, {'canceled': canceled})
+
+
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
 public_resource = never_cache(PublicQueriesResource())
 forks_resource = never_cache(QueryForksResource())
 stats_resource = never_cache(QueryStatsResource())
+results_resource = never_cache(QueryResultsResource())
 
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataQuery, object_model_template=templates.Query,
@@ -378,6 +507,23 @@ urlpatterns = patterns(
     # Single queries
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Endpoint for retrieving results of an existing query.
+    url(
+        r'^(?P<pk>\d+)/results/$',
+        results_resource,
+        name='results'
+    ),
+    url(
+        r'^(?P<pk>\d+)/results/(?P<page>\d+)/$',
+        results_resource,
+        name='results'
+    ),
+    url(
+        r'^(?P<pk>\d+)/results/(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$',
+        results_resource,
+        name='results'
+    ),
 
     # Stats
     url(r'^(?P<pk>\d+)/stats/$', stats_resource, name='stats'),
