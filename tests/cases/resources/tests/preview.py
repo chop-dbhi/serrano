@@ -11,7 +11,7 @@ class PreviewResourceProcessorTestCase(TransactionBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertEqual(content['item_count'], 6)
+        self.assertEqual(len(content['items']), 6)
 
         # The Parametizer cleaning process should set this to the default
         # value if the processor is not in the list of choices which, in our
@@ -21,13 +21,13 @@ class PreviewResourceProcessorTestCase(TransactionBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertEqual(content['item_count'], 6)
+        self.assertEqual(len(content['items']), 6)
 
         response = self.client.get('/api/data/preview/?processor=manager',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         content = json.loads(response.content)
-        self.assertEqual(content['item_count'], 1)
+        self.assertEqual(len(content['items']), 1)
 
 
 class PreviewResourceTestCase(TestCase):
@@ -37,22 +37,12 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
-            'keys': [],
-            'count': 0,
-            'item_count': 0,
             'item_name': 'employee',
-            'item_name_plural': 'employees',
             'items': [],
-            'page_num': 1,
-            'num_pages': 1,
+            'keys': [],
+            'item_name_plural': 'employees',
             'limit': 20,
         })
-        self.assertEqual(response['Link'], (
-            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
-            '<http://testserver/api/data/preview/>; rel="base", '
-            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="last", '   # noqa
-            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="first"'    # noqa
-        ))
 
     def test_get_with_user(self):
         self.user = User.objects.create_user(username='test', password='test')
@@ -63,19 +53,9 @@ class PreviewResourceTestCase(TestCase):
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(json.loads(response.content), {
-            'keys': [],
-            'count': 0,
-            'item_count': 0,
             'item_name': 'employee',
-            'item_name_plural': 'employees',
             'items': [],
-            'page_num': 1,
-            'num_pages': 1,
+            'keys': [],
+            'item_name_plural': 'employees',
             'limit': 20,
         })
-        self.assertEqual(response['Link'], (
-            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="self", '   # noqa
-            '<http://testserver/api/data/preview/>; rel="base", '
-            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="last", '   # noqa
-            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="first"'    # noqa
-        ))

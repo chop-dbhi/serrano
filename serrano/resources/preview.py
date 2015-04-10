@@ -3,23 +3,22 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 from django.conf.urls import patterns, url
-from django.core.urlresolvers import reverse
+from django.http import Http404
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
+from restlib2.params import Parametizer, IntParam, StrParam
 from avocado.query import pipeline, utils
 from avocado.export import HTMLExporter
-from restlib2.params import StrParam
 from .base import BaseResource
-from .pagination import PaginatorResource, PaginatorParametizer
-from ..links import patch_response
 
 
-class PreviewParametizer(PaginatorParametizer):
+class PreviewParametizer(Parametizer):
+    limit = IntParam(20)
     processor = StrParam('default', choices=pipeline.query_processors)
     reader = StrParam('cached', choices=HTMLExporter.readers)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
-class PreviewResource(BaseResource, PaginatorResource):
+class PreviewResource(BaseResource):
     """Resource for *previewing* data prior to exporting.
 
     Data is formatted using a JSON+HTML exporter which prefers HTML formatted
@@ -29,12 +28,40 @@ class PreviewResource(BaseResource, PaginatorResource):
 
     parametizer = PreviewParametizer
 
-    def get(self, request):
+    def get(self, request, **kwargs):
         params = self.get_params(request)
 
-        page = params.get('page')
         limit = params.get('limit')
         tree = params.get('tree')
+
+        page = kwargs.get('page')
+        stop_page = kwargs.get('stop_page')
+
+        offset = None
+
+        # Restrict the preview results to a particular page or page range. If
+        # no page range is supplied, use the default limit.
+        if page:
+            page = int(page)
+
+            # Pages are 1-based
+            if page < 1:
+                raise Http404
+
+            # Change to 0-base for calculating offset
+            offset = limit * (page - 1)
+
+            if stop_page:
+                stop_page = int(stop_page)
+
+                # Cannot have a lower index than page
+                if stop_page < page:
+                    raise Http404
+
+                # 4...5 means 4 and 5, not everything up to 5 like with
+                # list slices, so 4...4 is equivalent to just 4
+                if stop_page > page:
+                    limit = limit * stop_page
 
         # Get the request's view and context
         view = self.get_view(request)
@@ -54,11 +81,6 @@ class PreviewResource(BaseResource, PaginatorResource):
 
         queryset = utils.isolate_queryset(query_name, queryset)
 
-        # Get paginator and page
-        paginator = self.get_paginator(queryset, limit=limit)
-        page = paginator.page(page)
-        offset = max(0, page.start_index() - 1)
-
         # Prepare an HTMLExporter. The primary key is included to have
         # a reference point for the root entity of each record.
         exporter = processor.get_exporter(HTMLExporter, include_pk=True)
@@ -66,6 +88,11 @@ class PreviewResource(BaseResource, PaginatorResource):
         # 0 limit means all for pagination, however the read method requires
         # an explicit limit of None
         limit = limit or None
+
+        # Prepare an HTMLExporter
+        exporter = processor.get_exporter(HTMLExporter)
+
+        objects = []
 
         # This is an optimization when concepts are selected for ordering
         # only. There is not guarantee to how many rows are required to get
@@ -129,21 +156,15 @@ class PreviewResource(BaseResource, PaginatorResource):
         model_name = opts.verbose_name.format()
         model_name_plural = opts.verbose_name_plural.format()
 
-        data = self.get_page_response(request, paginator, page)
-
-        data.update({
+        data = {
             'keys': header,
             'items': objects,
             'item_name': model_name,
             'item_name_plural': model_name_plural,
-            'item_count': paginator.count
-        })
+            'limit': limit,
+        }
 
-        path = reverse('serrano:data:preview')
-        links = self.get_page_links(request, path, page, extra=params)
-        response = self.render(request, content=data)
-
-        return patch_response(request, response, links, {})
+        return self.render(request, content=data)
 
     # POST mimics GET to support sending large request bodies for on-the-fly
     # context and view data.
@@ -158,4 +179,21 @@ class PreviewResource(BaseResource, PaginatorResource):
 preview_resource = PreviewResource()
 
 # Resource endpoints
-urlpatterns = patterns('', url(r'^$', preview_resource, name='preview'), )
+urlpatterns = patterns(
+    '',
+    url(
+        r'^$',
+        preview_resource,
+        name='preview'
+    ),
+    url(
+        r'^(?P<page>\d+)/$',
+        preview_resource,
+        name='preview'
+    ),
+    url(
+        r'^(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$',
+        preview_resource,
+        name='preview'
+    ),
+)
