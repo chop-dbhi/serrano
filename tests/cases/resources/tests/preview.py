@@ -44,6 +44,58 @@ class PreviewResourceTestCase(TestCase):
             'limit': 20,
         })
 
+    def test_get_page(self):
+        response = self.client.get('/api/data/preview/7/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(response.content), {
+            'item_name': 'employee',
+            'items': [],
+            'keys': [],
+            'item_name_plural': 'employees',
+            'limit': 20,
+        })
+
+    def test_get_page_range_equal(self):
+        response = self.client.get('/api/data/preview/3...3/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(response.content), {
+            'item_name': 'employee',
+            'items': [],
+            'keys': [],
+            'item_name_plural': 'employees',
+            'limit': 20,
+        })
+
+    def test_get_page_range(self):
+        response = self.client.get('/api/data/preview/1...5/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(response.content), {
+            'item_name': 'employee',
+            'items': [],
+            'keys': [],
+            'item_name_plural': 'employees',
+            'limit': 100,
+        })
+
+    def test_get_limit(self):
+        response = self.client.get('/api/data/preview/?limit=1000',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(response.content), {
+            'item_name': 'employee',
+            'items': [],
+            'keys': [],
+            'item_name_plural': 'employees',
+            'limit': 1000,
+        })
+
     def test_get_with_user(self):
         self.user = User.objects.create_user(username='test', password='test')
         self.client.login(username='test', password='test')
