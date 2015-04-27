@@ -70,13 +70,15 @@ class PreviewResource(BaseResource, PaginatorResource):
         ordering = OrderedDict(view_node.ordering)
         concepts = view_node.get_concepts_for_select()
 
-        # Prepare an HTMLExporter
-        exporter = processor.get_exporter(HTMLExporter)
+        # Prepare an HTMLExporter. The primary key is included to have
+        # a reference point for the root entity of each record.
+        exporter = processor.get_exporter(HTMLExporter, include_pk=True)
 
         objects = []
         header = []
 
-        # Skip pk field.
+        # Skip the primary key field in the header since it is not exposed
+        # in the row output below.
         for i, f in enumerate(exporter.header[1:]):
             concept = concepts[i]
 
@@ -129,6 +131,7 @@ class PreviewResource(BaseResource, PaginatorResource):
 
             rows = method(iterable, request=request)
 
+        # Split the primary key from the requested values in the row.
         for row in rows:
             objects.append({
                 'pk': row[0],
