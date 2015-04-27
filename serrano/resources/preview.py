@@ -15,6 +15,7 @@ from ..links import patch_response
 
 class PreviewParametizer(PaginatorParametizer):
     processor = StrParam('default', choices=pipeline.query_processors)
+    reader = StrParam('cached_threaded', choices=HTMLExporter.readers)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
@@ -67,23 +68,29 @@ class PreviewResource(BaseResource, PaginatorResource):
         # depend on data to exist!
         header = []
         ordering = OrderedDict(view_node.ordering)
+        concepts = view_node.get_concepts_for_select()
 
-        for concept in view_node.get_concepts_for_select():
+        # Prepare an HTMLExporter. The primary key is included to have
+        # a reference point for the root entity of each record.
+        exporter = processor.get_exporter(HTMLExporter, include_pk=True)
+
+        objects = []
+        header = []
+
+        # Skip the primary key field in the header since it is not exposed
+        # in the row output below.
+        for i, f in enumerate(exporter.header[1:]):
+            concept = concepts[i]
+
             obj = {
                 'id': concept.id,
-                'name': concept.name
+                'name': f['label'],
             }
 
             if concept.id in ordering:
                 obj['direction'] = ordering[concept.id]
 
             header.append(obj)
-
-        # Prepare an HTMLExporter
-        exporter = processor.get_exporter(HTMLExporter)
-        pk_name = queryset.model._meta.pk.name
-
-        objects = []
 
         # 0 limit means all for pagination, however the read method requires
         # an explicit limit of None
@@ -100,31 +107,27 @@ class PreviewResource(BaseResource, PaginatorResource):
             iterable = processor.get_iterable(queryset=queryset,
                                               request=request)
 
-            exported = exporter.read(iterable,
-                                     request=request,
-                                     offset=offset,
-                                     limit=limit)
+            rows = exporter.manual_read(iterable,
+                                        request=request,
+                                        offset=offset,
+                                        limit=limit)
         else:
             iterable = processor.get_iterable(queryset=queryset,
                                               request=request,
                                               limit=limit,
                                               offset=offset)
 
-            exported = exporter.read(iterable, request=request)
+            # Get the requested reader
+            reader = params['reader']
+            method = exporter.reader(reader)
 
-        for row in exported:
-            pk = None
-            values = []
+            rows = method(iterable, request=request)
 
-            for i, output in enumerate(row):
-                if i == 0:
-                    pk = output[pk_name]
-                else:
-                    values.extend(output.values())
-
+        # Split the primary key from the requested values in the row.
+        for row in rows:
             objects.append({
-                'pk': pk,
-                'values': values,
+                'pk': row[0],
+                'values': row[1:],
             })
 
         # Various model options

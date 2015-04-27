@@ -4,7 +4,7 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from restlib2.params import Parametizer, IntParam, StrParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
-from avocado.export import registry as exporters
+from avocado.export import BaseExporter, registry as exporters
 from avocado.query import pipeline, utils
 from avocado.events import usage
 from ..conf import settings
@@ -49,6 +49,7 @@ class ExporterRootResource(BaseResource):
 class ExporterParametizer(Parametizer):
     limit = IntParam(50)
     processor = StrParam('default', choices=pipeline.query_processors)
+    reader = StrParam('cached_threaded', choices=BaseExporter.readers)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
@@ -137,21 +138,25 @@ class ExporterResource(BaseResource):
             iterable = processor.get_iterable(queryset=queryset,
                                               request=request)
 
-            # Write the data to the response
-            exporter.write(iterable,
-                           resp,
-                           request=request,
-                           offset=offset,
-                           limit=limit)
+            rows = exporter.manual_read(iterable,
+                                        request=request,
+                                        offset=offset,
+                                        limit=limit)
         else:
             iterable = processor.get_iterable(queryset=queryset,
                                               request=request,
                                               limit=limit,
                                               offset=offset)
 
-            exporter.write(iterable,
-                           resp,
-                           request=request)
+            # Get the requested reader
+            reader = params['reader']
+            method = exporter.reader(reader)
+
+            rows = method(iterable, request=request)
+
+        exporter.write(rows,
+                       buff=resp,
+                       request=request)
 
         filename = '{0}-{1}-data.{2}'.format(file_tag,
                                              datetime.now(),

@@ -1,5 +1,11 @@
+from warnings import warn
 from django.template import defaultfilters as filters
-from avocado.formatters import Formatter, process_multiple, registry
+from avocado.formatters import Formatter, process_multiple
+
+
+warn('The HTMLFormatter has been deprecated and will be removed in Serrano '
+     '2.5. The functionality has been moved to the default Formatter class '
+     'in Avocado.')
 
 
 class HTMLFormatter(Formatter):
@@ -10,9 +16,10 @@ class HTMLFormatter(Formatter):
     }
 
     @process_multiple
-    def to_html(self, values, **context):
+    def to_html(self, values, fields, context):
         toks = []
-        for value in values.values():
+
+        for value in values:
             # Check the html_map first
             if value in self.html_map:
                 tok = self.html_map[value]
@@ -25,7 +32,5 @@ class HTMLFormatter(Formatter):
             else:
                 tok = unicode(value)
             toks.append(tok)
+
         return self.delimiter.join(toks)
-
-
-registry.register(HTMLFormatter, default=True)
