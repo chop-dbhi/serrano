@@ -4,7 +4,7 @@ from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from restlib2.params import Parametizer, IntParam, StrParam
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
-from avocado.export import registry as exporters
+from avocado.export import BaseExporter, registry as exporters
 from avocado.query import pipeline, utils
 from avocado.events import usage
 from ..conf import settings
@@ -49,7 +49,7 @@ class ExporterRootResource(BaseResource):
 class ExporterParametizer(Parametizer):
     limit = IntParam(50)
     processor = StrParam('default', choices=pipeline.query_processors)
-    reader = StrParam('cached_threaded')
+    reader = StrParam('cached_threaded', choices=BaseExporter.readers)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
@@ -148,17 +148,9 @@ class ExporterResource(BaseResource):
                                               limit=limit,
                                               offset=offset)
 
-            # Select the requested reader
+            # Get the requested reader
             reader = params['reader']
-
-            if reader == 'threaded':
-                method = exporter.threaded_read
-            elif reader == 'cached':
-                method = exporter.cached_read
-            elif reader == 'cached_threaded':
-                method = exporter.cached_threaded_read
-            else:
-                method = exporter.read
+            method = exporter.reader(reader)
 
             rows = method(iterable, request=request)
 
