@@ -15,7 +15,7 @@ from ..links import patch_response
 
 class PreviewParametizer(PaginatorParametizer):
     processor = StrParam('default', choices=pipeline.query_processors)
-    reader = StrParam('cached_threaded', choices=HTMLExporter.readers)
+    reader = StrParam('cached', choices=HTMLExporter.readers)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
@@ -59,38 +59,9 @@ class PreviewResource(BaseResource, PaginatorResource):
         page = paginator.page(page)
         offset = max(0, page.start_index() - 1)
 
-        view_node = view.parse()
-
-        # Build up the header keys.
-        # TODO: This is flawed since it assumes the output columns
-        # of exporter will be one-to-one with the concepts. This should
-        # be built during the first iteration of the read, but would also
-        # depend on data to exist!
-        header = []
-        ordering = OrderedDict(view_node.ordering)
-        concepts = view_node.get_concepts_for_select()
-
         # Prepare an HTMLExporter. The primary key is included to have
         # a reference point for the root entity of each record.
         exporter = processor.get_exporter(HTMLExporter, include_pk=True)
-
-        objects = []
-        header = []
-
-        # Skip the primary key field in the header since it is not exposed
-        # in the row output below.
-        for i, f in enumerate(exporter.header[1:]):
-            concept = concepts[i]
-
-            obj = {
-                'id': concept.id,
-                'name': f['label'],
-            }
-
-            if concept.id in ordering:
-                obj['direction'] = ordering[concept.id]
-
-            header.append(obj)
 
         # 0 limit means all for pagination, however the read method requires
         # an explicit limit of None
@@ -101,6 +72,7 @@ class PreviewResource(BaseResource, PaginatorResource):
         # the desired `limit` of rows, so the query is unbounded. If all
         # ordering facets are visible, the limit and offset can be pushed
         # down to the query.
+        view_node = view.parse()
         order_only = lambda f: not f.get('visible', True)
 
         if filter(order_only, view_node.facets):
@@ -123,12 +95,33 @@ class PreviewResource(BaseResource, PaginatorResource):
 
             rows = method(iterable, request=request)
 
+        objects = []
+
         # Split the primary key from the requested values in the row.
         for row in rows:
             objects.append({
                 'pk': row[0],
                 'values': row[1:],
             })
+
+        header = []
+        concepts = view_node.get_concepts_for_select()
+        ordering = OrderedDict(view_node.ordering)
+
+        # Skip the primary key field in the header since it is not exposed
+        # in the row output below.
+        for i, f in enumerate(exporter.header[1:]):
+            concept = concepts[i]
+
+            obj = {
+                'id': concept.id,
+                'name': f['label'],
+            }
+
+            if concept.id in ordering:
+                obj['direction'] = ordering[concept.id]
+
+            header.append(obj)
 
         # Various model options
         opts = queryset.model._meta

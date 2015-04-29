@@ -49,7 +49,7 @@ class ExporterRootResource(BaseResource):
 class ExporterParametizer(Parametizer):
     limit = IntParam(50)
     processor = StrParam('default', choices=pipeline.query_processors)
-    reader = StrParam('cached_threaded', choices=BaseExporter.readers)
+    reader = StrParam('cached', choices=BaseExporter.readers)
     tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
 
 
