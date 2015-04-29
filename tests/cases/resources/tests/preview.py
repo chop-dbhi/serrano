@@ -40,8 +40,8 @@ class PreviewResourceTestCase(TestCase):
             'item_name': 'employee',
             'items': [],
             'keys': [],
+            'limit': None,
             'item_name_plural': 'employees',
-            'limit': 20,
         })
 
     def test_get_page(self):
@@ -69,6 +69,13 @@ class PreviewResourceTestCase(TestCase):
             'item_name_plural': 'employees',
             'limit': 20,
         })
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/data/preview/?limit=20&page=2>; rel="prev", '   # noqa
+            '<http://testserver/api/data/preview/?limit=20&page=3>; rel="self", '   # noqa
+            '<http://testserver/api/data/preview/>; rel="base", '
+            '<http://testserver/api/data/preview/?limit=20&page=4>; rel="next", '    # noqa
+            '<http://testserver/api/data/preview/?limit=20&page=1>; rel="first"'   # noqa
+        ))
 
     def test_get_page_range(self):
         response = self.client.get('/api/data/preview/1...5/',
@@ -84,7 +91,7 @@ class PreviewResourceTestCase(TestCase):
         })
 
     def test_get_limit(self):
-        response = self.client.get('/api/data/preview/?limit=1000',
+        response = self.client.get('/api/data/preview/1/?limit=1000',
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.ok)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -108,6 +115,9 @@ class PreviewResourceTestCase(TestCase):
             'item_name': 'employee',
             'items': [],
             'keys': [],
+            'limit': None,
             'item_name_plural': 'employees',
-            'limit': 20,
         })
+        self.assertEqual(response['Link'], (
+            '<http://testserver/api/data/preview/>; rel="self"'
+        ))

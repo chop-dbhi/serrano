@@ -3,12 +3,67 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 from django.conf.urls import patterns, url
+from django.core.urlresolvers import reverse
 from django.http import Http404
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from restlib2.params import Parametizer, IntParam, StrParam
 from avocado.query import pipeline, utils
 from avocado.export import HTMLExporter
 from .base import BaseResource
+from ..links import patch_response
+
+
+def get_page_links(request, path, page, limit, extra=None):
+    "Returns the page links."
+    uri = request.build_absolute_uri
+
+    if not page:
+        return {
+            'self': uri(path),
+        }
+
+    # Format string will be expanded below.
+    if limit:
+        params = {
+            'limit': '{limit}',
+            'page': '{page}',
+        }
+    else:
+        limit = None
+        params = {
+            'limit': '0',
+        }
+
+    if extra:
+        for key, value in extra.items():
+            # Use the original GET parameter if supplied and if the
+            # cleaned value is valid
+            if key in request.GET and value is not None and value != '':
+                params.setdefault(key, request.GET.get(key))
+
+    # Stringify parameters. Since these are the original GET params,
+    # they do not need to be encoded
+    pairs = sorted(['{0}={1}'.format(k, v) for k, v in params.items()])
+
+    # Create path string
+    path_format = '{0}?{1}'.format(path, '&'.join(pairs))
+
+    links = {
+        'self': uri(path_format.format(page=page, limit=limit)),
+        'base': uri(path),
+        'first': uri(path_format.format(page=1, limit=limit)),
+    }
+
+    if page > 1:
+        prev_page = page - 1
+        links['prev'] = uri(path_format.format(
+            page=prev_page, limit=limit))
+
+    next_page = page + 1
+    links['next'] = uri(path_format.format(
+        page=next_page, limit=limit))
+
+    return links
 
 
 class PreviewParametizer(Parametizer):
@@ -39,8 +94,7 @@ class PreviewResource(BaseResource):
 
         offset = None
 
-        # Restrict the preview results to a particular page or page range. If
-        # no page range is supplied, use the default limit.
+        # Restrict the preview results to a particular page or page range.
         if page:
             page = int(page)
 
@@ -62,6 +116,8 @@ class PreviewResource(BaseResource):
                 # list slices, so 4...4 is equivalent to just 4
                 if stop_page > page:
                     limit = limit * stop_page
+        else:
+            limit = None
 
         # Get the request's view and context
         view = self.get_view(request)
@@ -164,7 +220,12 @@ class PreviewResource(BaseResource):
             'limit': limit,
         }
 
-        return self.render(request, content=data)
+        response = self.render(request, content=data)
+
+        path = reverse('serrano:data:preview')
+        links = get_page_links(request, path, page, limit, extra=params)
+
+        return patch_response(request, response, links, {})
 
     # POST mimics GET to support sending large request bodies for on-the-fly
     # context and view data.
