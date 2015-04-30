@@ -1,27 +1,22 @@
 from __future__ import unicode_literals
-
-import functools
-import logging
 from datetime import datetime
-from django.conf.urls import patterns, url
+import functools
+
 from django.db.models import Q
-from django.views.decorators.cache import never_cache
+from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
+from preserialize.serialize import serialize
 from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam
-from preserialize.serialize import serialize
-from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
+
 from avocado.events import usage
 from avocado.models import DataQuery
 from avocado.query import pipeline
-from serrano import utils
 from serrano.forms import QueryForm
-from .base import ThrottledResource
-from .history import RevisionsResource, ObjectRevisionsResource, \
-    ObjectRevisionResource
-from . import templates
-from ..links import reverse_tmpl
+from serrano.links import reverse_tmpl
+from serrano.resources import templates
+from serrano.resources.base import ThrottledResource
+from serrano.utils import send_mail
 
-log = logging.getLogger(__name__)
 
 DELETE_QUERY_EMAIL_TITLE = "'{0}' has been deleted"
 DELETE_QUERY_EMAIL_BODY = """The query named '{0}' has been deleted. You are
@@ -71,6 +66,8 @@ class QueryBase(ThrottledResource):
                 uri, 'serrano:queries:forks', {'pk': (int, 'id')}),
             'stats': reverse_tmpl(
                 uri, 'serrano:queries:stats', {'pk': (int, 'id')}),
+            'results': reverse_tmpl(
+                uri, 'serrano:queries:results', {'pk': (int, 'id')}),
         }
 
     def get_queryset(self, request, **kwargs):
@@ -151,115 +148,6 @@ class QueriesResource(QueryBase):
         return response
 
 
-class QueryForksResource(QueryBase):
-    "Resource for accessing forks of the specified query or forking the query"
-    template = templates.ForkedQuery
-
-    def is_not_found(self, request, response, **kwargs):
-        return self.get_object(request, **kwargs) is None
-
-    def get_link_templates(self, request):
-        uri = request.build_absolute_uri
-
-        return {
-            'self': reverse_tmpl(
-                uri, 'serrano:queries:single', {'pk': (int, 'id')}),
-            'parent': reverse_tmpl(
-                uri, 'serrano:queries:single', {'pk': (int, 'parent_id')}),
-        }
-
-    def get_queryset(self, request, **kwargs):
-        instance = self.get_object(request, **kwargs)
-        return self.model.objects.filter(parent=instance.pk)
-
-    def get_object(self, request, pk=None, **kwargs):
-        if not pk:
-            raise ValueError('A pk must be used for the fork lookup')
-
-        if not hasattr(request, 'instance'):
-            try:
-                instance = self.model.objects.get(pk=pk)
-            except self.model.DoesNotExist:
-                instance = None
-
-            request.instance = instance
-
-        return request.instance
-
-    def prepare(self, request, instance, template=None):
-        if template is None:
-            template = self.template
-
-        return serialize(instance, **template)
-
-    def _requestor_can_get_forks(self, request, instance):
-        """
-        A user can retrieve the forks of a query if that query is public or
-        if they are the owner of that query.
-        """
-        if instance.public:
-            return True
-
-        if not getattr(request, 'user', None):
-            return False
-
-        return (request.user.is_authenticated() and
-                request.user == instance.user)
-
-    def _requestor_can_fork(self, request, instance):
-        """
-        A user can fork a query if that query is public or if they are the
-        owner or in the shared_users group of that query.
-        """
-        if instance.public:
-            return True
-
-        if getattr(request, 'user', None) and request.user.is_authenticated():
-            return (request.user == instance.user or
-                    instance.shared_users.filter(pk=request.user.pk).exists())
-
-        return False
-
-    def get(self, request, **kwargs):
-        instance = self.get_object(request, **kwargs)
-
-        if self._requestor_can_get_forks(request, instance):
-            return self.prepare(request, self.get_queryset(request, **kwargs))
-
-        data = {
-            'message': 'Cannot access forks',
-        }
-        return self.render(request, data, status=codes.unauthorized)
-
-    def post(self, request, **kwargs):
-        instance = self.get_object(request, **kwargs)
-
-        if self._requestor_can_fork(request, instance):
-            fork = DataQuery(name=instance.name,
-                             description=instance.description,
-                             view_json=instance.view_json,
-                             context_json=instance.context_json,
-                             parent=instance)
-
-            if getattr(request, 'user', None):
-                fork.user = request.user
-            elif request.session.session_key:
-                fork.session_key = request.session.session_key
-
-            fork.save()
-            request.session.modified = True
-
-            posthook = functools.partial(query_posthook, request=request)
-            data = serialize(fork, posthook=posthook, **templates.Query)
-
-            return self.render(request, data, status=codes.created)
-
-        data = {
-            'message': 'Cannot fork query',
-        }
-        return self.render(request, data, status=codes.unauthorized)
-
-
 class PublicQueriesResource(QueryBase):
     "Resource for accessing public queries"
     template = templates.BriefQuery
@@ -324,73 +212,10 @@ class QueryResource(QueryBase):
             }
             return self.render(request, data, status=codes.bad_request)
 
-        utils.send_mail(instance.shared_users.values_list('email', flat=True),
-                        DELETE_QUERY_EMAIL_TITLE.format(instance.name),
-                        DELETE_QUERY_EMAIL_BODY.format(instance.name))
+        send_mail(instance.shared_users.values_list('email', flat=True),
+                  DELETE_QUERY_EMAIL_TITLE.format(instance.name),
+                  DELETE_QUERY_EMAIL_BODY.format(instance.name))
 
         instance.delete()
         usage.log('delete', instance=instance, request=request)
         request.session.modified = True
-
-
-class QueryStatsResource(QueryBase):
-    def is_not_found(self, request, response, **kwargs):
-        return self.get_object(request, **kwargs) is None
-
-    def get(self, request, **kwargs):
-        params = self.get_params(request)
-        instance = self.get_object(request, **kwargs)
-
-        QueryProcessor = pipeline.query_processors[params['processor']]
-        processor = QueryProcessor(tree=params['tree'])
-        queryset = processor.get_queryset(request=request)
-
-        return {
-            'distinct_count': instance.context.count(queryset=queryset),
-            'record_count': instance.count(queryset=queryset)
-        }
-
-
-single_resource = never_cache(QueryResource())
-active_resource = never_cache(QueriesResource())
-public_resource = never_cache(PublicQueriesResource())
-forks_resource = never_cache(QueryForksResource())
-stats_resource = never_cache(QueryStatsResource())
-
-revisions_resource = never_cache(RevisionsResource(
-    object_model=DataQuery, object_model_template=templates.Query,
-    object_model_base_uri='serrano:queries'))
-revisions_for_object_resource = never_cache(ObjectRevisionsResource(
-    object_model=DataQuery, object_model_template=templates.Query,
-    object_model_base_uri='serrano:queries'))
-revision_for_object_resource = never_cache(ObjectRevisionResource(
-    object_model=DataQuery, object_model_template=templates.Query,
-    object_model_base_uri='serrano:queries'))
-
-# Resource endpoints
-urlpatterns = patterns(
-    '',
-    url(r'^$', active_resource, name='active'),
-
-    # Endpoints for specific queries
-    url(r'^public/$', public_resource, name='public'),
-
-    # Single queries
-    url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
-    url(r'^session/$', single_resource, {'session': True}, name='session'),
-
-    # Stats
-    url(r'^(?P<pk>\d+)/stats/$', stats_resource, name='stats'),
-    url(r'^session/stats/$', stats_resource, {'session': True}, name='stats'),
-
-    # Forks
-    # TODO add endpoint for session?
-    url(r'^(?P<pk>\d+)/forks/$', forks_resource, name='forks'),
-
-    # Revision related endpoints
-    url(r'^revisions/$', revisions_resource, name='revisions'),
-    url(r'^(?P<pk>\d+)/revisions/$', revisions_for_object_resource,
-        name='revisions_for_object'),
-    url(r'^(?P<object_pk>\d+)/revisions/(?P<revision_pk>\d+)/$',
-        revision_for_object_resource, name='revision_for_object'),
-)
