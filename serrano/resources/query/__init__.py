@@ -66,13 +66,31 @@ urlpatterns = patterns(
         name='results'
     ),
     url(
+        r'^session/results/$',
+        results_resource,
+        {'session': True},
+        name='results'
+    ),
+    url(
         r'^(?P<pk>\d+)/results/(?P<page>\d+)/$',
         results_resource,
         name='results'
     ),
     url(
+        r'^session/results/(?P<page>\d+)/$',
+        results_resource,
+        {'session': True},
+        name='results'
+    ),
+    url(
         r'^(?P<pk>\d+)/results/(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$',
         results_resource,
+        name='results'
+    ),
+    url(
+        r'^session/results/(?P<page>\d+)\.\.\.(?P<stop_page>\d+)/$',
+        results_resource,
+        {'session': True},
         name='results'
     ),
 
@@ -90,7 +108,6 @@ urlpatterns = patterns(
     ),
 
     # Forks
-    # TODO add endpoint for session?
     url(
         r'^(?P<pk>\d+)/forks/$',
         forks_resource,

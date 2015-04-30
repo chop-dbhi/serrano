@@ -94,7 +94,7 @@ class QueryResultsResource(QueryBase):
         exporter = processor.get_exporter(JSONExporter)
 
         # This is an optimization when concepts are selected for ordering
-        # only. There is not guarantee to how many rows are required to get
+        # only. There is no guarantee to how many rows are required to get
         # the desired `limit` of rows, so the query is unbounded. If all
         # ordering facets are visible, the limit and offset can be pushed
         # down to the query.

@@ -615,6 +615,35 @@ class QueryResultsResourceTestCase(AuthenticatedBaseTestCase):
                                    HTTP_ACCEPT='application/json')
         self.assertEqual(response.status_code, codes.not_found)
 
+    def test_get_session(self):
+        query = DataQuery(user=self.user, name='Query', session=True)
+        query.save()
+
+        # All results for session query.
+        response = self.client.get('/api/queries/session/results/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        # Single page of results for session query.
+        response = self.client.get('/api/queries/session/results/3/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        # Page range of results for session query.
+        response = self.client.get('/api/queries/session/results/1...5/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue(response.content)
+
+        query.session = False
+        query.save()
+
+        response = self.client.get('/api/queries/session/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
+
     def test_page(self):
         # Page numbers must be greater than or equal to 1.
         response = self.client.get(
