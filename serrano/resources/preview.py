@@ -137,10 +137,6 @@ class PreviewResource(BaseResource):
 
         queryset = utils.isolate_queryset(query_name, queryset)
 
-        # Prepare an HTMLExporter. The primary key is included to have
-        # a reference point for the root entity of each record.
-        exporter = processor.get_exporter(HTMLExporter, include_pk=True)
-
         # 0 limit means all for pagination, however the read method requires
         # an explicit limit of None
         limit = limit or None
