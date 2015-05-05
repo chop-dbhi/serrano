@@ -93,16 +93,16 @@ class PreviewResource(BaseResource):
 
         try:
             rows, row_options = get_result_rows(
-                context,
-                view,
-                params.get('limit'),
-                params.get('tree'),
-                params.get('processor'),
-                kwargs.get('page'),
-                kwargs.get('stop_page'),
-                request.session.session_key,
-                params.get('reader'),
-                HTMLExporter.short_name
+                context=context,
+                view=view,
+                limit=params.get('limit'),
+                tree=params.get('tree'),
+                processor_name=params.get('processor'),
+                page=kwargs.get('page'),
+                stop_page=kwargs.get('stop_page'),
+                query_name=request.session.session_key,
+                reader=params.get('reader'),
+                export_type=HTMLExporter.short_name
             )
         except ValueError:
             raise Http404

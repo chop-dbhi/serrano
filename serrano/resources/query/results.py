@@ -55,16 +55,16 @@ class QueryResultsResource(QueryBase):
 
         try:
             rows, row_options = get_result_rows(
-                context,
-                view,
-                params.get('limit'),
-                params.get('tree'),
-                params.get('processor'),
-                kwargs.get('page'),
-                kwargs.get('stop_page'),
-                query_name,
-                params.get('reader'),
-                JSONExporter.short_name.lower()
+                context=context,
+                view=view,
+                limit=params.get('limit'),
+                tree=params.get('tree'),
+                processor_name=params.get('processor'),
+                page=kwargs.get('page'),
+                stop_page=kwargs.get('stop_page'),
+                query_name=query_name,
+                reader=params.get('reader'),
+                export_type=JSONExporter.short_name.lower()
             )
         except ValueError:
             raise Http404
