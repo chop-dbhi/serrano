@@ -10,6 +10,8 @@ from avocado.events import usage
 from ..conf import settings
 from . import API_VERSION
 from .base import BaseResource
+from ..utils import get_result_rows
+
 
 # Single list of all registered exporters
 EXPORT_TYPES = zip(*exporters.choices)[0]
@@ -61,99 +63,41 @@ class ExporterResource(BaseResource):
     parametizer = ExporterParametizer
 
     def _export(self, request, export_type, view, context, **kwargs):
-        # Handle an explicit export type to a file
-        resp = HttpResponse()
-
         params = self.get_params(request)
 
-        limit = params.get('limit')
-        tree = params.get('tree')
-
-        page = kwargs.get('page')
-        stop_page = kwargs.get('stop_page')
-
-        offset = None
-
-        # Restrict export to a particular page or page range
-        if page:
-            page = int(page)
-
-            # Pages are 1-based
-            if page < 1:
-                raise Http404
-
-            file_tag = 'p{0}'.format(page)
-
-            # Change to 0-base for calculating offset
-            offset = limit * (page - 1)
-
-            if stop_page:
-                stop_page = int(stop_page)
-
-                # Cannot have a lower index than page
-                if stop_page < page:
-                    raise Http404
-
-                # 4...5 means 4 and 5, not everything up to 5 like with
-                # list slices, so 4...4 is equivalent to just 4
-                if stop_page > page:
-                    file_tag = 'p{0}-{1}'.format(page, stop_page)
-                    limit = limit * stop_page
-
-        else:
-            # When no page or range is specified, the limit does not apply.
-            limit = None
-            file_tag = 'all'
-
-        QueryProcessor = pipeline.query_processors[params['processor']]
-
-        processor = QueryProcessor(context=context,
-                                   view=view,
-                                   tree=tree,
-                                   include_pk=False)
-
-        queryset = processor.get_queryset(request=request)
-
-        # Isolate this query and subsequent queries to a named connection.
-        # Cancel the outstanding query if one is present.
         # Use a separate name for each for export type.
         query_name = '{0}:{1}'.format(request.session.session_key, export_type)
-        utils.cancel_query(query_name)
 
-        queryset = utils.isolate_queryset(query_name, queryset)
+        try:
+            rows, row_options = get_result_rows(
+                context=context,
+                view=view,
+                limit=params.get('limit'),
+                tree=params.get('tree'),
+                processor_name=params.get('processor'),
+                page=kwargs.get('page'),
+                stop_page=kwargs.get('stop_page'),
+                query_name=query_name,
+                reader=params.get('reader'),
+                export_type=export_type
+            )
+        except ValueError:
+            raise Http404
 
-        # Get the exporter for this type.
-        exporter = processor.get_exporter(exporters[export_type])
+        exporter = row_options['exporter']
+        page = row_options['page']
+        stop_page = row_options['stop_page']
 
-        # This is an optimization when concepts are selected for ordering
-        # only. There is not guarantee to how many rows are required to get
-        # the desired `limit` of rows, so the query is unbounded. If all
-        # ordering facets are visible, the limit and offset can be pushed
-        # down to the query.
-        order_only = lambda f: not f.get('visible', True)
+        # Build a file name for the export file based on the page range.
+        if page:
+            file_tag = 'p{0}'.format(page)
 
-        view_node = view.parse()
-
-        if filter(order_only, view_node.facets):
-            iterable = processor.get_iterable(queryset=queryset,
-                                              request=request)
-
-            rows = exporter.manual_read(iterable,
-                                        request=request,
-                                        offset=offset,
-                                        limit=limit)
+            if stop_page and stop_page > page:
+                file_tag = 'p{0}-{1}'.format(page, stop_page)
         else:
-            iterable = processor.get_iterable(queryset=queryset,
-                                              request=request,
-                                              limit=limit,
-                                              offset=offset)
+            file_tag = 'all'
 
-            # Get the requested reader
-            reader = params['reader']
-            method = exporter.reader(reader)
-
-            rows = method(iterable, request=request)
-
+        resp = HttpResponse()
         exporter.write(rows,
                        buff=resp,
                        request=request)
