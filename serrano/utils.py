@@ -38,7 +38,12 @@ def send_mail(emails, subject, message, async=True, fail_silently=True):
 def get_result_rows(context, view, limit, tree, processor_name, page,
                     stop_page, query_name, reader, export_type):
     """
-    TODO: Doctstring
+    Returns the result rows and options given the supplied arguments.
+
+    The options include the exporter, queryset, offset, limit, page, and
+    stop_page that were used when calculating the result rows. These can give
+    some more context to callers of this method as far as the returned row
+    set is concerned.
     """
     offset = None
 

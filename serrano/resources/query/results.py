@@ -49,8 +49,6 @@ class QueryResultsResource(QueryBase):
         context = request.instance.context
         view = request.instance.view
 
-        # Isolate this query to a named connection. This will cancel an
-        # outstanding queries of the same name if one is present.
         query_name = self.QUERY_NAME_TEMPLATE.format(pk=request.instance.pk)
 
         try:
