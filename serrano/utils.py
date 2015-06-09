@@ -110,9 +110,6 @@ def get_result_rows(context, view, limit, tree, processor_name, page,
         iterable = processor.get_iterable(queryset=queryset,
                                           limit=limit,
                                           offset=offset)
-        iterable = processor.get_iterable(queryset=queryset,
-                                          limit=limit,
-                                          offset=offset)
         method = exporter.reader(reader)
         rows = method(iterable)
 
