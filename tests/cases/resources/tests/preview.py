@@ -31,6 +31,12 @@ class PreviewResourceProcessorTestCase(TransactionBaseTestCase):
 
 
 class PreviewResourceTestCase(TestCase):
+    def test_delete(self):
+        self.client.get('/api/data/preview/')
+        response = self.client.delete('/api/data/preview/')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue('canceled' in json.loads(response.content))
+
     def test_get(self):
         response = self.client.get('/api/data/preview/',
                                    HTTP_ACCEPT='application/json')
@@ -43,6 +49,11 @@ class PreviewResourceTestCase(TestCase):
             'limit': None,
             'item_name_plural': 'employees',
         })
+
+    def test_get_invalid(self):
+        response = self.client.get('/api/data/preview/0/',
+                                   HTTP_ACCEPT='application/json')
+        self.assertEqual(response.status_code, codes.not_found)
 
     def test_get_page(self):
         response = self.client.get('/api/data/preview/7/',
