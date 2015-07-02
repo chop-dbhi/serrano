@@ -8,7 +8,10 @@ install_requires = [
 ]
 
 if sys.version_info < (2, 7):
-    install_requires.append('ordereddict>=1.1')
+    install_requires += [
+        'importlib',
+        'ordereddict>=1.1',
+    ]
 
 kwargs = {
     # Packages

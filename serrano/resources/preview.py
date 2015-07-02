@@ -1,70 +1,13 @@
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
 from django.conf.urls import patterns, url
-from django.core.urlresolvers import reverse
 from django.http import Http404
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
 from restlib2.params import Parametizer, IntParam, StrParam
+
 from avocado.export import HTMLExporter
 from avocado.query import pipeline, utils
-from .base import BaseResource
-from ..links import patch_response
-from ..utils import get_result_rows
-
-
-def get_page_links(request, path, page, limit, extra=None):
-    "Returns the page links."
-    uri = request.build_absolute_uri
-
-    if not page:
-        return {
-            'self': uri(path),
-        }
-
-    # Format string will be expanded below.
-    if limit:
-        params = {
-            'limit': '{limit}',
-            'page': '{page}',
-        }
-    else:
-        limit = None
-        params = {
-            'limit': '0',
-        }
-
-    if extra:
-        for key, value in extra.items():
-            # Use the original GET parameter if supplied and if the
-            # cleaned value is valid
-            if key in request.GET and value is not None and value != '':
-                params.setdefault(key, request.GET.get(key))
-
-    # Stringify parameters. Since these are the original GET params,
-    # they do not need to be encoded
-    pairs = sorted(['{0}={1}'.format(k, v) for k, v in params.items()])
-
-    # Create path string
-    path_format = '{0}?{1}'.format(path, '&'.join(pairs))
-
-    links = {
-        'self': uri(path_format.format(page=page, limit=limit)),
-        'base': uri(path),
-        'first': uri(path_format.format(page=1, limit=limit)),
-    }
-
-    if page > 1:
-        prev_page = page - 1
-        links['prev'] = uri(path_format.format(
-            page=prev_page, limit=limit))
-
-    next_page = page + 1
-    links['next'] = uri(path_format.format(
-        page=next_page, limit=limit))
-
-    return links
+from serrano.resources.base import BaseResource
+from serrano.resources.processors import PREVIEW_RESULT_PROCESSOR_NAME, \
+    process_results
 
 
 class PreviewParametizer(Parametizer):
@@ -84,6 +27,9 @@ class PreviewResource(BaseResource):
 
     parametizer = PreviewParametizer
 
+    def _get_query_name(self, request):
+        return request.session.session_key
+
     def get(self, request, **kwargs):
         params = self.get_params(request)
 
@@ -91,79 +37,28 @@ class PreviewResource(BaseResource):
         view = self.get_view(request)
         context = self.get_context(request)
 
+        # Configure the query options used for retrieving the results.
+        query_options = {
+            'export_type': HTMLExporter.short_name,
+            'query_name': self._get_query_name(request),
+        }
+        query_options.update(**kwargs)
+        query_options.update(params)
+
         try:
-            rows, row_options = get_result_rows(
-                context=context,
-                view=view,
-                limit=params.get('limit'),
-                tree=params.get('tree'),
-                processor_name=params.get('processor'),
-                page=kwargs.get('page'),
-                stop_page=kwargs.get('stop_page'),
-                query_name=request.session.session_key,
-                reader=params.get('reader'),
-                export_type=HTMLExporter.short_name
-            )
+            row_data = utils.get_result_rows(context, view, query_options)
         except ValueError:
             raise Http404
 
-        objects = []
-
-        # Split the primary key from the requested values in the row.
-        for row in rows:
-            objects.append({
-                'pk': row[0],
-                'values': row[1:],
-            })
-
-        header = []
-        view_node = view.parse()
-        concepts = view_node.get_concepts_for_select()
-        ordering = OrderedDict(view_node.ordering)
-
-        # Skip the primary key field in the header since it is not exposed
-        # in the row output below.
-        for i, f in enumerate(row_options['exporter'].header[1:]):
-            concept = concepts[i]
-
-            obj = {
-                'id': concept.id,
-                'name': f['label'],
-            }
-
-            if concept.id in ordering:
-                obj['direction'] = ordering[concept.id]
-
-            header.append(obj)
-
-        # Various model options
-        opts = row_options['queryset'].model._meta
-
-        model_name = opts.verbose_name.format()
-        model_name_plural = opts.verbose_name_plural.format()
-
-        data = {
-            'keys': header,
-            'items': objects,
-            'item_name': model_name,
-            'item_name_plural': model_name_plural,
-            'limit': row_options['limit'],
-        }
-
-        response = self.render(request, content=data)
-
-        path = reverse('serrano:data:preview')
-        links = get_page_links(request, path, row_options['page'],
-                               row_options['limit'], extra=params)
-
-        return patch_response(request, response, links, {})
+        return process_results(
+            request, PREVIEW_RESULT_PROCESSOR_NAME, row_data)
 
     # POST mimics GET to support sending large request bodies for on-the-fly
     # context and view data.
     post = get
 
     def delete(self, request):
-        query_name = request.session.session_key
+        query_name = self._get_query_name(request)
         canceled = utils.cancel_query(query_name)
         return self.render(request, {'canceled': canceled})
 

@@ -1,16 +1,15 @@
-from datetime import datetime
-from django.http import HttpResponse, Http404
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
-from restlib2.params import Parametizer, IntParam, StrParam
+from django.http import Http404
 from modeltree.tree import MODELTREE_DEFAULT_ALIAS, trees
+from restlib2.params import Parametizer, IntParam, StrParam
+
 from avocado.export import BaseExporter, registry as exporters
 from avocado.query import pipeline, utils
-from avocado.events import usage
-from ..conf import settings
-from . import API_VERSION
-from .base import BaseResource
-from ..utils import get_result_rows
+from serrano.resources import API_VERSION
+from serrano.resources.base import BaseResource
+from serrano.resources.processors import EXPORTER_RESULT_PROCESSOR_NAME, \
+    process_results
 
 
 # Single list of all registered exporters
@@ -62,63 +61,12 @@ class ExporterResource(BaseResource):
 
     parametizer = ExporterParametizer
 
-    def _export(self, request, export_type, view, context, **kwargs):
-        params = self.get_params(request)
+    QUERY_NAME_TEMPLATE = '{session_key}:{export_type}'
 
-        # Use a separate name for each for export type.
-        query_name = '{0}:{1}'.format(request.session.session_key, export_type)
-
-        try:
-            rows, row_options = get_result_rows(
-                context=context,
-                view=view,
-                limit=params.get('limit'),
-                tree=params.get('tree'),
-                processor_name=params.get('processor'),
-                page=kwargs.get('page'),
-                stop_page=kwargs.get('stop_page'),
-                query_name=query_name,
-                reader=params.get('reader'),
-                export_type=export_type
-            )
-        except ValueError:
-            raise Http404
-
-        exporter = row_options['exporter']
-        page = row_options['page']
-        stop_page = row_options['stop_page']
-
-        # Build a file name for the export file based on the page range.
-        if page:
-            file_tag = 'p{0}'.format(page)
-
-            if stop_page and stop_page > page:
-                file_tag = 'p{0}-{1}'.format(page, stop_page)
-        else:
-            file_tag = 'all'
-
-        resp = HttpResponse()
-        exporter.write(rows,
-                       buff=resp,
-                       request=request)
-
-        filename = '{0}-{1}-data.{2}'.format(file_tag,
-                                             datetime.now(),
-                                             exporter.file_extension)
-
-        cookie_name = settings.EXPORT_COOKIE_NAME_TEMPLATE.format(export_type)
-        resp.set_cookie(cookie_name, settings.EXPORT_COOKIE_DATA)
-
-        resp['Content-Disposition'] = 'attachment; filename="{0}"'\
-                                      .format(filename)
-        resp['Content-Type'] = exporter.content_type
-
-        usage.log('export', request=request, data={
-            'type': export_type,
-            'partial': page is not None,
-        })
-
-        return resp
+    def _get_query_name(self, request, export_type):
+        return self.QUERY_NAME_TEMPLATE.format(
+            session_key=request.session.session_key,
+            export_type=export_type)
 
     # Resource is dependent on the available export types
     def is_not_found(self, request, response, export_type, **kwargs):
@@ -127,12 +75,29 @@ class ExporterResource(BaseResource):
     def get(self, request, export_type, **kwargs):
         view = self.get_view(request)
         context = self.get_context(request)
-        return self._export(request, export_type, view, context, **kwargs)
+
+        params = self.get_params(request)
+
+        # Configure the query options used for retrieving the results.
+        query_options = {
+            'export_type': export_type,
+            'query_name': self._get_query_name(request, export_type),
+        }
+        query_options.update(**kwargs)
+        query_options.update(params)
+
+        try:
+            row_data = utils.get_result_rows(context, view, query_options)
+        except ValueError:
+            raise Http404
+
+        return process_results(
+            request, EXPORTER_RESULT_PROCESSOR_NAME, row_data)
 
     post = get
 
     def delete(self, request, export_type, **kwargs):
-        query_name = '{0}:{1}'.format(request.session.session_key, export_type)
+        query_name = self._get_query_name(request, export_type)
         canceled = utils.cancel_query(query_name)
         return self.render(request, {'canceled': canceled})
 

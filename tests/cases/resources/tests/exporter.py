@@ -6,6 +6,12 @@ from serrano.resources import API_VERSION
 
 
 class ExporterResourceTestCase(TestCase):
+    def test_delete(self):
+        self.client.get('/api/data/export/csv/')
+        response = self.client.delete('/api/data/export/csv/')
+        self.assertEqual(response.status_code, codes.ok)
+        self.assertTrue('canceled' in json.loads(response.content))
+
     def test_get(self):
         response = self.client.get('/api/data/export/',
                                    HTTP_ACCEPT='application/json')

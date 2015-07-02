@@ -21,6 +21,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
+    'django_rq',
     'avocado',
     'serrano',
     'tests',
@@ -82,6 +83,7 @@ MODELTREES = {
     },
 }
 
+AVOCADO_QUEUE_NAME = 'serrano_test_queue'
 AVOCADO = {
     'FORCE_SYNC_LOG': True,
     'DATA_CACHE_ENABLED': False,
@@ -91,7 +93,8 @@ AVOCADO = {
         'under_twenty_thousand': 'tests.processors.UnderTwentyThousandQueryProcessor',  # noqa
         'first_title': 'tests.processors.FirstTitleQueryProcessor',
         'first_two': 'tests.processors.FirstTwoByIdQueryProcessor',
-    }
+    },
+    'ASYNC_QUEUE': AVOCADO_QUEUE_NAME,
 }
 
 # Switch handlers from 'null' => 'console' to see logging output
@@ -119,5 +122,17 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'rq.worker': {
+            'handlers': ['null'],
+            'level': 'DEBUG',
+        },
     }
+}
+
+RQ_QUEUES = {
+    AVOCADO_QUEUE_NAME: {
+        'HOST': 'localhost',
+        'PORT': 6379,
+        'DB': 0,
+    },
 }

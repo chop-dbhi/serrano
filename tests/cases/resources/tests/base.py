@@ -1,14 +1,16 @@
 import json
 import time
+
 from django.contrib.auth.models import User
 from django.core import management
 from django.test import TestCase, TransactionTestCase
 from django.test.utils import override_settings
 from restlib2.http import codes
+
 from avocado.history.models import Revision
 from avocado.models import DataField, DataView, DataContext
-from serrano.resources import API_VERSION
 from serrano.models import ApiToken
+from serrano.resources import API_VERSION
 
 
 class BaseTestCase(TestCase):
