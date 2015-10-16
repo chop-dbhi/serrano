@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 install_requires = [
     'avocado>=2.4.0,<2.5',
     'restlib2>=0.4.2,<0.5.0',
-    'django-preserialize>=1.0.7,<1.1',
+    'django-preserialize>=1.1.0,<1.2.0',
 ]
 
 if sys.version_info < (2, 7):
