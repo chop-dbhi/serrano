@@ -3,7 +3,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
 from avocado.query.utils import async_get_result_rows
-from serrano.resources.exporter import ExporterResource
+from serrano.resources.exporter import ExporterResource, ExporterRootResource
 from serrano.resources.processors import ASYNC_EXPORTER_RESULT_PROCESSOR_NAME
 
 
@@ -48,10 +48,12 @@ class AsyncExporterResource(ExporterResource):
 
 
 exporter_resource = AsyncExporterResource()
+exporter_root_resource = ExporterRootResource()
 
 # Resource endpoints
 urlpatterns = patterns(
     '',
+    url(r'^$', exporter_root_resource, name='exporter'),
     url(
         r'^(?P<export_type>\w+)/$',
         exporter_resource,

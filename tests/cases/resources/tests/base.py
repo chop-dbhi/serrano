@@ -58,6 +58,7 @@ class RootResourceTestCase(TestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/export/>; rel="exporter", '
+            '<http://testserver/api/async/preview/>; rel="async_preview", '
             '<http://testserver/api/views/>; rel="views", '
             '<http://testserver/api/concepts/>; rel="concepts", '
             '<http://testserver/api/stats/>; rel="stats", '
@@ -69,6 +70,7 @@ class RootResourceTestCase(TestCase):
             '<http://testserver/api/>; rel="self", '
             '<http://testserver/api/ping/>; rel="ping", '
             '<http://testserver/api/queries/>; rel="queries", '
+            '<http://testserver/api/async/export/>; rel="async_exporter", '
             '<http://testserver/api/data/preview/>; rel="preview"'
         ))
         self.assertEqual(json.loads(response.content), {
