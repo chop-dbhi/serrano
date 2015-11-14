@@ -175,6 +175,7 @@ class PreviewResultProcessor(BaseResultProcessor):
             'item_name': model_name,
             'item_name_plural': model_name_plural,
             'limit': result_data['limit'],
+            'page': result_data['page'],
         }
 
         response = HttpResponse(

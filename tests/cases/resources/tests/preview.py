@@ -48,6 +48,7 @@ class PreviewResourceTestCase(TestCase):
             'keys': [],
             'limit': None,
             'item_name_plural': 'employees',
+            'page': None,
         })
 
     def test_get_invalid(self):
@@ -66,6 +67,7 @@ class PreviewResourceTestCase(TestCase):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 20,
+            'page': 7,
         })
 
     def test_get_page_range_equal(self):
@@ -79,6 +81,7 @@ class PreviewResourceTestCase(TestCase):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 20,
+            'page': 3,
         })
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/preview/?limit=20&page=2>; rel="prev", '   # noqa
@@ -99,6 +102,7 @@ class PreviewResourceTestCase(TestCase):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 100,
+            'page': 1,
         })
 
     def test_get_limit(self):
@@ -112,6 +116,7 @@ class PreviewResourceTestCase(TestCase):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 1000,
+            'page': 1,
         })
 
     def test_get_with_user(self):
@@ -128,6 +133,7 @@ class PreviewResourceTestCase(TestCase):
             'keys': [],
             'limit': None,
             'item_name_plural': 'employees',
+            'page': None,
         })
         self.assertEqual(response['Link'], (
             '<http://testserver/api/data/preview/>; rel="self"'

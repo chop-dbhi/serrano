@@ -116,6 +116,7 @@ class AsyncPreviewResourceTestCase(TestCase, JobTestCaseMixin):
             'keys': [],
             'limit': None,
             'item_name_plural': 'employees',
+            'page': None,
         })
 
     def test_get_page(self):
@@ -128,6 +129,7 @@ class AsyncPreviewResourceTestCase(TestCase, JobTestCaseMixin):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 20,
+            'page': 7,
         })
 
     def test_get_page_range_equal(self):
@@ -141,6 +143,7 @@ class AsyncPreviewResourceTestCase(TestCase, JobTestCaseMixin):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 20,
+            'page': 3,
         }
         links = (
             '<http://testserver/api/async/preview/?limit=20&page=2>; rel="prev", '   # noqa
@@ -161,6 +164,7 @@ class AsyncPreviewResourceTestCase(TestCase, JobTestCaseMixin):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 100,
+            'page': 1,
         })
 
     def test_get_limit(self):
@@ -173,6 +177,7 @@ class AsyncPreviewResourceTestCase(TestCase, JobTestCaseMixin):
             'keys': [],
             'item_name_plural': 'employees',
             'limit': 1000,
+            'page': 1,
         })
 
     def test_get_with_user(self):
@@ -189,6 +194,7 @@ class AsyncPreviewResourceTestCase(TestCase, JobTestCaseMixin):
             'keys': [],
             'limit': None,
             'item_name_plural': 'employees',
+            'page': None,
         }
         links = (
             '<http://testserver/api/async/preview/>; rel="self"'
