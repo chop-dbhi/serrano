@@ -50,9 +50,13 @@ class FieldStats(FieldBase):
         else:
             context = None
 
+        user_id = None
+        if getattr(request, 'user'):
+            user_id = request.user.pk
+
         QueryProcessor = pipeline.query_processors[params['processor']]
         processor = QueryProcessor(context=context, tree=instance.model)
-        queryset = processor.get_queryset(request=request)
+        queryset = processor.get_queryset(user_id=user_id)
 
         if instance.simple_type == 'number':
             resp = {

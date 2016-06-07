@@ -35,9 +35,13 @@ class FieldDistribution(FieldBase):
         else:
             context = None
 
+        user_id = None
+        if getattr(request, 'user'):
+            user_id = request.user.pk
+
         QueryProcessor = pipeline.query_processors[params['processor']]
         processor = QueryProcessor(context=context, tree=instance.model)
-        queryset = processor.get_queryset(request=request)
+        queryset = processor.get_queryset(user_id=user_id)
 
         # Get the value/label mapping to augment the result for display
         value_labels = instance.value_labels(queryset=queryset)

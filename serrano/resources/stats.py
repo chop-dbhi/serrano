@@ -17,10 +17,14 @@ from .base import BaseResource, ThrottledResource
 def get_count(request, model, refresh, processor, context):
     opts = model._meta
 
+    user_id = None
+    if getattr(request, 'user'):
+        user_id = request.user.pk
+
     # Build a queryset through the context which is toggled by
     # the parameter.
     processor = processor(context=context, tree=model)
-    queryset = processor.get_queryset(request=request)
+    queryset = processor.get_queryset(user_id=user_id)
 
     # Get count from cache or database
     label = ':'.join([opts.app_label, opts.module_name, 'count'])

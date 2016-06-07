@@ -25,10 +25,15 @@ class AsyncExporterResource(ExporterResource):
         context = self.get_context(request)
         params = self.get_params(request)
 
+        user_id = None
+        if getattr(request, 'user'):
+            user_id = request.user.pk
+
         # Configure the query options used for retrieving the results.
         query_options = {
             'export_type': export_type,
             'query_name': self._get_query_name(request, export_type),
+            'user_id': user_id,
         }
         query_options.update(**kwargs)
         query_options.update(params)

@@ -10,9 +10,13 @@ class QueryStatsResource(QueryBase):
         params = self.get_params(request)
         instance = self.get_object(request, **kwargs)
 
+        user_id = None
+        if getattr(request, 'user'):
+            user_id = request.user.pk
+
         QueryProcessor = pipeline.query_processors[params['processor']]
         processor = QueryProcessor(tree=params['tree'])
-        queryset = processor.get_queryset(request=request)
+        queryset = processor.get_queryset(user_id=user_id)
 
         return {
             'distinct_count': instance.context.count(queryset=queryset),

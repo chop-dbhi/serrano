@@ -37,11 +37,15 @@ class PreviewResource(BaseResource):
         view = self.get_view(request)
         context = self.get_context(request)
 
+        user_id = None
+        if getattr(request, 'user'):
+            user_id = request.user.pk
+
         # Configure the query options used for retrieving the results.
         query_options = {
             'export_type': HTMLExporter.short_name,
             'query_name': self._get_query_name(request),
-            'request': request,
+            'user_id': user_id,
         }
         query_options.update(**kwargs)
         query_options.update(params)

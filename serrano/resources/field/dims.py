@@ -51,9 +51,13 @@ class FieldDimensions(FieldBase):
         else:
             context = None
 
+        user_id = None
+        if getattr(request, 'user'):
+            user_id = request.user.pk
+
         QueryProcessor = pipeline.query_processors[params['processor']]
         processor = QueryProcessor(context=context, tree=tree)
-        queryset = processor.get_queryset(request=request)
+        queryset = processor.get_queryset(user_id=user_id)
 
         # Explicit fields to group by, ignore ones that dont exist or the
         # user does not have permission to view. Default is to group by the
