@@ -82,6 +82,7 @@ class ExporterResource(BaseResource):
         query_options = {
             'export_type': export_type,
             'query_name': self._get_query_name(request, export_type),
+            'request': request,
         }
         query_options.update(**kwargs)
         query_options.update(params)

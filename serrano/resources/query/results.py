@@ -54,6 +54,7 @@ class QueryResultsResource(QueryBase):
         query_options = {
             'export_type': JSONExporter.short_name.lower(),
             'query_name': self._get_query_name(request),
+            'request': request,
         }
         query_options.update(**kwargs)
         query_options.update(params)
