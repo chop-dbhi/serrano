@@ -3,9 +3,12 @@ from datetime import datetime
 from django.conf.urls import patterns, url
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
+from restlib2.params import Parametizer, StrParam
 from preserialize.serialize import serialize
+from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
 from avocado.models import DataView
 from avocado.events import usage
+from avocado.query import pipeline
 from serrano.forms import ViewForm
 from .base import ThrottledResource
 from .history import RevisionsResource, ObjectRevisionsResource, \
@@ -16,12 +19,19 @@ from ..links import reverse_tmpl
 log = logging.getLogger(__name__)
 
 
+class ViewParametizer(Parametizer):
+    tree = StrParam(MODELTREE_DEFAULT_ALIAS, choices=trees)
+    processor = StrParam('default', choices=pipeline.query_processors)
+
+
 class ViewBase(ThrottledResource):
     cache_max_age = 0
     private_cache = True
 
     model = DataView
     template = templates.View
+
+    parametizer = ViewParametizer
 
     def get_link_templates(self, request):
         uri = request.build_absolute_uri
@@ -51,6 +61,25 @@ class ViewBase(ThrottledResource):
             return self.model.objects.none()
 
         return self.model.objects.filter(**kwargs)
+
+    def get_object(self, request, pk=None, session=None, **kwargs):
+        if not pk and not session:
+            raise ValueError('A pk or session must used for the lookup')
+
+        if not hasattr(request, 'instance'):
+            queryset = self.get_queryset(request, **kwargs)
+
+            try:
+                if pk:
+                    instance = queryset.get(pk=pk)
+                else:
+                    instance = queryset.get(session=True)
+            except self.model.DoesNotExist:
+                instance = None
+
+            request.instance = instance
+
+        return request.instance
 
     def get_default(self, request):
         default = self.model.objects.get_default_template()
@@ -105,25 +134,6 @@ class ViewsResource(ViewBase):
 
 class ViewResource(ViewBase):
     "Resource for accessing a single view"
-    def get_object(self, request, pk=None, session=None, **kwargs):
-        if not pk and not session:
-            raise ValueError('A pk or session must used for the lookup')
-
-        if not hasattr(request, 'instance'):
-            queryset = self.get_queryset(request, **kwargs)
-
-            try:
-                if pk:
-                    instance = queryset.get(pk=pk)
-                else:
-                    instance = queryset.get(session=True)
-            except self.model.DoesNotExist:
-                instance = None
-
-            request.instance = instance
-
-        return request.instance
-
     def is_not_found(self, request, response, **kwargs):
         return self.get_object(request, **kwargs) is None
 
@@ -169,8 +179,31 @@ class ViewResource(ViewBase):
         request.session.modified = True
 
 
+class ViewSqlResource(ViewBase):
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        params = self.get_params(request)
+        instance = self.get_object(request, **kwargs)
+
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(tree=params['tree'], view=instance)
+        queryset = processor.get_queryset(request=request)
+
+        sql, params = queryset.query.get_compiler(queryset.db).as_sql()
+
+        return {
+            'description': instance.json,
+            'representation': {
+                'sql': sql,
+                'params': params,
+            },
+        }
+
 single_resource = never_cache(ViewResource())
 active_resource = never_cache(ViewsResource())
+sql_resource = never_cache(ViewSqlResource)
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataView, object_model_template=templates.View,
     object_model_base_uri='serrano:views'))
@@ -189,6 +222,10 @@ urlpatterns = patterns(
     # Endpoints for specific views
     url(r'^(?P<pk>\d+)/$', single_resource, name='single'),
     url(r'^session/$', single_resource, {'session': True}, name='session'),
+
+    # Endpoints for specific views
+    url(r'^(?P<pk>\d+)/sql/$', sql_resource, name='sql'),
+    url(r'^session/sql/$', sql_resource, {'session': True}, name='sql'),
 
     # Revision related endpoints
     url(r'^revisions/$', revisions_resource, name='revisions'),

@@ -231,8 +231,46 @@ class ContextStatsResource(ContextBase):
         }
 
 
+def prune_context(cxt):
+    if 'children' in cxt:
+        cxt['children'] = map(prune_context, cxt['children'])
+    else:
+        cxt = {
+            'concept': cxt.get('concept'),
+            'field': cxt.get('field'),
+            'operator': cxt.get('operator'),
+            'value': cxt.get('value'),
+        }
+
+    return cxt
+
+
+class ContextSqlResource(ContextBase):
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        params = self.get_params(request)
+        instance = self.get_object(request, **kwargs)
+
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(tree=params['tree'], context=instance)
+        queryset = processor.get_queryset(request=request).values('pk')
+
+        sql, params = queryset.query.get_compiler(queryset.db).as_sql()
+
+        return {
+            'description': prune_context(instance.json),
+            'representation': {
+                'sql': sql,
+                'params': params,
+            },
+        }
+
+
 single_resource = never_cache(ContextResource())
 stats_resource = never_cache(ContextStatsResource())
+sql_resource = never_cache(ContextSqlResource())
 active_resource = never_cache(ContextsResource())
 revisions_resource = never_cache(RevisionsResource(
     object_model=DataContext, object_model_template=templates.Context,
@@ -256,6 +294,10 @@ urlpatterns = patterns(
     # Stats for a single context
     url(r'^(?P<pk>\d+)/stats/$', stats_resource, name='stats'),
     url(r'^session/stats/$', stats_resource, {'session': True}, name='stats'),
+
+    # SQL for a single context
+    url(r'^(?P<pk>\d+)/sql/$', sql_resource, name='sql'),
+    url(r'^session/sql/$', sql_resource, {'session': True}, name='sql'),
 
     # Revision related endpoints
     url(r'^revisions/$', revisions_resource, name='revisions'),
