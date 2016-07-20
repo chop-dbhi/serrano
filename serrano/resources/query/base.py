@@ -9,7 +9,7 @@ from restlib2.http import codes
 from restlib2.params import Parametizer, StrParam
 
 from avocado.events import usage
-from avocado.models import DataQuery
+from avocado.models import DataQuery, DataView, DataContext
 from avocado.query import pipeline
 from serrano.forms import QueryForm
 from serrano.links import reverse_tmpl
@@ -85,12 +85,23 @@ class QueryBase(ThrottledResource):
 
         return self.model.objects.filter(**kwargs)
 
+    def get_request_filters(self, request):
+        filters = {}
+
+        if getattr(request, 'user', None) and request.user.is_authenticated():
+            filters['user'] = request.user
+        elif request.session.session_key:
+            filters['session_key'] = request.session.session_key
+
+        return filters
+
     def get_object(self, request, pk=None, session=None, **kwargs):
         if not pk and not session:
             raise ValueError('A pk or session must used for the lookup')
 
         if not hasattr(request, 'instance'):
             queryset = self.get_queryset(request, **kwargs)
+            instance = None
 
             try:
                 if pk:
@@ -98,7 +109,18 @@ class QueryBase(ThrottledResource):
                 else:
                     instance = queryset.get(session=True)
             except self.model.DoesNotExist:
-                instance = None
+                if session:
+                    filters = self.get_request_filters(request)
+
+                    try:
+                        context = DataContext.objects.filter(**filters)\
+                            .get(session=True)
+                        view = DataView.objects.filter(**filters)\
+                            .get(session=True)
+                        instance = DataQuery(context_json=context.json,
+                                             view_json=view.json)
+                    except (DataContext.DoesNotExist, DataView.DoesNotExist):
+                        pass
 
             request.instance = instance
 
@@ -219,3 +241,45 @@ class QueryResource(QueryBase):
         instance.delete()
         usage.log('delete', instance=instance, request=request)
         request.session.modified = True
+
+
+def prune_context(cxt):
+    if 'children' in cxt:
+        cxt['children'] = map(prune_context, cxt['children'])
+    else:
+        cxt = {
+            'concept': cxt.get('concept'),
+            'field': cxt.get('field'),
+            'operator': cxt.get('operator'),
+            'value': cxt.get('value'),
+        }
+
+    return cxt
+
+
+class QuerySqlResource(QueryBase):
+    def is_not_found(self, request, response, **kwargs):
+        return self.get_object(request, **kwargs) is None
+
+    def get(self, request, **kwargs):
+        params = self.get_params(request)
+        instance = self.get_object(request, **kwargs)
+
+        QueryProcessor = pipeline.query_processors[params['processor']]
+        processor = QueryProcessor(tree=params['tree'],
+                                   context=instance.context,
+                                   view=instance.view)
+        queryset = processor.get_queryset(request=request)
+
+        sql, params = queryset.query.get_compiler(queryset.db).as_sql()
+
+        return {
+            'description': {
+                'context': prune_context(instance.context_json),
+                'view': instance.view_json,
+            },
+            'representation': {
+                'sql': sql,
+                'params': params,
+            },
+        }

@@ -6,13 +6,14 @@ from serrano.resources import templates
 from serrano.resources.history import ObjectRevisionResource, \
     ObjectRevisionsResource, RevisionsResource
 from serrano.resources.query.base import PublicQueriesResource, \
-    QueryResource, QueriesResource
+    QueryResource, QueriesResource, QuerySqlResource
 from serrano.resources.query.forks import QueryForksResource
 from serrano.resources.query.results import QueryResultsResource
 from serrano.resources.query.stats import QueryStatsResource
 
 single_resource = never_cache(QueryResource())
 active_resource = never_cache(QueriesResource())
+sql_resource = never_cache(QuerySqlResource())
 public_resource = never_cache(PublicQueriesResource())
 forks_resource = never_cache(QueryForksResource())
 stats_resource = never_cache(QueryStatsResource())
@@ -105,6 +106,19 @@ urlpatterns = patterns(
         stats_resource,
         {'session': True},
         name='stats'
+    ),
+
+    # SQL
+    url(
+        r'^(?P<pk>\d+)/sql/$',
+        sql_resource,
+        name='sql'
+    ),
+    url(
+        r'^session/sql/$',
+        sql_resource,
+        {'session': True},
+        name='sql'
     ),
 
     # Forks
