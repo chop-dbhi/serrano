@@ -170,10 +170,8 @@ class ContextResource(ContextBase):
         instance = self.get_object(request, **kwargs)
         usage.log('read', instance=instance, request=request)
 
-        # Fast single field update..
-        # TODO Django 1.5+ supports this on instance save methods.
-        self.model.objects.filter(pk=instance.pk).update(
-            accessed=datetime.now())
+        instance.accessed = datetime.now()
+        instance.save(update_fields=('accessed',))
 
         return self.prepare(request, instance, tree=params['tree'])
 
