@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from django.conf import settings
 from django.conf.urls import patterns, url
 from django.views.decorators.cache import never_cache
 from restlib2.http import codes
@@ -180,6 +181,17 @@ class ViewResource(ViewBase):
 
 
 class ViewSqlResource(ViewBase):
+    def is_unauthorized(self, request, *args, **kwargs):
+        if super(ViewSqlResource, self)\
+                .is_unauthorized(request, *args, **kwargs):
+            return True
+
+        return not any((
+            request.user.is_superuser,
+            request.user.is_staff,
+            settings.DEBUG,
+        ))
+
     def is_not_found(self, request, response, **kwargs):
         return self.get_object(request, **kwargs) is None
 

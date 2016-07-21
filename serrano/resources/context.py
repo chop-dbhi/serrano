@@ -1,6 +1,7 @@
 import functools
 import logging
 from datetime import datetime
+from django.conf import settings
 from django.conf.urls import patterns, url
 from django.core.urlresolvers import reverse
 from django.views.decorators.cache import never_cache
@@ -246,6 +247,17 @@ def prune_context(cxt):
 
 
 class ContextSqlResource(ContextBase):
+    def is_unauthorized(self, request, *args, **kwargs):
+        if super(ContextSqlResource, self)\
+                .is_unauthorized(request, *args, **kwargs):
+            return True
+
+        return not any((
+            request.user.is_superuser,
+            request.user.is_staff,
+            settings.DEBUG,
+        ))
+
     def is_not_found(self, request, response, **kwargs):
         return self.get_object(request, **kwargs) is None
 
