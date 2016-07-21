@@ -3,6 +3,7 @@ from datetime import datetime
 import functools
 
 from django.db.models import Q
+from django.conf import settings
 from modeltree.tree import trees, MODELTREE_DEFAULT_ALIAS
 from preserialize.serialize import serialize
 from restlib2.http import codes
@@ -258,6 +259,17 @@ def prune_context(cxt):
 
 
 class QuerySqlResource(QueryBase):
+    def is_unauthorized(self, request, *args, **kwargs):
+        if super(QuerySqlResource, self)\
+                .is_unauthorized(request, *args, **kwargs):
+            return True
+
+        return not any((
+            request.user.is_superuser,
+            request.user.is_staff,
+            settings.DEBUG,
+        ))
+
     def is_not_found(self, request, response, **kwargs):
         return self.get_object(request, **kwargs) is None
 
