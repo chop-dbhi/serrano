@@ -1,3 +1,4 @@
+from django.core.urlresolvers import reverse
 from .tokens import get_request_token
 
 
@@ -7,8 +8,10 @@ class SessionMiddleware(object):
             return
 
         # Token-based authentication is attempting to be used, bypass CSRF
-        # check
-        if get_request_token(request):
+        # check. Allow POST requests to the root endpoint for authentication.
+        if get_request_token(request) or \
+                (request.method == 'POST' and
+                 request.path == reverse('serrano:root')):
             request.csrf_processing_done = True
             return
 
