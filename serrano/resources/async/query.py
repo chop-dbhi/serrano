@@ -42,7 +42,8 @@ class AsyncQueryResultsResource(QueryResultsResource):
             request.instance.context,
             request.instance.view,
             query_options,
-            job_data)
+            job_data,
+            request=request)
 
         return HttpResponseRedirect(
             reverse('serrano:jobs:single', kwargs={'job_uuid': job_id}))

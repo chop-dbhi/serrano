@@ -43,7 +43,7 @@ class AsyncPreviewResource(PreviewResource):
         }
 
         job_id = async_get_result_rows(
-            context, view, query_options, job_data)
+            context, view, query_options, job_data, request=request)
 
         return HttpResponseRedirect(
             reverse('serrano:jobs:single', kwargs={'job_uuid': job_id}))

@@ -41,13 +41,13 @@ class PreviewResource(BaseResource):
         query_options = {
             'export_type': HTMLExporter.short_name,
             'query_name': self._get_query_name(request),
-            'request': request,
         }
         query_options.update(**kwargs)
         query_options.update(params)
 
         try:
-            row_data = utils.get_result_rows(context, view, query_options)
+            row_data = utils.get_result_rows(context, view, query_options,
+                                             request=request)
         except ValueError:
             raise Http404
 
