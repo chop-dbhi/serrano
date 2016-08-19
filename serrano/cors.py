@@ -1,6 +1,11 @@
 from serrano.conf import settings
 
 
+def is_preflight(request):
+    return (request.method == 'OPTIONS' and
+            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' in request.META)
+
+
 def patch_response(request, response, methods):
     if settings.CORS_ENABLED:
         allowed_origins = settings.CORS_ORIGINS
