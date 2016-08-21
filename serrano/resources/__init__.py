@@ -11,6 +11,7 @@ from serrano.conf import dep_supported, settings
 from serrano.tokens import token_generator
 from serrano import cors
 from .base import BaseResource
+from ..links import reverse_tmpl
 
 API_VERSION = '{major}.{minor}.{micro}'.format(**serrano.__version_info__)
 
@@ -21,6 +22,36 @@ class Root(BaseResource):
     def is_unauthorized(self, request, *args, **kwargs):
         if request.method != 'POST':
             return super(Root, self).is_unauthorized(request, *args, **kwargs)
+
+    def get_link_templates(self, request):
+        uri = request.build_absolute_uri
+
+        return {
+            'category': reverse_tmpl(uri, 'serrano:category', {
+                'pk': (int, 'id')
+            }),
+            'field': reverse_tmpl(uri, 'serrano:field', {
+                'pk': (int, 'id')
+            }),
+            'concept': reverse_tmpl(uri, 'serrano:concept', {
+                'pk': (int, 'id')
+            }),
+            'context': reverse_tmpl(uri, 'serrano:contexts:single', {
+                'pk': (int, 'id')
+            }),
+            'view': reverse_tmpl(uri, 'serrano:views:single', {
+                'pk': (int, 'id')
+            }),
+            'query': reverse_tmpl(uri, 'serrano:queries:single', {
+                'pk': (int, 'id')
+            }),
+            'query_results': reverse_tmpl(uri, 'serrano:queries:results', {
+                'pk': (int, 'id')
+            }),
+            'export': reverse_tmpl(uri, 'serrano:data:exporter', {
+                'export_type': (str, 'type')
+            }),
+        }
 
     def get_links(self, request):
         uri = request.build_absolute_uri
