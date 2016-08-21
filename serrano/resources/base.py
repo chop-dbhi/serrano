@@ -192,6 +192,9 @@ class BaseResource(Resource):
     parametizer = Parametizer
 
     def is_unauthorized(self, request, *args, **kwargs):
+        if cors.is_preflight(request):
+            return
+
         user = getattr(request, 'user', None)
 
         # Attempt to authenticate if a token is present
