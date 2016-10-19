@@ -1,4 +1,4 @@
-git+git://github.com/cbmi/avocado.git
+git+git://github.com/chop-dbhi/avocado.git
 django-preserialize>=1.1.0,<1.2.0
 restlib2>=0.4.2,<0.5.0
 python-memcached>=1.48
