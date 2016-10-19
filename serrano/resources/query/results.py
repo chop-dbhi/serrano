@@ -54,7 +54,6 @@ class QueryResultsResource(QueryBase):
         query_options = {
             'export_type': JSONExporter.short_name.lower(),
             'query_name': self._get_query_name(request),
-            'request': request,
         }
         query_options.update(**kwargs)
         query_options.update(params)
@@ -63,7 +62,8 @@ class QueryResultsResource(QueryBase):
             row_data = query_utils.get_result_rows(
                 request.instance.context,
                 request.instance.view,
-                query_options)
+                query_options,
+                request=request)
         except ValueError:
             raise Http404
 
