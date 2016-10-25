@@ -2,15 +2,16 @@ import weakref
 import threading
 from multiprocessing.pool import ThreadPool
 from django.core.urlresolvers import reverse
-from django.core.cache import cache
+from django.core.cache import get_cache
 from django.conf.urls import patterns, url
 from django.views.decorators.cache import never_cache
 from restlib2.params import Parametizer, BoolParam, StrParam
+from avocado.conf import settings as avocado_settings
 from avocado.models import DataContext, DataField
 from avocado.query import pipeline
 from avocado.core.cache import cache_key
 from avocado.core.cache.model import NEVER_EXPIRE
-from ..conf import settings
+from ..conf import settings as serrano_settings
 from .base import BaseResource, ThrottledResource
 
 
@@ -25,6 +26,8 @@ def get_count(request, model, refresh, processor, context):
     # Get count from cache or database
     label = ':'.join([opts.app_label, opts.module_name, 'count'])
     key = cache_key(label, kwargs={'queryset': queryset})
+
+    cache = get_cache(avocado_settings.DATA_CACHE)
 
     if refresh:
         count = None
@@ -143,7 +146,7 @@ class CountStatsResource(ThrottledResource):
 
         for i, r in enumerate(results):
             try:
-                count = r.get(timeout=settings.STATS_COUNT_TIMEOUT)
+                count = r.get(timeout=serrano_settings.STATS_COUNT_TIMEOUT)
                 data[i]['count'] = count
             except Exception:
                 pass
